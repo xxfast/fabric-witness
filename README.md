@@ -1,7 +1,7 @@
-<img src="src/main/resources/assets/witness/icon.png">
-
 # fabric-witness
 ![Gradle build](https://github.com/xxfast/fabric-witness/workflows/Gradle%20build/badge.svg)
+
+<img src="src/main/resources/assets/witness/icon.png" align="right">
 
 ## What is it?
 
