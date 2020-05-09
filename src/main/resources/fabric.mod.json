@@ -17,6 +17,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
+      "com.xfastgames.witness.Witness"
     ]
   },
   "mixins": [

@@ -1,0 +1,15 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "witness:block/yellow_stained_stone_bricks_1"
+      },
+      {
+        "model": "witness:block/yellow_stained_stone_bricks_2"
+      },
+      {
+        "model": "witness:block/yellow_stained_stone_bricks_3"
+      }
+    ]
+  }
+}
