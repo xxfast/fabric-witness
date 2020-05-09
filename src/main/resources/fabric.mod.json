@@ -1,25 +1,22 @@
 {
   "schemaVersion": 1,
-  "id": "modid",
+  "id": "witness",
   "version": "${version}",
-
-  "name": "Example Mod",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "Witness Minecraft",
+  "description": "This a helper mod for the Witness Minecraft Series",
   "authors": [
-    "Me!"
+    "xxfast"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://www.youtube.com/channel/UCrLikF1yl6dqz0N9OaJlAcA",
+    "sources": "https://github.com/xxfast/fabric-witness"
   },
-
   "license": "CC0-1.0",
   "icon": "assets/modid/icon.png",
 
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.fabricmc.example.ExampleModKt::init"
     ]
   },
   "mixins": [

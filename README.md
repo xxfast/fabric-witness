@@ -1,16 +1,22 @@
-# Fabric Example Mod - Kotlin
+# fabric-witness
+![Gradle build](https://github.com/xxfast/fabric-witness/workflows/Gradle%20build/badge.svg)
 
-## Setup
+## What is it?
 
-0. Create a new mod repository by pressing the "Use this template" button and clone the created repository.
-
-1. Import build.gradle file with IntelliJ IDEA
-
-2. Edit build.gradle and mod.json to suit your needs.
-    * The "mixins" object can be removed from mod.json if you do not need to use mixins.
-    * Please replace all occurences of "modid" with your own mod ID - sometimes, a different string may also suffice.
-3. Run!
+A helper mod for The Witness Minecraft [youtube](https://www.youtube.com/watch?v=NtJE8jozI7U&list=PLgH8mtb5RMVNGH4sPxEjHp7FCWXt_txtF) series that adds a variety of blocks to the game to recreate the island from the game The Witness 
 
 ## License
 
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+Copyright 2020 © Isuru Rajapakse
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
