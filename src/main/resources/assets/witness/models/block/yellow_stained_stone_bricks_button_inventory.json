@@ -1,0 +1,6 @@
+{
+  "parent": "block/button_inventory",
+  "textures": {
+    "texture": "witness:block/yellow_stained_stone_bricks_1"
+  }
+}

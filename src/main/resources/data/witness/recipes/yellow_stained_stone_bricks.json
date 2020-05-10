@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "stained_stone_bricks",
+  "pattern": [
+    "###",
+    "#X#",
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "minecraft:stone_bricks"
+    },
+    "X": {
+      "item": "minecraft:yellow_dye"
+    }
+  },
+  "result": {
+    "item": "witness:yellow_stained_stone_bricks",
+    "count": 8
+  }
+}

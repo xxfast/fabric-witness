@@ -10,9 +10,9 @@ import net.minecraft.util.registry.Registry
 
 fun registerBlock(block: Block,
                   name: String,
-                  identifier: Identifier = Identifier(WITNESS_ID, name),
                   settings: Item.Settings = Item.Settings().group(ItemGroup.MISC)
 ) {
-    Registry.register(Registry.BLOCK, identifier, block)
-    Registry.register(Registry.ITEM, identifier, BlockItem(block, settings))
+    val id = Identifier(WITNESS_ID, name)
+    Registry.register(Registry.BLOCK, id, block)
+    Registry.register(Registry.ITEM, id, BlockItem(block, settings))
 }
