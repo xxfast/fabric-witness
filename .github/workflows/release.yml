@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Set env
-        run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF:10}
+        run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF:11}
       - name: Check release version
         run: |
           echo $RELEASE_VERSION
