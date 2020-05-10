@@ -19,6 +19,8 @@ jobs:
           echo $RELEASE_VERSION
           echo ${{ env.RELEASE_VERSION }}
           echo ./build/libs/fabric-witness-${{  env.RELEASE_VERSION  }}.jar
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
       - name: Generate artifact
         run: ./gradlew build
       - name: Get Changelog Entry
