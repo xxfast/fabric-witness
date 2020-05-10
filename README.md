@@ -7,7 +7,17 @@
 
 A helper mod for The Witness Minecraft [youtube](https://www.youtube.com/watch?v=NtJE8jozI7U&list=PLgH8mtb5RMVNGH4sPxEjHp7FCWXt_txtF) series that adds a variety of blocks to the game to recreate the island from the game The Witness 
 
+## How do I get it?
+
+- Head over to [releases](https://github.com/xxfast/fabric-witness/releases) and download the jar in the assets
+- Load it up with [fabric mob loader](https://fabricmc.net/)
+
+Make sure to also load in these dependencies
+1. [fabric-api](https://www.curseforge.com/minecraft/mc-mods/fabric-api)
+2. [fabric-language-kotlin](https://www.curseforge.com/minecraft/mc-mods/fabric-language-kotlin)
+
 ## License
+
 
 Copyright 2020 © Isuru Rajapakse
 
