@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "leaves_runners",
+  "pattern": [
+    "#  ",
+    "#  ",
+    "#  "
+  ],
+  "key": {
+    "#": {
+      "item": "minecraft:oak_leaves"
+    }
+  },
+  "result": {
+    "item": "witness:oak_leaves_runners",
+    "count": 6
+  }
+}

@@ -1,5 +1,6 @@
 package com.xfastgames.witness
 
+import com.xfastgames.witness.blocks.leaves.OakLeavesRunners
 import com.xfastgames.witness.blocks.stained.stone.bricks.*
 import com.xfastgames.witness.utils.registerBlock
 import net.fabricmc.api.ModInitializer
@@ -14,5 +15,6 @@ class Witness : ModInitializer {
         registerBlock(StainedStoneSlabs(), "yellow_stained_stone_bricks_slabs")
         registerBlock(StainedStoneWall(), "yellow_stained_stone_bricks_walls")
         registerBlock(StainedStoneButton(), "yellow_stained_stone_bricks_button")
+        registerBlock(OakLeavesRunners(), "oak_leaves_runners", true)
     }
 }
