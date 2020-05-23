@@ -9,14 +9,44 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
+import net.minecraft.world.biome.Biome
+import net.minecraft.world.gen.GenerationStep
+import net.minecraft.world.gen.decorator.ChanceDecoratorConfig
+import net.minecraft.world.gen.decorator.Decorator
+import net.minecraft.world.gen.feature.DefaultFeatureConfig
+import net.minecraft.world.gen.feature.Feature
 
-fun registerBlock(block: Block,
-                  name: String,
-                  transparent: Boolean = false,
-                  settings: Item.Settings = Item.Settings().group(ItemGroup.MISC)
+fun registerBlock(
+    block: Block,
+    name: String,
+    render: RenderLayer? = null,
+    settings: Item.Settings = Item.Settings().group(ItemGroup.MISC)
 ) {
     val id = Identifier(WITNESS_ID, name)
     Registry.register(Registry.BLOCK, id, block)
     Registry.register(Registry.ITEM, id, BlockItem(block, settings))
-    if (transparent) BlockRenderLayerMap.INSTANCE.putBlock(block, RenderLayer.getTranslucent())
+    render?.let { BlockRenderLayerMap.INSTANCE.putBlock(block, it) }
+}
+
+fun registerFeature(
+    name: String,
+    feature: Feature<DefaultFeatureConfig?>,
+    step: GenerationStep.Feature = GenerationStep.Feature.SURFACE_STRUCTURES
+) {
+    val registeredFeature = Registry.register(
+        Registry.FEATURE,
+        Identifier(WITNESS_ID, name),
+        feature
+    )
+
+    if (feature is BiomeFeature)
+        Registry.BIOME
+            .filter { biome: Biome -> biome in feature.biomes }
+            .forEach { biome ->
+                biome.addFeature(
+                    step,
+                    registeredFeature.configure(DefaultFeatureConfig())
+                        .createDecoratedFeature(Decorator.CHANCE_HEIGHTMAP.configure(ChanceDecoratorConfig(100)))
+                )
+            }
 }

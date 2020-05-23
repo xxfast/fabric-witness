@@ -2,9 +2,13 @@ package com.xfastgames.witness
 
 import com.xfastgames.witness.blocks.leaves.OakLeavesRunners
 import com.xfastgames.witness.blocks.stained.stone.bricks.*
+import com.xfastgames.witness.blocks.yucca.Yucca
+import com.xfastgames.witness.feature.YuccaFeature
 import com.xfastgames.witness.utils.registerBlock
+import com.xfastgames.witness.utils.registerFeature
 import net.fabricmc.api.ModInitializer
 import net.minecraft.block.Blocks
+import net.minecraft.client.render.RenderLayer
 
 internal const val WITNESS_ID = "witness"
 
@@ -15,6 +19,8 @@ class Witness : ModInitializer {
         registerBlock(StainedStoneSlabs(), "yellow_stained_stone_bricks_slabs")
         registerBlock(StainedStoneWall(), "yellow_stained_stone_bricks_walls")
         registerBlock(StainedStoneButton(), "yellow_stained_stone_bricks_button")
-        registerBlock(OakLeavesRunners(), "oak_leaves_runners", true)
+        registerBlock(OakLeavesRunners(), "oak_leaves_runners", RenderLayer.getTranslucent())
+        registerBlock(Yucca, "yucca", RenderLayer.getTranslucent())
+        registerFeature("yucca_growth", YuccaFeature())
     }
 }
