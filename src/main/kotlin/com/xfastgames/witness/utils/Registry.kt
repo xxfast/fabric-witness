@@ -31,7 +31,7 @@ fun registerBlock(
 fun registerFeature(
     name: String,
     feature: Feature<DefaultFeatureConfig?>,
-    step: GenerationStep.Feature = GenerationStep.Feature.SURFACE_STRUCTURES
+    step: GenerationStep.Feature
 ) {
     val registeredFeature = Registry.register(
         Registry.FEATURE,
