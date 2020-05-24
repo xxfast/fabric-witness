@@ -1,0 +1,15 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "witness:block/mimosa_bush_1"
+      },
+      {
+        "model": "witness:block/mimosa_bush_2"
+      },
+      {
+        "model": "witness:block/mimosa_bush_3"
+      }
+    ]
+  }
+}

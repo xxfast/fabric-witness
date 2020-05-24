@@ -1,6 +1,7 @@
 package com.xfastgames.witness
 
 import com.xfastgames.witness.blocks.flowers.JasmineBush
+import com.xfastgames.witness.blocks.flowers.MimosaBush
 import com.xfastgames.witness.blocks.leaves.OakLeavesRunners
 import com.xfastgames.witness.blocks.stained.stone.bricks.*
 import com.xfastgames.witness.blocks.yucca.Yucca
@@ -25,6 +26,7 @@ class Witness : ModInitializer {
         registerBlock(OakLeavesRunners(), "oak_leaves_runners", RenderLayer.getTranslucent())
         registerBlock(Yucca, "yucca", RenderLayer.getTranslucent())
         registerBlock(JasmineBush, "jasmine_bush", RenderLayer.getCutout())
+        registerBlock(MimosaBush, "mimosa_bush", RenderLayer.getCutout())
         registerFeature("yucca_growth", YuccaFeature(), GenerationStep.Feature.VEGETAL_DECORATION)
         registerFeature("jasmine_bush_growth", JasmineBushFeature(), GenerationStep.Feature.VEGETAL_DECORATION)
     }
