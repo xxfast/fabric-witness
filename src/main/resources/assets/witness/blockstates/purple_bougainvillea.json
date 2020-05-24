@@ -1,0 +1,24 @@
+{
+  "variants": {
+    "part=leaf": [
+      {
+        "model": "witness:block/purple_bougainvillea_leaf"
+      }
+    ],
+    "part=lower": [
+      {
+        "model": "witness:block/purple_bougainvillea_lower"
+      }
+    ],
+    "part=middle": [
+      {
+        "model": "witness:block/purple_bougainvillea_middle"
+      }
+    ],
+    "part=top": [
+      {
+        "model": "witness:block/purple_bougainvillea_top"
+      }
+    ]
+  }
+}
