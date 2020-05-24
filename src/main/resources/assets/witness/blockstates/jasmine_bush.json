@@ -1,0 +1,15 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "witness:block/jasmine_bush_1"
+      },
+      {
+        "model": "witness:block/jasmine_bush_2"
+      },
+      {
+        "model": "witness:block/jasmine_bush_3"
+      }
+    ]
+  }
+}

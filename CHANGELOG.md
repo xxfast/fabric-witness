@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - 2020-05-23
 ### Added
 - Added lilac bushes
-- Added lilac bushes generation feature to 
+- Added lilac bushes generation feature to swamps
 
 ## [0.3.0] - 2020-05-23
 ### Added

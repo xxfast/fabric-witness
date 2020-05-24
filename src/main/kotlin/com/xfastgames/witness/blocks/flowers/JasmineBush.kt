@@ -17,7 +17,7 @@ import net.minecraft.world.BlockView
 import net.minecraft.world.World
 import kotlin.random.Random
 
-object LilacBush : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()), Fertilizable {
+object JasmineBush : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()), Fertilizable {
     override fun getOutlineShape(
         state: BlockState?,
         view: BlockView?,
