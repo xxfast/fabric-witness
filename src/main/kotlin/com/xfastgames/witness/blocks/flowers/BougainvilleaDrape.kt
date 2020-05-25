@@ -67,22 +67,41 @@ class BougainvilleaDrape :
     }
 
     override fun grow(world: ServerWorld, random: Random, pos: BlockPos, state: BlockState) {
-        world.setBlockState(pos, state.with(PART, DrapePart.TOP))
-
-        val positionAbove: BlockPos = pos.up(1)
-        val blockStateAbove: BlockState = world.getBlockState(positionAbove)
-        val blockAbove: Block = blockStateAbove.block
-        if (blockAbove is BougainvilleaDrape) {
-            world.setBlockState(pos, blockStateAbove.with(PART, DrapePart.MIDDLE))
-        }
-
         val positionBelow: BlockPos = pos.down(1)
         val blockStateBelow: BlockState = world.getBlockState(positionBelow)
         val blockBelow: Block = blockStateBelow.block
-        if (blockStateBelow.isAir) {
-            world.setBlockState(positionBelow, state.with(PART, DrapePart.LOWER))
-        } else if (blockBelow is BougainvilleaDrape) {
-            blockBelow.grow(world, random, positionBelow, blockStateBelow)
+
+        when (state[PART]) {
+            // When the top or middle is grown,
+            DrapePart.TOP, DrapePart.MIDDLE ->
+                // and if the block below a drape
+                if (blockBelow is BougainvilleaDrape)
+                // relay growth the lower part
+                    blockBelow.grow(world, random, positionBelow, blockStateBelow)
+
+            // When the lower is grown
+            DrapePart.LOWER -> {
+                // and if the block below is air
+                if (blockStateBelow.isAir) {
+                    // this itself become a MIDDLE, and grow another LOWER below it
+                    world.setBlockState(pos, state.with(PART, DrapePart.MIDDLE))
+                    world.setBlockState(positionBelow, state.with(PART, DrapePart.LOWER))
+                }
+            }
+
+            // When a leaf is grown
+            DrapePart.LEAF -> {
+                // this itself become a top
+                world.setBlockState(pos, state.with(PART, DrapePart.TOP))
+                // and if the block below is air
+                if (blockStateBelow.isAir)
+                // grow another LOWER below it
+                    world.setBlockState(positionBelow, state.with(PART, DrapePart.LOWER))
+            }
+
+            // Because java
+            else -> {
+            }
         }
     }
 
