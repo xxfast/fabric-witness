@@ -7,7 +7,8 @@ import net.minecraft.world.biome.Biomes
 class JasmineBushFeature : PatchOfBlocksFeature(JasmineBush.BLOCK) {
 
     override val biomes: List<Biome> = listOf(
-        Biomes.SWAMP,
-        Biomes.SWAMP_HILLS
+        Biomes.TAIGA,
+        Biomes.TAIGA_MOUNTAINS,
+        Biomes.TAIGA_HILLS
     )
 }
