@@ -1,17 +1,19 @@
 package com.xfastgames.witness.blocks.flowers
 
+import com.xfastgames.witness.utils.above
 import com.xfastgames.witness.utils.neighbours
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*
 import net.minecraft.entity.EntityContext
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.item.ItemStack
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.EnumProperty
 import net.minecraft.util.StringIdentifiable
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.BlockView
@@ -69,7 +71,8 @@ class BougainvilleaDrape :
 
         val positionAbove: BlockPos = pos.up(1)
         val blockStateAbove: BlockState = world.getBlockState(positionAbove)
-        if (blockStateAbove.block is BougainvilleaDrape) {
+        val blockAbove: Block = blockStateAbove.block
+        if (blockAbove is BougainvilleaDrape) {
             world.setBlockState(pos, blockStateAbove.with(PART, DrapePart.MIDDLE))
         }
 
@@ -89,9 +92,48 @@ class BougainvilleaDrape :
         random?.nextBoolean() ?: false
 
     override fun canPlaceAt(state: BlockState, world: WorldView, pos: BlockPos): Boolean =
-        world.getBlockState(pos.up()).block is BougainvilleaDrape || pos.neighbours
-            .map { position -> position to world.getBlockState(position) }
-            .any { (position, state) -> state.isSideSolidFullSquare(world, position, Direction.UP) }
+        when (state[PART]) {
+            // If it is a LEAF, (i.e when placed by the user, most of the time)
+            DrapePart.LEAF -> {
+                // can be placed if the top is a drape
+                world.getBlockState(pos.above).block is BougainvilleaDrape ||
+                        // or any of its neighbours are opaque
+                        pos.neighbours
+                            .map { position -> world.getBlockState(position) }
+                            .any { neighbourState -> neighbourState.isOpaque }
+            }
+            // TOP can be only be placed next to non opaque blocks
+            DrapePart.TOP ->
+                pos.neighbours
+                    .map { position -> world.getBlockState(position) }
+                    .any { neighbourState -> neighbourState.isOpaque }
+
+            // MIDDLE and LOWER can only be set if the top is MIDDLE or a TOP
+            DrapePart.MIDDLE, DrapePart.LOWER -> world.getBlockState(pos.above).block is BougainvilleaDrape
+
+            else -> false
+        }
+
+    override fun onPlaced(
+        world: World,
+        pos: BlockPos,
+        state: BlockState,
+        placer: LivingEntity?,
+        itemStack: ItemStack?
+    ) {
+        val positionAbove: BlockPos = pos.up(1)
+        val blockStateAbove: BlockState = world.getBlockState(positionAbove)
+        val blockAbove: Block = blockStateAbove.block
+        if (blockAbove is BougainvilleaDrape) {
+            world.setBlockState(pos, state.with(PART, DrapePart.LOWER))
+            when (blockStateAbove[PART]) {
+                DrapePart.LOWER -> world.setBlockState(positionAbove, blockStateAbove.with(PART, DrapePart.MIDDLE))
+                DrapePart.LEAF -> world.setBlockState(positionAbove, blockStateAbove.with(PART, DrapePart.TOP))
+                else -> {
+                }
+            }
+        } else super.onPlaced(world, pos, state, placer, itemStack)
+    }
 
     override fun onBreak(world: World, pos: BlockPos, state: BlockState, player: PlayerEntity) {
         val positionAbove: BlockPos = pos.up(1)
@@ -110,5 +152,5 @@ class BougainvilleaDrape :
         super.onBreak(world, pos, state, player)
     }
 
-    override fun getSoundGroup(state: BlockState?): BlockSoundGroup = BlockSoundGroup.STEM
+    override fun getSoundGroup(state: BlockState?): BlockSoundGroup = BlockSoundGroup.GRASS
 }
