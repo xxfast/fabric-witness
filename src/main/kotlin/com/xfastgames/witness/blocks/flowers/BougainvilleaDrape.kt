@@ -6,6 +6,7 @@ import net.minecraft.block.*
 import net.minecraft.entity.EntityContext
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.server.world.ServerWorld
+import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.EnumProperty
 import net.minecraft.util.StringIdentifiable
@@ -65,15 +66,20 @@ class BougainvilleaDrape :
 
     override fun grow(world: ServerWorld, random: Random, pos: BlockPos, state: BlockState) {
         world.setBlockState(pos, state.with(PART, DrapePart.TOP))
-        val positionBelow: BlockPos = pos.down(1)
-        val blockBelow: BlockState = world.getBlockState(positionBelow)
-        if (blockBelow.isAir) {
-            world.setBlockState(positionBelow, state.with(PART, DrapePart.LOWER))
-        }
+
         val positionAbove: BlockPos = pos.up(1)
-        val blockAbove: BlockState = world.getBlockState(positionAbove)
-        if (blockAbove.block is BougainvilleaDrape) {
-            world.setBlockState(pos, blockAbove.with(PART, DrapePart.MIDDLE))
+        val blockStateAbove: BlockState = world.getBlockState(positionAbove)
+        if (blockStateAbove.block is BougainvilleaDrape) {
+            world.setBlockState(pos, blockStateAbove.with(PART, DrapePart.MIDDLE))
+        }
+
+        val positionBelow: BlockPos = pos.down(1)
+        val blockStateBelow: BlockState = world.getBlockState(positionBelow)
+        val blockBelow: Block = blockStateBelow.block
+        if (blockStateBelow.isAir) {
+            world.setBlockState(positionBelow, state.with(PART, DrapePart.LOWER))
+        } else if (blockBelow is BougainvilleaDrape) {
+            blockBelow.grow(world, random, positionBelow, blockStateBelow)
         }
     }
 
@@ -103,4 +109,6 @@ class BougainvilleaDrape :
 
         super.onBreak(world, pos, state, player)
     }
+
+    override fun getSoundGroup(state: BlockState?): BlockSoundGroup = BlockSoundGroup.STEM
 }
