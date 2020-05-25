@@ -17,7 +17,12 @@ import net.minecraft.world.BlockView
 import net.minecraft.world.World
 import kotlin.random.Random
 
-object Yucca : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()), Fertilizable {
+class Yucca : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()), Fertilizable {
+
+    companion object {
+        val BLOCK by lazy { Yucca() }
+    }
+
     override fun getOutlineShape(
         state: BlockState?,
         view: BlockView?,

@@ -11,7 +11,6 @@ import com.xfastgames.witness.feature.YuccaFeature
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerFeature
 import net.fabricmc.api.ModInitializer
-import net.minecraft.block.Blocks
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.world.gen.GenerationStep
 
@@ -19,16 +18,16 @@ internal const val WITNESS_ID = "witness"
 
 class Witness : ModInitializer {
     override fun onInitialize() {
-        registerBlock(StainedStoneBricks(), "yellow_stained_stone_bricks")
-        registerBlock(StainedStoneStairs(Blocks.BRICK_STAIRS.defaultState), "yellow_stained_stone_bricks_stairs")
-        registerBlock(StainedStoneSlabs(), "yellow_stained_stone_bricks_slabs")
-        registerBlock(StainedStoneWall(), "yellow_stained_stone_bricks_walls")
-        registerBlock(StainedStoneButton(), "yellow_stained_stone_bricks_button")
-        registerBlock(OakLeavesRunners(), "oak_leaves_runners", RenderLayer.getTranslucent())
-        registerBlock(Yucca, "yucca", RenderLayer.getTranslucent())
-        registerBlock(JasmineBush, "jasmine_bush", RenderLayer.getCutout())
-        registerBlock(MimosaBush, "mimosa_bush", RenderLayer.getCutout())
-        registerBlock(BougainvilleaDrape(), "purple_bougainvillea", RenderLayer.getTranslucent())
+        registerBlock(StainedStoneBricks.BLOCK, "yellow_stained_stone_bricks")
+        registerBlock(StainedStoneStairs.BLOCK, "yellow_stained_stone_bricks_stairs")
+        registerBlock(StainedStoneSlabs.BLOCK, "yellow_stained_stone_bricks_slabs")
+        registerBlock(StainedStoneWall.BLOCK, "yellow_stained_stone_bricks_walls")
+        registerBlock(StainedStoneButton.BLOCK, "yellow_stained_stone_bricks_button")
+        registerBlock(OakLeavesRunners.BLOCK, "oak_leaves_runners", RenderLayer.getTranslucent())
+        registerBlock(Yucca.BLOCK, "yucca", RenderLayer.getTranslucent())
+        registerBlock(JasmineBush.BLOCK, "jasmine_bush", RenderLayer.getCutout())
+        registerBlock(MimosaBush.BLOCK, "mimosa_bush", RenderLayer.getCutout())
+        registerBlock(BougainvilleaDrape.BLOCK, "purple_bougainvillea", RenderLayer.getTranslucent())
         registerFeature("yucca_growth", YuccaFeature(), GenerationStep.Feature.VEGETAL_DECORATION)
         registerFeature("jasmine_bush_growth", JasmineBushFeature(), GenerationStep.Feature.VEGETAL_DECORATION)
     }

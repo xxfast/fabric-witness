@@ -10,6 +10,11 @@ import net.minecraft.client.color.block.BlockColorProvider
 import net.minecraft.client.color.item.ItemColorProvider
 
 class OakLeavesRunners : VineBlock(FabricBlockSettings.of(Material.PLANT).nonOpaque().materialColor(MaterialColor.FOLIAGE)) {
+
+    companion object {
+        val BLOCK by lazy { OakLeavesRunners() }
+    }
+
     init {
         ColorProviderRegistry.BLOCK.register(BlockColorProvider { _, _, _, _ -> 0xA0AB42 }, this)
         ColorProviderRegistry.ITEM.register(ItemColorProvider { _, _ -> 0xA0AB42 }, this)

@@ -1,3 +1,7 @@
 package com.xfastgames.witness.blocks.flowers
 
-object JasmineBush : FlowerBush()
+class JasmineBush : FlowerBush() {
+    companion object {
+        val BLOCK by lazy { JasmineBush() }
+    }
+}

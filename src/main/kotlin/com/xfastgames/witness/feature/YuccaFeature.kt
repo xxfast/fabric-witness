@@ -4,7 +4,7 @@ import com.xfastgames.witness.blocks.yucca.Yucca
 import net.minecraft.world.biome.Biome
 import net.minecraft.world.biome.Biomes
 
-class YuccaFeature : PatchOfBlocksFeature(Yucca, 25..50) {
+class YuccaFeature : PatchOfBlocksFeature(Yucca.BLOCK, 25..50) {
     override val biomes: List<Biome> = listOf(
         Biomes.SAVANNA,
         Biomes.SAVANNA_PLATEAU,
