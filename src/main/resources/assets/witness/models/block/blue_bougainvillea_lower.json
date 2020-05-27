@@ -1,13 +1,12 @@
 {
   "credit": "Made with Blockbench",
   "textures": {
-    "2": "witness:block/purple_bougainvillea_drape_top",
-    "3": "witness:block/bougainvillea_stem",
-    "particle": "witness:block/purple_bougainvillea_drape_lower"
+    "0": "witness:block/blue_bougainvillea_drape_lower",
+    "particle": "witness:block/blue_bougainvillea_drape_lower"
   },
   "elements": [
     {
-      "name": "drape_3",
+      "name": "drape_1",
       "from": [
         0,
         0,
@@ -35,7 +34,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "east": {
           "uv": [
@@ -44,7 +43,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "south": {
           "uv": [
@@ -53,7 +52,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "west": {
           "uv": [
@@ -62,7 +61,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "up": {
           "uv": [
@@ -71,7 +70,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "down": {
           "uv": [
@@ -80,12 +79,12 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         }
       }
     },
     {
-      "name": "drape_4",
+      "name": "drape_2",
       "from": [
         13,
         0,
@@ -98,7 +97,7 @@
       ],
       "rotation": {
         "angle": 0,
-        "axis": "z",
+        "axis": "y",
         "origin": [
           13,
           8,
@@ -113,7 +112,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "east": {
           "uv": [
@@ -122,7 +121,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "south": {
           "uv": [
@@ -131,7 +130,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "west": {
           "uv": [
@@ -140,7 +139,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "up": {
           "uv": [
@@ -149,7 +148,8 @@
             16,
             16
           ],
-          "texture": "#2"
+          "rotation": 270,
+          "texture": "#0"
         },
         "down": {
           "uv": [
@@ -158,12 +158,13 @@
             16,
             16
           ],
-          "texture": "#2"
+          "rotation": 90,
+          "texture": "#0"
         }
       }
     },
     {
-      "name": "drape_5",
+      "name": "drape_3",
       "from": [
         4,
         0,
@@ -191,7 +192,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "east": {
           "uv": [
@@ -200,7 +201,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "south": {
           "uv": [
@@ -209,7 +210,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "west": {
           "uv": [
@@ -218,7 +219,7 @@
             16,
             16
           ],
-          "texture": "#2"
+          "texture": "#0"
         },
         "up": {
           "uv": [
@@ -226,99 +227,19 @@
             0,
             16,
             16
-          ],
-          "texture": "#2"
-        },
-        "down": {
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ],
-          "texture": "#2"
-        }
-      }
-    },
-    {
-      "name": "stem",
-      "from": [
-        0,
-        11.5,
-        2.5
-      ],
-      "to": [
-        16,
-        11.5,
-        11.5
-      ],
-      "rotation": {
-        "angle": 0,
-        "axis": "x",
-        "origin": [
-          8,
-          11.5,
-          7
-        ]
-      },
-      "faces": {
-        "north": {
-          "uv": [
-            0,
-            2,
-            16,
-            11
-          ],
-          "rotation": 180,
-          "texture": "#3"
-        },
-        "east": {
-          "uv": [
-            0,
-            2,
-            16,
-            11
           ],
           "rotation": 270,
-          "texture": "#3"
-        },
-        "south": {
-          "uv": [
-            0,
-            2,
-            16,
-            11
-          ],
-          "texture": "#3"
-        },
-        "west": {
-          "uv": [
-            0,
-            2,
-            16,
-            11
-          ],
-          "rotation": 90,
-          "texture": "#3"
-        },
-        "up": {
-          "uv": [
-            0,
-            2,
-            16,
-            11
-          ],
-          "rotation": 180,
-          "texture": "#3"
+          "texture": "#0"
         },
         "down": {
           "uv": [
             0,
-            2,
+            0,
             16,
-            11
+            16
           ],
-          "texture": "#3"
+          "rotation": 90,
+          "texture": "#0"
         }
       }
     }
@@ -326,7 +247,7 @@
   "display": {},
   "groups": [
     {
-      "name": "top_drape",
+      "name": "lower_drape",
       "origin": [
         8,
         8,
@@ -335,8 +256,7 @@
       "children": [
         0,
         1,
-        2,
-        3
+        2
       ]
     }
   ]

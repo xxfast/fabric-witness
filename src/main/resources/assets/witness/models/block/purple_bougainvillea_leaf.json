@@ -1,7 +1,7 @@
 {
   "credit": "Made with Blockbench",
   "textures": {
-    "3": "witness:block/purple_bougainvillea_stem",
+    "3": "witness:block/bougainvillea_stem",
     "4": "witness:block/purple_bougainvillea_leaf",
     "particle": "witness:block/purple_bougainvillea_drape_lower"
   },

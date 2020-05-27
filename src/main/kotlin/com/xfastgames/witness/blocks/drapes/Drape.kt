@@ -1,4 +1,4 @@
-package com.xfastgames.witness.blocks.flowers
+package com.xfastgames.witness.blocks.drapes
 
 import com.xfastgames.witness.utils.above
 import com.xfastgames.witness.utils.neighbours
@@ -27,12 +27,11 @@ enum class DrapePart : StringIdentifiable {
     override fun asString(): String = this.name.toLowerCase()
 }
 
-class BougainvilleaDrape :
+abstract class Drape :
     PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()),
     Fertilizable {
 
     companion object {
-        val BLOCK by lazy { BougainvilleaDrape() }
         val PART: EnumProperty<DrapePart> = EnumProperty.of("part", DrapePart::class.java)
     }
 
@@ -60,6 +59,8 @@ class BougainvilleaDrape :
             else -> VoxelShapes.cuboid(0.2, 0.0, 0.2, 0.8, 0.8, 0.8)
         }
 
+    abstract fun isDrape(block: Block): Boolean
+
     override fun isFertilizable(world: BlockView?, pos: BlockPos?, state: BlockState?, isClient: Boolean) = true
 
     override fun appendProperties(builder: StateManager.Builder<Block, BlockState>?) {
@@ -75,7 +76,7 @@ class BougainvilleaDrape :
             // When the top or middle is grown,
             DrapePart.TOP, DrapePart.MIDDLE ->
                 // and if the block below a drape
-                if (blockBelow is BougainvilleaDrape)
+                if (isDrape(blockBelow) && blockBelow is Fertilizable)
                 // relay growth the lower part
                     blockBelow.grow(world, random, positionBelow, blockStateBelow)
 
@@ -110,12 +111,13 @@ class BougainvilleaDrape :
     override fun canGrow(world: World?, random: Random?, pos: BlockPos?, state: BlockState?): Boolean =
         random?.nextBoolean() ?: false
 
-    override fun canPlaceAt(state: BlockState, world: WorldView, pos: BlockPos): Boolean =
-        when (state[PART]) {
+    override fun canPlaceAt(state: BlockState, world: WorldView, pos: BlockPos): Boolean {
+        val blockAbove: Block = world.getBlockState(pos.above).block
+        return when (state[PART]) {
             // If it is a LEAF, (i.e when placed by the user, most of the time)
             DrapePart.LEAF -> {
                 // can be placed if the top is a drape
-                world.getBlockState(pos.above).block is BougainvilleaDrape ||
+                isDrape(blockAbove) ||
                         // or any of its neighbours are opaque
                         pos.neighbours
                             .map { position -> world.getBlockState(position) }
@@ -128,10 +130,11 @@ class BougainvilleaDrape :
                     .any { neighbourState -> neighbourState.isOpaque }
 
             // MIDDLE and LOWER can only be set if the top is MIDDLE or a TOP
-            DrapePart.MIDDLE, DrapePart.LOWER -> world.getBlockState(pos.above).block is BougainvilleaDrape
+            DrapePart.MIDDLE, DrapePart.LOWER -> isDrape(blockAbove)
 
             else -> false
         }
+    }
 
     override fun onPlaced(
         world: World,
@@ -143,11 +146,26 @@ class BougainvilleaDrape :
         val positionAbove: BlockPos = pos.up(1)
         val blockStateAbove: BlockState = world.getBlockState(positionAbove)
         val blockAbove: Block = blockStateAbove.block
-        if (blockAbove is BougainvilleaDrape) {
-            world.setBlockState(pos, state.with(PART, DrapePart.LOWER))
+        if (blockAbove is Drape) {
+            world.setBlockState(
+                pos, state.with(
+                    PART,
+                    DrapePart.LOWER
+                )
+            )
             when (blockStateAbove[PART]) {
-                DrapePart.LOWER -> world.setBlockState(positionAbove, blockStateAbove.with(PART, DrapePart.MIDDLE))
-                DrapePart.LEAF -> world.setBlockState(positionAbove, blockStateAbove.with(PART, DrapePart.TOP))
+                DrapePart.LOWER -> world.setBlockState(
+                    positionAbove, blockStateAbove.with(
+                        PART,
+                        DrapePart.MIDDLE
+                    )
+                )
+                DrapePart.LEAF -> world.setBlockState(
+                    positionAbove, blockStateAbove.with(
+                        PART,
+                        DrapePart.TOP
+                    )
+                )
                 else -> {
                 }
             }
@@ -161,11 +179,11 @@ class BougainvilleaDrape :
         val blockRoot: BlockState = world.getBlockState(positionRoot)
 
         // If there's a root, then set above to LOWER
-        if (blockRoot.block is BougainvilleaDrape && blockAbove.block is BougainvilleaDrape)
+        if (isDrape(blockRoot.block) && isDrape(blockAbove.block))
             world.setBlockState(positionAbove, blockAbove.with(PART, DrapePart.LOWER))
 
         // If there's no root, then set above to LEAF
-        else if (blockAbove.block is BougainvilleaDrape)
+        else if (isDrape(blockAbove.block))
             world.setBlockState(positionAbove, blockAbove.with(PART, DrapePart.LEAF))
 
         super.onBreak(world, pos, state, player)
