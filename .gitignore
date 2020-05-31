@@ -14,6 +14,8 @@ out/
 # fabric
 
 run/
+!run/screenshots/
+
 /minecraft/
 
 .vanila/
