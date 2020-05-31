@@ -4,7 +4,7 @@ import com.xfastgames.witness.blocks.flowers.MimosaBush
 import net.minecraft.world.biome.Biome
 import net.minecraft.world.biome.Biomes
 
-class MimosaBushFeature : PatchOfBlocksFeature(MimosaBush.BLOCK) {
+class MimosaBushFeature : PatchOfBlocksFeature(listOf(MimosaBush.BLOCK)) {
 
     override val biomes: List<Biome> = listOf(
         Biomes.SWAMP,

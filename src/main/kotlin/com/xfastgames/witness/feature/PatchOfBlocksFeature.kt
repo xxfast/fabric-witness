@@ -15,7 +15,7 @@ import java.util.function.Function
 import kotlin.random.asKotlinRandom
 
 abstract class PatchOfBlocksFeature(
-    val block: Block,
+    val blocks: List<Block>,
     private val amount: IntRange = 10..20,
     private val xWidth: Int = 5,
     private val zWidth: Int = 5
@@ -43,6 +43,7 @@ abstract class PatchOfBlocksFeature(
                     random.asKotlinRandom().nextInt(-zWidth, +zWidth)
                 )
             while (!world.getBlockState(position).isOpaque) position = position.down(1)
+            val block = blocks.random(random.asKotlinRandom())
             world.setBlockState(position.up(1), block.defaultState, 3)
         }
         return true
