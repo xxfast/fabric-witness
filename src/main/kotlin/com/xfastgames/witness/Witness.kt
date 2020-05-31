@@ -6,6 +6,7 @@ import com.xfastgames.witness.blocks.flowers.JasmineBush
 import com.xfastgames.witness.blocks.flowers.MimosaBush
 import com.xfastgames.witness.blocks.leaves.OakLeavesRunners
 import com.xfastgames.witness.blocks.stained.stone.bricks.*
+import com.xfastgames.witness.blocks.yucca.TallYucca
 import com.xfastgames.witness.blocks.yucca.Yucca
 import com.xfastgames.witness.feature.JasmineBushFeature
 import com.xfastgames.witness.feature.MimosaBushFeature
@@ -26,7 +27,8 @@ class Witness : ModInitializer {
         registerBlock(StainedStoneWall.BLOCK, "yellow_stained_stone_bricks_walls")
         registerBlock(StainedStoneButton.BLOCK, "yellow_stained_stone_bricks_button")
         registerBlock(OakLeavesRunners.BLOCK, "oak_leaves_runners", RenderLayer.getTranslucent())
-        registerBlock(Yucca.BLOCK, "yucca", RenderLayer.getTranslucent())
+        registerBlock(Yucca.BLOCK, "yucca", RenderLayer.getCutout())
+        registerBlock(TallYucca.BLOCK, "tall_yucca", RenderLayer.getCutout())
         registerBlock(JasmineBush.BLOCK, "jasmine_bush", RenderLayer.getCutout())
         registerBlock(MimosaBush.BLOCK, "mimosa_bush", RenderLayer.getCutout())
         registerBlock(PurpleBougainvilleaDrape.BLOCK, "purple_bougainvillea", RenderLayer.getTranslucent())
