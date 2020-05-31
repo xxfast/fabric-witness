@@ -6,7 +6,6 @@ import net.minecraft.block.Fertilizable
 import net.minecraft.block.Material
 import net.minecraft.block.PlantBlock
 import net.minecraft.entity.EntityContext
-import net.minecraft.item.ItemStack
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.util.math.BlockPos
@@ -53,8 +52,8 @@ open class Yucca : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque(
 
     override fun canGrow(world: World?, random: java.util.Random?, pos: BlockPos?, state: BlockState?): Boolean = true
 
-    override fun grow(world: ServerWorld?, random: java.util.Random?, pos: BlockPos?, state: BlockState?) {
-        dropStack(world, pos, ItemStack(this))
+    override fun grow(world: ServerWorld, random: java.util.Random?, pos: BlockPos, state: BlockState) {
+        if (state.block is Yucca) world.setBlockState(pos, TallYucca.BLOCK.defaultState)
     }
 
     override fun canPlantOnTop(floor: BlockState?, view: BlockView?, pos: BlockPos?): Boolean =
