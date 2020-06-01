@@ -10,7 +10,6 @@ import com.xfastgames.witness.blocks.yucca.TallYucca
 import com.xfastgames.witness.blocks.yucca.Yucca
 import com.xfastgames.witness.feature.JasmineBushFeature
 import com.xfastgames.witness.feature.MimosaBushFeature
-import com.xfastgames.witness.feature.SakuraTreeFeature
 import com.xfastgames.witness.feature.YuccaFeature
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerFeature
@@ -36,6 +35,5 @@ class Witness : ModInitializer {
         registerFeature("yucca_growth", YuccaFeature())
         registerFeature("jasmine_bush_growth", JasmineBushFeature())
         registerFeature("mimosa_bush_growth", MimosaBushFeature())
-        registerFeature("coral_trees", SakuraTreeFeature())
     }
 }
