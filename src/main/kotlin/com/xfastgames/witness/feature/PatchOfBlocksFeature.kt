@@ -6,10 +6,15 @@ import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.Heightmap
 import net.minecraft.world.IWorld
+import net.minecraft.world.biome.Biome
+import net.minecraft.world.gen.GenerationStep
 import net.minecraft.world.gen.chunk.ChunkGenerator
 import net.minecraft.world.gen.chunk.ChunkGeneratorConfig
+import net.minecraft.world.gen.decorator.ChanceDecoratorConfig
+import net.minecraft.world.gen.decorator.Decorator
 import net.minecraft.world.gen.feature.DefaultFeatureConfig
 import net.minecraft.world.gen.feature.Feature
+import net.minecraft.world.gen.feature.FeatureConfig
 import java.util.*
 import java.util.function.Function
 import kotlin.random.asKotlinRandom
@@ -20,7 +25,7 @@ abstract class PatchOfBlocksFeature(
     private val xWidth: Int = 5,
     private val zWidth: Int = 5
 ) :
-    Feature<DefaultFeatureConfig?>(Function { dynamic: Dynamic<*>? ->
+    Feature<FeatureConfig>(Function { dynamic: Dynamic<*>? ->
         DefaultFeatureConfig.deserialize(dynamic)
     }),
     BiomeFeature {
@@ -30,7 +35,7 @@ abstract class PatchOfBlocksFeature(
         chunkGenerator: ChunkGenerator<out ChunkGeneratorConfig?>?,
         random: Random,
         pos: BlockPos?,
-        config: DefaultFeatureConfig?
+        config: FeatureConfig?
     ): Boolean {
         // Generate at surface
         val topPos: BlockPos = world.getTopPosition(Heightmap.Type.WORLD_SURFACE, pos)
@@ -47,5 +52,13 @@ abstract class PatchOfBlocksFeature(
             world.setBlockState(position.up(1), block.defaultState, 3)
         }
         return true
+    }
+
+    override fun onBiome(biome: Biome) {
+        biome.addFeature(
+            GenerationStep.Feature.VEGETAL_DECORATION, this
+                .configure(FeatureConfig.DEFAULT)
+                .createDecoratedFeature(Decorator.CHANCE_HEIGHTMAP.configure(ChanceDecoratorConfig(100)))
+        )
     }
 }

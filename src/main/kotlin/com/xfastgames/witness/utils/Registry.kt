@@ -10,11 +10,8 @@ import net.minecraft.item.ItemGroup
 import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.biome.Biome
-import net.minecraft.world.gen.GenerationStep
-import net.minecraft.world.gen.decorator.ChanceDecoratorConfig
-import net.minecraft.world.gen.decorator.Decorator
-import net.minecraft.world.gen.feature.DefaultFeatureConfig
 import net.minecraft.world.gen.feature.Feature
+import net.minecraft.world.gen.feature.FeatureConfig
 
 fun registerBlock(
     block: Block,
@@ -28,25 +25,18 @@ fun registerBlock(
     render?.let { BlockRenderLayerMap.INSTANCE.putBlock(block, it) }
 }
 
-fun registerFeature(
+fun <T : FeatureConfig> registerFeature(
     name: String,
-    feature: Feature<DefaultFeatureConfig?>,
-    step: GenerationStep.Feature
+    feature: Feature<T>
 ) {
-    val registeredFeature = Registry.register(
+    val registeredFeature: Feature<T> = Registry.register(
         Registry.FEATURE,
         Identifier(WITNESS_ID, name),
         feature
     )
 
-    if (feature is BiomeFeature)
+    if (registeredFeature is BiomeFeature)
         Registry.BIOME
-            .filter { biome: Biome -> biome in feature.biomes }
-            .forEach { biome ->
-                biome.addFeature(
-                    step,
-                    registeredFeature.configure(DefaultFeatureConfig())
-                        .createDecoratedFeature(Decorator.CHANCE_HEIGHTMAP.configure(ChanceDecoratorConfig(100)))
-                )
-            }
+            .filter { biome: Biome -> biome in registeredFeature.biomes }
+            .forEach { biome -> registeredFeature.onBiome(biome) }
 }

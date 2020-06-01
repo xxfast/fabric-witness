@@ -4,4 +4,5 @@ import net.minecraft.world.biome.Biome
 
 interface BiomeFeature {
     val biomes: List<Biome>
+    fun onBiome(biome: Biome)
 }

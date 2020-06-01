@@ -10,12 +10,12 @@ import com.xfastgames.witness.blocks.yucca.TallYucca
 import com.xfastgames.witness.blocks.yucca.Yucca
 import com.xfastgames.witness.feature.JasmineBushFeature
 import com.xfastgames.witness.feature.MimosaBushFeature
+import com.xfastgames.witness.feature.SakuraTreeFeature
 import com.xfastgames.witness.feature.YuccaFeature
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerFeature
 import net.fabricmc.api.ModInitializer
 import net.minecraft.client.render.RenderLayer
-import net.minecraft.world.gen.GenerationStep
 
 internal const val WITNESS_ID = "witness"
 
@@ -33,8 +33,9 @@ class Witness : ModInitializer {
         registerBlock(MimosaBush.BLOCK, "mimosa_bush", RenderLayer.getCutout())
         registerBlock(PurpleBougainvilleaDrape.BLOCK, "purple_bougainvillea", RenderLayer.getTranslucent())
         registerBlock(BlueBougainvilleaDrape.BLOCK, "blue_bougainvillea", RenderLayer.getTranslucent())
-        registerFeature("yucca_growth", YuccaFeature(), GenerationStep.Feature.VEGETAL_DECORATION)
-        registerFeature("jasmine_bush_growth", JasmineBushFeature(), GenerationStep.Feature.VEGETAL_DECORATION)
-        registerFeature("mimosa_bush_growth", MimosaBushFeature(), GenerationStep.Feature.VEGETAL_DECORATION)
+        registerFeature("yucca_growth", YuccaFeature())
+        registerFeature("jasmine_bush_growth", JasmineBushFeature())
+        registerFeature("mimosa_bush_growth", MimosaBushFeature())
+        registerFeature("coral_trees", SakuraTreeFeature())
     }
 }
