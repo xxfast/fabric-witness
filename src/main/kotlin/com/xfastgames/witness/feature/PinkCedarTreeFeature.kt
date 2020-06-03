@@ -32,7 +32,7 @@ class PinkCedarTreeFeature : OakTreeFeature(Function { CONFIG }), BiomeFeature {
                 .build()
     }
 
-    override val biomes: List<Biome> = listOf(Biomes.FOREST)
+    override val biomes: List<Biome> = listOf(Biomes.FLOWER_FOREST)
 
     override fun onBiome(biome: Biome) {
         biome.addFeature(
