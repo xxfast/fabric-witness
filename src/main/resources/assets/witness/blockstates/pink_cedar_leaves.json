@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "witness:block/pink_cedar_leaves_1"
+      },
+      {
+        "model": "witness:block/pink_cedar_leaves_1"
+      }
+    ]
+  }
+}

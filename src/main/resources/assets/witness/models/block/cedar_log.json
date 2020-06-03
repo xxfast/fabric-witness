@@ -1,0 +1,7 @@
+{
+  "parent": "block/cube_column",
+  "textures": {
+    "end": "witness:block/cedar_log_top",
+    "side": "witness:block/cedar_log"
+  }
+}

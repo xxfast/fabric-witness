@@ -1,0 +1,6 @@
+{
+  "parent": "block/leaves",
+  "textures": {
+    "all": "witness:block/pink_cedar_leaves_1"
+  }
+}
