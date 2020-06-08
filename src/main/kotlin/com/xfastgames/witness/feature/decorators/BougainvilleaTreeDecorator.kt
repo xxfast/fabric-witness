@@ -8,6 +8,7 @@ import com.xfastgames.witness.blocks.drapes.Drape
 import com.xfastgames.witness.blocks.drapes.DrapePart
 import com.xfastgames.witness.blocks.drapes.PurpleBougainvilleaDrape
 import com.xfastgames.witness.utils.neighbours
+import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockBox
 import net.minecraft.util.math.BlockPos
@@ -30,7 +31,7 @@ class BougainvilleaTreeDecorator : TreeDecorator(TreeDecoratorType.TRUNK_VINE) {
     ) {
         logPositions.takeLast(1).forEach { logPosition ->
             // Choose random color
-            val drape: Drape = listOf(PurpleBougainvilleaDrape.BLOCK, BlueBougainvilleaDrape.BLOCK)
+            val drape: Block = listOf(PurpleBougainvilleaDrape.BLOCK, BlueBougainvilleaDrape.BLOCK)
                 .random(random.asKotlinRandom())
 
             logPosition.neighbours.dropLast(2) // don't consider neighbours above and below

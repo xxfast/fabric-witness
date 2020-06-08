@@ -14,32 +14,57 @@ import com.xfastgames.witness.feature.JasmineBushFeature
 import com.xfastgames.witness.feature.MimosaBushFeature
 import com.xfastgames.witness.feature.PinkCedarTreeFeature
 import com.xfastgames.witness.feature.YuccaFeature
-import com.xfastgames.witness.utils.registerBlock
-import com.xfastgames.witness.utils.registerFeature
 import net.fabricmc.api.ModInitializer
-import net.minecraft.client.render.RenderLayer
+import net.minecraft.block.Block
+import net.minecraft.item.BlockItem
+import net.minecraft.world.gen.feature.Feature
+import net.minecraft.world.gen.feature.FeatureConfig
 
 internal const val WITNESS_ID = "witness"
 
 class Witness : ModInitializer {
-    override fun onInitialize() {
-        registerBlock(StainedStoneBricks.BLOCK, "yellow_stained_stone_bricks")
-        registerBlock(StainedStoneStairs.BLOCK, "yellow_stained_stone_bricks_stairs")
-        registerBlock(StainedStoneSlabs.BLOCK, "yellow_stained_stone_bricks_slabs")
-        registerBlock(StainedStoneWall.BLOCK, "yellow_stained_stone_bricks_walls")
-        registerBlock(StainedStoneButton.BLOCK, "yellow_stained_stone_bricks_button")
-        registerBlock(OakLeavesRunners.BLOCK, "oak_leaves_runners", RenderLayer.getTranslucent())
-        registerBlock(Yucca.BLOCK, "yucca", RenderLayer.getCutout())
-        registerBlock(TallYucca.BLOCK, "tall_yucca", RenderLayer.getCutout())
-        registerBlock(JasmineBush.BLOCK, "jasmine_bush", RenderLayer.getCutout())
-        registerBlock(MimosaBush.BLOCK, "mimosa_bush", RenderLayer.getCutout())
-        registerBlock(PurpleBougainvilleaDrape.BLOCK, "purple_bougainvillea", RenderLayer.getCutout())
-        registerBlock(BlueBougainvilleaDrape.BLOCK, "blue_bougainvillea", RenderLayer.getCutout())
-        registerBlock(PinkCedarLeaves.BLOCK, "pink_cedar_leaves", RenderLayer.getCutout())
-        registerBlock(CedarLog.BLOCK, "cedar_log")
-        registerFeature("yucca_growth", YuccaFeature())
-        registerFeature("jasmine_bush_growth", JasmineBushFeature())
-        registerFeature("mimosa_bush_growth", MimosaBushFeature())
-        registerFeature("pink_cedar_trees", PinkCedarTreeFeature())
+    companion object {
+        val BLOCKS: List<Block> = listOf(
+            StainedStoneBricks.BLOCK,
+            StainedStoneSlabs.BLOCK,
+            StainedStoneStairs.BLOCK,
+            StainedStoneWall.BLOCK,
+            StainedStoneButton.BLOCK,
+            OakLeavesRunners.BLOCK,
+            Yucca.BLOCK,
+            TallYucca.BLOCK,
+            JasmineBush.BLOCK,
+            MimosaBush.BLOCK,
+            PurpleBougainvilleaDrape.BLOCK,
+            BlueBougainvilleaDrape.BLOCK,
+            PinkCedarLeaves.BLOCK,
+            CedarLog.BLOCK
+        )
+
+        val ITEMS: List<BlockItem> = listOf(
+            StainedStoneBricks.BLOCK_ITEM,
+            StainedStoneSlabs.BLOCK_ITEM,
+            StainedStoneStairs.BLOCK_ITEM,
+            StainedStoneWall.BLOCK_ITEM,
+            StainedStoneButton.BLOCK_ITEM,
+            OakLeavesRunners.BLOCK_ITEM,
+            Yucca.BLOCK_ITEM,
+            TallYucca.BLOCK_ITEM,
+            JasmineBush.BLOCK_ITEM,
+            MimosaBush.BLOCK_ITEM,
+            PurpleBougainvilleaDrape.BLOCK_ITEM,
+            BlueBougainvilleaDrape.BLOCK_ITEM,
+            PinkCedarLeaves.BLOCK_ITEM,
+            CedarLog.BLOCK_ITEM
+        )
+
+        val FEATURES: List<Feature<out FeatureConfig>> = listOf(
+            YuccaFeature.FEATURE,
+            JasmineBushFeature.FEATURE,
+            MimosaBushFeature.FEATURE,
+            PinkCedarTreeFeature.FEATURE
+        )
     }
+
+    override fun onInitialize() {}
 }

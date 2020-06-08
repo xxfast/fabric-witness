@@ -1,6 +1,5 @@
 package com.xfastgames.witness.utils
 
-import com.xfastgames.witness.WITNESS_ID
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap
 import net.minecraft.block.Block
 import net.minecraft.client.render.RenderLayer
@@ -15,28 +14,38 @@ import net.minecraft.world.gen.feature.FeatureConfig
 
 fun registerBlock(
     block: Block,
-    name: String,
-    render: RenderLayer? = null,
-    settings: Item.Settings = Item.Settings().group(ItemGroup.MISC)
-) {
-    val id = Identifier(WITNESS_ID, name)
-    Registry.register(Registry.BLOCK, id, block)
-    Registry.register(Registry.ITEM, id, BlockItem(block, settings))
-    render?.let { BlockRenderLayerMap.INSTANCE.putBlock(block, it) }
+    id: Identifier,
+    render: RenderLayer? = null
+): Block {
+    val registeredBlock: Block = Registry.register(Registry.BLOCK, id, block)
+    render?.let { BlockRenderLayerMap.INSTANCE.putBlock(registeredBlock, it) }
+    return block
 }
 
-fun <T : FeatureConfig> registerFeature(
-    name: String,
-    feature: Feature<T>
-) {
-    val registeredFeature: Feature<T> = Registry.register(
-        Registry.FEATURE,
-        Identifier(WITNESS_ID, name),
-        feature
-    )
+fun registerBlockItem(
+    block: Block,
+    id: Identifier,
+    render: RenderLayer? = null,
+    settings: Item.Settings = Item.Settings().group(ItemGroup.MISC)
+): BlockItem {
+    val blockItem: BlockItem = Registry.register(Registry.ITEM, id, BlockItem(block, settings))
+    render?.let { BlockRenderLayerMap.INSTANCE.putBlock(block, it) }
+    return blockItem
+}
 
-    if (registeredFeature is BiomeFeature)
-        Registry.BIOME
-            .filter { biome: Biome -> biome in registeredFeature.biomes }
-            .forEach { biome -> registeredFeature.onBiome(biome) }
+// TODO: Refactor [onBiome] lambda
+fun <T : FeatureConfig> registerFeature(
+    id: Identifier,
+    feature: Feature<T>,
+    biomes: List<Biome> = emptyList(),
+    onBiome: (registeredFeature: Feature<T>, biome: Biome) -> Unit
+): Feature<T> {
+    val registeredFeature: Feature<T> =
+        Registry.register(Registry.FEATURE, id, feature)
+
+    Registry.BIOME
+        .filter { biome: Biome -> biome in biomes }
+        .forEach { biome -> onBiome(registeredFeature, biome) }
+
+    return registeredFeature
 }

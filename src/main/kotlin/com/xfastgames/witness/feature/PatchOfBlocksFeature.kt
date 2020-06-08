@@ -1,17 +1,12 @@
 package com.xfastgames.witness.feature
 
 import com.mojang.datafixers.Dynamic
-import com.xfastgames.witness.utils.BiomeFeature
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.Heightmap
 import net.minecraft.world.IWorld
-import net.minecraft.world.biome.Biome
-import net.minecraft.world.gen.GenerationStep
 import net.minecraft.world.gen.chunk.ChunkGenerator
 import net.minecraft.world.gen.chunk.ChunkGeneratorConfig
-import net.minecraft.world.gen.decorator.ChanceDecoratorConfig
-import net.minecraft.world.gen.decorator.Decorator
 import net.minecraft.world.gen.feature.DefaultFeatureConfig
 import net.minecraft.world.gen.feature.Feature
 import net.minecraft.world.gen.feature.FeatureConfig
@@ -27,8 +22,7 @@ abstract class PatchOfBlocksFeature(
 ) :
     Feature<FeatureConfig>(Function { dynamic: Dynamic<*>? ->
         DefaultFeatureConfig.deserialize(dynamic)
-    }),
-    BiomeFeature {
+    }) {
 
     override fun generate(
         world: IWorld,
@@ -52,13 +46,5 @@ abstract class PatchOfBlocksFeature(
             world.setBlockState(position.up(1), block.defaultState, 3)
         }
         return true
-    }
-
-    override fun onBiome(biome: Biome) {
-        biome.addFeature(
-            GenerationStep.Feature.VEGETAL_DECORATION, this
-                .configure(FeatureConfig.DEFAULT)
-                .createDecoratedFeature(Decorator.CHANCE_HEIGHTMAP.configure(ChanceDecoratorConfig(100)))
-        )
     }
 }
