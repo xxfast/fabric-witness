@@ -1,6 +1,6 @@
 package com.xfastgames.witness.blocks.leaves
 
-import com.xfastgames.witness.WITNESS_ID
+import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
@@ -19,7 +19,7 @@ class PinkCedarLeaves : LeavesBlock(
 ) {
 
     companion object {
-        val IDENTIFIER = Identifier(WITNESS_ID, "pink_cedar_leaves")
+        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "pink_cedar_leaves")
         val BLOCK = registerBlock(PinkCedarLeaves(), IDENTIFIER, RenderLayer.getCutout())
         val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, RenderLayer.getCutout())
     }

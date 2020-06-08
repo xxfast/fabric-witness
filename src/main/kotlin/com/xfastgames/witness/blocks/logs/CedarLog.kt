@@ -1,6 +1,6 @@
 package com.xfastgames.witness.blocks.logs
 
-import com.xfastgames.witness.WITNESS_ID
+import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
@@ -17,7 +17,7 @@ class CedarLog : LogBlock(
 ) {
 
     companion object {
-        val IDENTIFIER = Identifier(WITNESS_ID, "cedar_log")
+        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "cedar_log")
         val BLOCK = registerBlock(CedarLog(), IDENTIFIER)
         val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
     }

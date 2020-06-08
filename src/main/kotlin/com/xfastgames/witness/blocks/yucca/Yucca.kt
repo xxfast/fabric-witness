@@ -1,6 +1,6 @@
 package com.xfastgames.witness.blocks.yucca
 
-import com.xfastgames.witness.WITNESS_ID
+import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
@@ -24,7 +24,7 @@ import kotlin.random.Random
 open class Yucca : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()), Fertilizable {
 
     companion object {
-        val IDENTIFIER = Identifier(WITNESS_ID, "yucca")
+        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "yucca")
         val BLOCK = registerBlock(Yucca(), IDENTIFIER, RenderLayer.getCutout())
         val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, RenderLayer.getCutout())
     }

@@ -1,6 +1,6 @@
 package com.xfastgames.witness.feature
 
-import com.xfastgames.witness.WITNESS_ID
+import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.leaves.PinkCedarLeaves
 import com.xfastgames.witness.blocks.logs.CedarLog
 import com.xfastgames.witness.feature.decorators.BougainvilleaTreeDecorator
@@ -34,7 +34,7 @@ class PinkCedarTreeFeature : OakTreeFeature(Function { CONFIG }) {
                 .noVines()
                 .build()
 
-        val IDENTIFIER = Identifier(WITNESS_ID, "pink_cedar_trees")
+        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "pink_cedar_trees")
 
         val FEATURE: Feature<BranchedTreeFeatureConfig> = registerFeature(
             IDENTIFIER,

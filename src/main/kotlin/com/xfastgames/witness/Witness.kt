@@ -20,10 +20,10 @@ import net.minecraft.item.BlockItem
 import net.minecraft.world.gen.feature.Feature
 import net.minecraft.world.gen.feature.FeatureConfig
 
-internal const val WITNESS_ID = "witness"
-
 class Witness : ModInitializer {
     companion object {
+        const val IDENTIFIER = "witness"
+
         val BLOCKS: List<Block> = listOf(
             StainedStoneBricks.BLOCK,
             StainedStoneSlabs.BLOCK,

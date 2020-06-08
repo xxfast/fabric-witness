@@ -1,6 +1,6 @@
 package com.xfastgames.witness.feature
 
-import com.xfastgames.witness.WITNESS_ID
+import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.flowers.JasmineBush
 import com.xfastgames.witness.utils.registerFeature
 import net.minecraft.util.Identifier
@@ -14,7 +14,7 @@ import net.minecraft.world.gen.feature.FeatureConfig
 class JasmineBushFeature : PatchOfBlocksFeature(listOf(JasmineBush.BLOCK)) {
 
     companion object {
-        val IDENTIFIER = Identifier(WITNESS_ID, "jasmine_bush_growth")
+        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "jasmine_bush_growth")
 
         val FEATURE: Feature<FeatureConfig> = registerFeature(
             IDENTIFIER,
@@ -32,4 +32,5 @@ class JasmineBushFeature : PatchOfBlocksFeature(listOf(JasmineBush.BLOCK)) {
             )
         }
     }
+
 }

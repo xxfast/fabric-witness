@@ -1,6 +1,6 @@
 package com.xfastgames.witness.feature
 
-import com.xfastgames.witness.WITNESS_ID
+import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.yucca.TallYucca
 import com.xfastgames.witness.blocks.yucca.Yucca
 import com.xfastgames.witness.utils.registerFeature
@@ -18,7 +18,7 @@ class YuccaFeature : PatchOfBlocksFeature(
 ) {
 
     companion object {
-        val IDENTIFIER = Identifier(WITNESS_ID, "yucca_growth")
+        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "yucca_growth")
 
         val FEATURE: Feature<FeatureConfig> = registerFeature(
             id = IDENTIFIER,
