@@ -12,6 +12,8 @@ import net.minecraft.block.Material
 import net.minecraft.block.PlantBlock
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.entity.EntityContext
+import net.minecraft.item.Item
+import net.minecraft.item.ItemGroup
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.util.Identifier
@@ -28,7 +30,7 @@ open class Yucca : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque(
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "yucca")
         val BLOCK = registerBlock(Yucca(), IDENTIFIER)
-        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
+        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.DECORATIONS))
     }
 
     override fun onClient() {

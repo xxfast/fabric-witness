@@ -7,6 +7,8 @@ import com.xfastgames.witness.utils.registerBlockItem
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.StairsBlock
+import net.minecraft.item.Item
+import net.minecraft.item.ItemGroup
 import net.minecraft.util.Identifier
 
 class StainedStoneStairs(state: BlockState) : StairsBlock(state, stainedStoneSettings) {
@@ -14,7 +16,7 @@ class StainedStoneStairs(state: BlockState) : StairsBlock(state, stainedStoneSet
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "yellow_stained_stone_bricks_stairs")
         val BLOCK = registerBlock(StainedStoneStairs(Blocks.BRICK_STAIRS.defaultState), IDENTIFIER)
-        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
+        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.BUILDING_BLOCKS))
     }
 
 }

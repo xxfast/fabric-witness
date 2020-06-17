@@ -9,6 +9,8 @@ import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap
 import net.minecraft.block.LeavesBlock
 import net.minecraft.block.Material
 import net.minecraft.client.render.RenderLayer
+import net.minecraft.item.Item
+import net.minecraft.item.ItemGroup
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.util.Identifier
 
@@ -23,7 +25,7 @@ class PinkCedarLeaves : LeavesBlock(
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "pink_cedar_leaves")
         val BLOCK = registerBlock(PinkCedarLeaves(), IDENTIFIER)
-        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
+        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.DECORATIONS))
     }
 
     override fun onClient() {

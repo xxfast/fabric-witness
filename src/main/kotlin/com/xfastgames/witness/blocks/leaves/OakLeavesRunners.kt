@@ -12,6 +12,8 @@ import net.minecraft.block.VineBlock
 import net.minecraft.client.color.block.BlockColorProvider
 import net.minecraft.client.color.item.ItemColorProvider
 import net.minecraft.client.render.RenderLayer
+import net.minecraft.item.Item
+import net.minecraft.item.ItemGroup
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.util.Identifier
 
@@ -27,7 +29,7 @@ class OakLeavesRunners : VineBlock(
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "oak_leaves_runners")
         val BLOCK = registerBlock(OakLeavesRunners(), IDENTIFIER)
-        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
+        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.DECORATIONS))
     }
 
     override fun onClient() {
