@@ -1,9 +1,11 @@
 package com.xfastgames.witness.blocks.leaves
 
 import com.xfastgames.witness.Witness
+import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
+import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap
 import net.minecraft.block.LeavesBlock
 import net.minecraft.block.Material
 import net.minecraft.client.render.RenderLayer
@@ -16,12 +18,15 @@ class PinkCedarLeaves : LeavesBlock(
         .ticksRandomly()
         .sounds(BlockSoundGroup.GRASS)
         .nonOpaque()
-) {
+), Clientside {
 
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "pink_cedar_leaves")
-        val BLOCK = registerBlock(PinkCedarLeaves(), IDENTIFIER, RenderLayer.getCutout())
-        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, RenderLayer.getCutout())
+        val BLOCK = registerBlock(PinkCedarLeaves(), IDENTIFIER)
+        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
     }
 
+    override fun onClient() {
+        BlockRenderLayerMap.INSTANCE.putBlock(BLOCK, RenderLayer.getCutout())
+    }
 }

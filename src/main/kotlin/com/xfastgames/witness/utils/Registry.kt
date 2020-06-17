@@ -1,8 +1,6 @@
 package com.xfastgames.witness.utils
 
-import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap
 import net.minecraft.block.Block
-import net.minecraft.client.render.RenderLayer
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
@@ -14,23 +12,16 @@ import net.minecraft.world.gen.feature.FeatureConfig
 
 fun registerBlock(
     block: Block,
-    id: Identifier,
-    render: RenderLayer? = null
-): Block {
-    val registeredBlock: Block = Registry.register(Registry.BLOCK, id, block)
-    render?.let { BlockRenderLayerMap.INSTANCE.putBlock(registeredBlock, it) }
-    return block
-}
+    id: Identifier
+): Block =
+    Registry.register(Registry.BLOCK, id, block)
 
 fun registerBlockItem(
     block: Block,
     id: Identifier,
-    render: RenderLayer? = null,
     settings: Item.Settings = Item.Settings().group(ItemGroup.MISC)
 ): BlockItem {
-    val blockItem: BlockItem = Registry.register(Registry.ITEM, id, BlockItem(block, settings))
-    render?.let { BlockRenderLayerMap.INSTANCE.putBlock(block, it) }
-    return blockItem
+    return Registry.register(Registry.ITEM, id, BlockItem(block, settings))
 }
 
 // TODO: Refactor [onBiome] lambda

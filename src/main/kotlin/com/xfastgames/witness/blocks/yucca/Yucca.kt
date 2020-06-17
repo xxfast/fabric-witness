@@ -1,9 +1,11 @@
 package com.xfastgames.witness.blocks.yucca
 
 import com.xfastgames.witness.Witness
+import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
+import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap
 import net.minecraft.block.BlockState
 import net.minecraft.block.Fertilizable
 import net.minecraft.block.Material
@@ -21,12 +23,16 @@ import net.minecraft.world.BlockView
 import net.minecraft.world.World
 import kotlin.random.Random
 
-open class Yucca : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()), Fertilizable {
+open class Yucca : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()), Fertilizable, Clientside {
 
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "yucca")
-        val BLOCK = registerBlock(Yucca(), IDENTIFIER, RenderLayer.getCutout())
-        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, RenderLayer.getCutout())
+        val BLOCK = registerBlock(Yucca(), IDENTIFIER)
+        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
+    }
+
+    override fun onClient() {
+        BlockRenderLayerMap.INSTANCE.putBlock(BLOCK, RenderLayer.getCutout())
     }
 
     override fun getOutlineShape(

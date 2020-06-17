@@ -14,13 +14,17 @@ import com.xfastgames.witness.feature.JasmineBushFeature
 import com.xfastgames.witness.feature.MimosaBushFeature
 import com.xfastgames.witness.feature.PinkCedarTreeFeature
 import com.xfastgames.witness.feature.YuccaFeature
+import com.xfastgames.witness.utils.Clientside
+import net.fabricmc.api.ClientModInitializer
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.api.ModInitializer
 import net.minecraft.block.Block
 import net.minecraft.item.BlockItem
 import net.minecraft.world.gen.feature.Feature
 import net.minecraft.world.gen.feature.FeatureConfig
 
-class Witness : ModInitializer {
+class Witness : ModInitializer, ClientModInitializer {
     companion object {
         const val IDENTIFIER = "witness"
 
@@ -67,4 +71,12 @@ class Witness : ModInitializer {
     }
 
     override fun onInitialize() {}
+
+    @Environment(EnvType.CLIENT)
+    override fun onInitializeClient() {
+        listOf(BLOCKS, ITEMS, FEATURES)
+            .flatten()
+            .filterIsInstance<Clientside>()
+            .forEach { it.onClient() }
+    }
 }
