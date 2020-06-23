@@ -17,9 +17,9 @@ class JasmineBushFeature : PatchOfBlocksFeature(listOf(JasmineBush.BLOCK)) {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "jasmine_bush_growth")
 
         val FEATURE: Feature<FeatureConfig> = registerFeature(
-            IDENTIFIER,
-            JasmineBushFeature(),
-            listOf(
+            id = IDENTIFIER,
+            feature = JasmineBushFeature(),
+            biomes = listOf(
                 Biomes.TAIGA,
                 Biomes.TAIGA_MOUNTAINS,
                 Biomes.TAIGA_HILLS

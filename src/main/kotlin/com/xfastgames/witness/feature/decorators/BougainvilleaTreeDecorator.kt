@@ -1,8 +1,5 @@
 package com.xfastgames.witness.feature.decorators
 
-import com.google.common.collect.ImmutableMap
-import com.mojang.datafixers.Dynamic
-import com.mojang.datafixers.types.DynamicOps
 import com.xfastgames.witness.blocks.drapes.BlueBougainvilleaDrape
 import com.xfastgames.witness.blocks.drapes.Drape
 import com.xfastgames.witness.blocks.drapes.DrapePart
@@ -10,45 +7,51 @@ import com.xfastgames.witness.blocks.drapes.PurpleBougainvilleaDrape
 import com.xfastgames.witness.utils.neighbours
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
+import net.minecraft.block.LeavesBlock
 import net.minecraft.util.math.BlockBox
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.registry.Registry
-import net.minecraft.world.IWorld
+import net.minecraft.world.WorldAccess
 import net.minecraft.world.gen.decorator.TreeDecorator
 import net.minecraft.world.gen.decorator.TreeDecoratorType
 import java.util.*
 import kotlin.random.asKotlinRandom
 
-class BougainvilleaTreeDecorator : TreeDecorator(TreeDecoratorType.TRUNK_VINE) {
+class BougainvilleaTreeDecorator : TreeDecorator() {
 
     override fun generate(
-        world: IWorld,
+        world: WorldAccess,
         random: Random,
         logPositions: MutableList<BlockPos>,
         leavesPositions: MutableList<BlockPos>,
         set: MutableSet<BlockPos>,
-        box: BlockBox
+        box: BlockBox?
     ) {
-        logPositions.takeLast(1).forEach { logPosition ->
-            // Choose random color
-            val drape: Block = listOf(PurpleBougainvilleaDrape.BLOCK, BlueBougainvilleaDrape.BLOCK)
-                .random(random.asKotlinRandom())
+        logPositions.toList()
+            .reversed()
+            // Generate the root on the first non leave adjacent log
+            .firstOrNull { blockPos ->
+                blockPos.neighbours.dropLast(2).any { world.getBlockState(it).block !is LeavesBlock }
+            }
+            ?.let { logPosition ->
+                // Choose random color
+                val drape: Block = listOf(PurpleBougainvilleaDrape.BLOCK, BlueBougainvilleaDrape.BLOCK)
+                    .random(random.asKotlinRandom())
 
-            logPosition.neighbours.dropLast(2) // don't consider neighbours above and below
-                .filter { neighbour -> neighbour !in logPositions }
-                .forEach { neighbour ->
-                    // Generate 75% of the time
-                    if (random.nextDouble() > 0.75) return
+                logPosition.neighbours.dropLast(2) // don't consider neighbours above and below
+                    .filter { neighbour -> neighbour !in logPositions }
+                    .forEach { neighbour ->
+                        // Generate 75% of the time
+                        if (random.nextDouble() > 0.75) return
 
-                    // Start with top
-                    world.setBlockState(
-                        neighbour,
-                        drape.defaultState.with(Drape.PART, DrapePart.TOP),
-                        0
-                    )
+                        // Start with top
+                        world.setBlockState(
+                            neighbour,
+                            drape.defaultState.with(Drape.PART, DrapePart.TOP),
+                            0
+                        )
 
-                    // Grow the root randomly upto length of 3
-                    var downPos: BlockPos = neighbour
+                        // Grow the root randomly upto length of 3
+                        var downPos: BlockPos = neighbour
                     var downBlockState: BlockState
                     repeat(random.nextInt(5)) {
                         downPos = neighbour.down()
@@ -82,17 +85,5 @@ class BougainvilleaTreeDecorator : TreeDecorator(TreeDecoratorType.TRUNK_VINE) {
         }
     }
 
-    override fun <T : Any> serialize(ops: DynamicOps<T>): T? {
-        return Dynamic(
-            ops,
-            ops.createMap(
-                ImmutableMap.of(
-                    ops.createString("type"),
-                    ops.createString(
-                        Registry.TREE_DECORATOR_TYPE.getId(type).toString()
-                    )
-                )
-            )
-        ).value
-    }
+    override fun getType(): TreeDecoratorType<*> = TreeDecoratorType.TRUNK_VINE
 }

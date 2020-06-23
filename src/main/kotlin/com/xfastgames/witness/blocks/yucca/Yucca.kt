@@ -6,24 +6,18 @@ import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap
-import net.minecraft.block.BlockState
-import net.minecraft.block.Fertilizable
-import net.minecraft.block.Material
-import net.minecraft.block.PlantBlock
+import net.minecraft.block.*
 import net.minecraft.client.render.RenderLayer
-import net.minecraft.entity.EntityContext
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.BlockView
 import net.minecraft.world.World
-import kotlin.random.Random
 
 open class Yucca : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()), Fertilizable, Clientside {
 
@@ -41,24 +35,19 @@ open class Yucca : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque(
         state: BlockState?,
         view: BlockView?,
         pos: BlockPos?,
-        context: EntityContext?
+        context: ShapeContext?
     ): VoxelShape = VoxelShapes.cuboid(0.3, 0.0, 0.3, 0.7, 0.5, 0.7)
 
     override fun getCollisionShape(
         state: BlockState?,
         view: BlockView?,
         pos: BlockPos?,
-        context: EntityContext?
+        context: ShapeContext?
     ): VoxelShape =
         VoxelShapes.empty()
 
     override fun getOffsetType(): OffsetType =
         OffsetType.XZ
-
-    override fun getOffsetPos(state: BlockState?, view: BlockView?, blockPos: BlockPos?): Vec3d {
-        val seeded = Random(blockPos.hashCode())
-        return Vec3d(seeded.nextDouble(0.25), 0.0, seeded.nextDouble(0.25))
-    }
 
     override fun getSoundGroup(state: BlockState?): BlockSoundGroup = BlockSoundGroup.GRASS
 

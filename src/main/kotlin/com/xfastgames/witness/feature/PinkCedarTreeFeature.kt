@@ -10,33 +10,33 @@ import net.minecraft.world.biome.Biomes
 import net.minecraft.world.gen.GenerationStep
 import net.minecraft.world.gen.decorator.CountExtraChanceDecoratorConfig
 import net.minecraft.world.gen.decorator.Decorator
-import net.minecraft.world.gen.feature.BranchedTreeFeatureConfig
 import net.minecraft.world.gen.feature.Feature
-import net.minecraft.world.gen.feature.OakTreeFeature
+import net.minecraft.world.gen.feature.TreeFeature
+import net.minecraft.world.gen.feature.TreeFeatureConfig
+import net.minecraft.world.gen.feature.size.TwoLayersFeatureSize
 import net.minecraft.world.gen.foliage.BlobFoliagePlacer
 import net.minecraft.world.gen.stateprovider.SimpleBlockStateProvider
-import java.util.function.Function
+import net.minecraft.world.gen.trunk.StraightTrunkPlacer
 
-class PinkCedarTreeFeature : OakTreeFeature(Function { CONFIG }) {
+class PinkCedarTreeFeature : TreeFeature(TreeFeatureConfig.CODEC) {
 
     companion object {
-        val CONFIG: BranchedTreeFeatureConfig =
-            BranchedTreeFeatureConfig
+        val CONFIG: TreeFeatureConfig =
+            TreeFeatureConfig
                 .Builder(
                     SimpleBlockStateProvider(CedarLog.BLOCK.defaultState),
                     SimpleBlockStateProvider(PinkCedarLeaves.BLOCK.defaultState),
-                    BlobFoliagePlacer(2, 0)
+                    BlobFoliagePlacer(2, 0, 0, 0, 3),
+                    StraightTrunkPlacer(5, 2, 0),
+                    TwoLayersFeatureSize(1, 0, 1)
                 )
-                .treeDecorators(listOf(BougainvilleaTreeDecorator()))
-                .baseHeight(5)
-                .heightRandA(2)
-                .foliageHeight(3)
-                .noVines()
+                .decorators(listOf(BougainvilleaTreeDecorator()))
+                .ignoreVines()
                 .build()
 
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "pink_cedar_trees")
 
-        val FEATURE: Feature<BranchedTreeFeatureConfig> = registerFeature(
+        val FEATURE: Feature<TreeFeatureConfig> = registerFeature(
             IDENTIFIER,
             PinkCedarTreeFeature(),
             listOf(Biomes.FLOWER_FOREST)

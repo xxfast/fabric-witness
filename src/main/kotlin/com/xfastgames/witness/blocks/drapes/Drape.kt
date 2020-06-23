@@ -4,7 +4,6 @@ import com.xfastgames.witness.utils.above
 import com.xfastgames.witness.utils.neighbours
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*
-import net.minecraft.entity.EntityContext
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
@@ -41,9 +40,9 @@ abstract class Drape :
 
     override fun getCollisionShape(
         state: BlockState?,
-        view: BlockView?,
+        world: BlockView?,
         pos: BlockPos?,
-        context: EntityContext?
+        context: ShapeContext?
     ): VoxelShape =
         VoxelShapes.empty()
 
@@ -51,7 +50,7 @@ abstract class Drape :
         state: BlockState?,
         view: BlockView?,
         pos: BlockPos?,
-        context: EntityContext?
+        context: ShapeContext?
     ): VoxelShape =
         when (state?.get(PART)) {
             DrapePart.MIDDLE -> VoxelShapes.cuboid(0.2, 0.0, 0.2, 0.8, 1.0, 0.8)
