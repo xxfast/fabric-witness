@@ -8,10 +8,11 @@
   "block.witness.purple_bougainvillea": "Purple Bougainvillea",
   "block.witness.tall_yucca": "Tall Yucca",
   "block.witness.yellow_stained_stone": "Yellow Stained Stone",
+  "block.witness.yellow_stained_stone_slabs": "Yellow Stained Stone Slabs",
   "block.witness.yellow_stained_stone_bricks": "Yellow Stained Stone Bricks",
-  "block.witness.yellow_stained_stone_bricks_button": "Yellow Stained Stone Button",
-  "block.witness.yellow_stained_stone_bricks_slabs": "Yellow Stained Stone Slabs",
-  "block.witness.yellow_stained_stone_bricks_stairs": "Yellow Stained Stone Stairs",
-  "block.witness.yellow_stained_stone_bricks_walls": "Yellow Stained Stone Walls",
+  "block.witness.yellow_stained_stone_bricks_button": "Yellow Stained Stone Bricks Button",
+  "block.witness.yellow_stained_stone_bricks_slabs": "Yellow Stained Stone Bricks Slabs",
+  "block.witness.yellow_stained_stone_bricks_stairs": "Yellow Stained Stone Bricks Stairs",
+  "block.witness.yellow_stained_stone_bricks_walls": "Yellow Stained Stone Bricks Walls",
   "block.witness.yucca": "Yucca"
 }

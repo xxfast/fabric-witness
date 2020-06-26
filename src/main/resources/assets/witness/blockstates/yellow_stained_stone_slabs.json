@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "witness:block/yellow_stained_stone_slab"
+    },
+    "type=top": {
+      "model": "witness:block/yellow_stained_stone_slab_top"
+    },
+    "type=double": {
+      "model": "witness:block/yellow_stained_stone_2"
+    }
+  }
+}
