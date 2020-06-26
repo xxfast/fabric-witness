@@ -1,0 +1,6 @@
+{
+  "parent": "block/template_wall_side",
+  "textures": {
+    "wall": "witness:block/yellow_stained_stone_1"
+  }
+}

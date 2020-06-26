@@ -10,6 +10,7 @@ import com.xfastgames.witness.blocks.logs.CedarLog
 import com.xfastgames.witness.blocks.stained.stone.StainedStone
 import com.xfastgames.witness.blocks.stained.stone.StainedStoneSlabs
 import com.xfastgames.witness.blocks.stained.stone.StainedStoneStairs
+import com.xfastgames.witness.blocks.stained.stone.StainedStoneWall
 import com.xfastgames.witness.blocks.stained.stone.bricks.*
 import com.xfastgames.witness.blocks.yucca.TallYucca
 import com.xfastgames.witness.blocks.yucca.Yucca
@@ -35,6 +36,7 @@ class Witness : ModInitializer, ClientModInitializer {
             StainedStone.BLOCK,
             StainedStoneStairs.BLOCK,
             StainedStoneSlabs.BLOCK,
+            StainedStoneWall.BLOCK,
             StainedStoneBricks.BLOCK,
             StainedStoneBricksSlabs.BLOCK,
             StainedStoneBricksStairs.BLOCK,
@@ -55,6 +57,7 @@ class Witness : ModInitializer, ClientModInitializer {
             StainedStone.BLOCK_ITEM,
             StainedStoneStairs.BLOCK_ITEM,
             StainedStoneSlabs.BLOCK_ITEM,
+            StainedStoneWall.BLOCK_ITEM,
             StainedStoneBricks.BLOCK_ITEM,
             StainedStoneBricksSlabs.BLOCK_ITEM,
             StainedStoneBricksStairs.BLOCK_ITEM,

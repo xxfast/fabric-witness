@@ -1,0 +1,6 @@
+{
+  "parent": "block/wall_inventory",
+  "textures": {
+    "wall": "witness:block/yellow_stained_stone_1"
+  }
+}

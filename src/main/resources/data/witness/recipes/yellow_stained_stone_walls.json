@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "###",
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "witness:yellow_stained_stone"
+    }
+  },
+  "result": {
+    "item": "witness:yellow_stained_stone_walls",
+    "count": 6
+  }
+}
