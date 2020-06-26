@@ -48,5 +48,14 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./build/libs/fabric-witness-${{  env.RELEASE_VERSION  }}.jar
-          asset_name: fabric-witness.jar
+          asset_name: fabric-witness${{  env.RELEASE_VERSION  }}.jar
           asset_content_type: application/java-archive
+      - run: mv ./build/libs/fabric-witness-${{  env.RELEASE_VERSION  }}.jar ./build/libs/fabric-witness.jar
+      - name: Deploy to server
+        uses: sebastianpopp/ftp-action@releases/v2
+        with:
+          host: ${{ secrets.FTP_SERVER }}
+          user: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          localDir: ./build/libs/fabric-witness.jar
+          remoteDir: mods
