@@ -11,11 +11,11 @@ import net.minecraft.sound.SoundEvent
 import net.minecraft.sound.SoundEvents
 import net.minecraft.util.Identifier
 
-class StainedStoneButton : AbstractButtonBlock(false, stainedStoneSettings) {
+class StainedStoneBricksButton : AbstractButtonBlock(false, stainedStoneSettings) {
 
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "yellow_stained_stone_bricks_button")
-        val BLOCK = registerBlock(StainedStoneButton(), IDENTIFIER)
+        val BLOCK = registerBlock(StainedStoneBricksButton(), IDENTIFIER)
         val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.REDSTONE))
     }
 
