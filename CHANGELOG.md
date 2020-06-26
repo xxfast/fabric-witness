@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2020-06-26
+### Added
+- Added Yellow Stained Stone  
+- Added Yellow Stained Stone Slabs 
+- Added Yellow Stained Stone Stairs 
+- Added Yellow Stained Stone Walls 
+
 ## [0.8.4] - 2020-06-26
 ### Fixed
 - Continuous delivery workflow
@@ -87,10 +94,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.3] - 2020-05-10
 ### Added
 - Added Yellow Stained Stone Bricks 
-- Added Yellow Stained Stone Slabs 
-- Added Yellow Stained Stone Stairs 
-- Added Yellow Stained Stone Walls 
-- Added Yellow Stained Stone Buttons
+- Added Yellow Stained Stone Bricks Slabs 
+- Added Yellow Stained Stone Bricks Stairs 
+- Added Yellow Stained Stone Bricks Walls 
+- Added Yellow Stained Stone Bricks Buttons
 
 ### Changed
 - The broken changelog
