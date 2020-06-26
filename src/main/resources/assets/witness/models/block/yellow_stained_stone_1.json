@@ -1,0 +1,6 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "all": "witness:block/yellow_stained_stone_1"
+  }
+}
