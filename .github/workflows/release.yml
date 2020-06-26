@@ -51,7 +51,7 @@ jobs:
           asset_name: fabric-witness${{  env.RELEASE_VERSION  }}.jar
           asset_content_type: application/java-archive
       - name: Rename the build artifact
-      - run: mv ./build/libs/fabric-witness-${{  env.RELEASE_VERSION  }}.jar ./build/libs/mods/fabric-witness.jar
+        run: mv ./build/libs/fabric-witness-${{  env.RELEASE_VERSION  }}.jar ./build/libs/mods/fabric-witness.jar
       - name: Deploy to server
         uses: sebastianpopp/ftp-action@releases/v2
         with:
