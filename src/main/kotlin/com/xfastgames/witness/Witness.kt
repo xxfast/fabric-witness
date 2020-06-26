@@ -9,6 +9,7 @@ import com.xfastgames.witness.blocks.leaves.PinkCedarLeaves
 import com.xfastgames.witness.blocks.logs.CedarLog
 import com.xfastgames.witness.blocks.stained.stone.StainedStone
 import com.xfastgames.witness.blocks.stained.stone.StainedStoneSlabs
+import com.xfastgames.witness.blocks.stained.stone.StainedStoneStairs
 import com.xfastgames.witness.blocks.stained.stone.bricks.*
 import com.xfastgames.witness.blocks.yucca.TallYucca
 import com.xfastgames.witness.blocks.yucca.Yucca
@@ -32,6 +33,7 @@ class Witness : ModInitializer, ClientModInitializer {
 
         val BLOCKS: List<Block> = listOf(
             StainedStone.BLOCK,
+            StainedStoneStairs.BLOCK,
             StainedStoneSlabs.BLOCK,
             StainedStoneBricks.BLOCK,
             StainedStoneBricksSlabs.BLOCK,
@@ -51,6 +53,7 @@ class Witness : ModInitializer, ClientModInitializer {
 
         val ITEMS: List<BlockItem> = listOf(
             StainedStone.BLOCK_ITEM,
+            StainedStoneStairs.BLOCK_ITEM,
             StainedStoneSlabs.BLOCK_ITEM,
             StainedStoneBricks.BLOCK_ITEM,
             StainedStoneBricksSlabs.BLOCK_ITEM,

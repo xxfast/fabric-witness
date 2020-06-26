@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": {
+    "item": "witness:yellow_stained_stone"
+  },
+  "result": "witness:yellow_stained_stone_stairs",
+  "count": 1
+}
