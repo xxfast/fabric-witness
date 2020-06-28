@@ -14,6 +14,7 @@ import com.xfastgames.witness.blocks.stained.stone.StainedStoneWall
 import com.xfastgames.witness.blocks.stained.stone.bricks.*
 import com.xfastgames.witness.blocks.yucca.TallYucca
 import com.xfastgames.witness.blocks.yucca.Yucca
+import com.xfastgames.witness.entity.PuzzleFrameEntity
 import com.xfastgames.witness.feature.JasmineBushFeature
 import com.xfastgames.witness.feature.MimosaBushFeature
 import com.xfastgames.witness.feature.PinkCedarTreeFeature
@@ -29,6 +30,7 @@ import net.minecraft.world.gen.feature.Feature
 import net.minecraft.world.gen.feature.FeatureConfig
 
 class Witness : ModInitializer, ClientModInitializer {
+
     companion object {
         const val IDENTIFIER = "witness"
 
@@ -80,13 +82,17 @@ class Witness : ModInitializer, ClientModInitializer {
             MimosaBushFeature.FEATURE,
             PinkCedarTreeFeature.FEATURE
         )
+
+        val ENTITIES = listOf(
+            PuzzleFrameEntity.ENTITY
+        )
     }
 
     override fun onInitialize() {}
 
     @Environment(EnvType.CLIENT)
     override fun onInitializeClient() {
-        listOf(BLOCKS, ITEMS, FEATURES)
+        listOf(BLOCKS, ITEMS, FEATURES, ENTITIES)
             .flatten()
             .filterIsInstance<Clientside>()
             .forEach { it.onClient() }

@@ -5,6 +5,5 @@ import net.fabricmc.api.Environment
 
 interface Clientside {
     @Environment(EnvType.CLIENT)
-    fun onClient() {
-    }
+    fun onClient()
 }
