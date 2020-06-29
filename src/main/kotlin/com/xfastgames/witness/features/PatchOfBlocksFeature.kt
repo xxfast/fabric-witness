@@ -1,4 +1,4 @@
-package com.xfastgames.witness.feature
+package com.xfastgames.witness.features
 
 import com.mojang.serialization.Codec
 import net.minecraft.block.Block

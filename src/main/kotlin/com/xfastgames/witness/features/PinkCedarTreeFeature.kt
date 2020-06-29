@@ -1,9 +1,9 @@
-package com.xfastgames.witness.feature
+package com.xfastgames.witness.features
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.leaves.PinkCedarLeaves
 import com.xfastgames.witness.blocks.logs.CedarLog
-import com.xfastgames.witness.feature.decorators.BougainvilleaTreeDecorator
+import com.xfastgames.witness.features.decorators.BougainvilleaTreeDecorator
 import com.xfastgames.witness.utils.registerFeature
 import net.minecraft.util.Identifier
 import net.minecraft.world.biome.Biomes

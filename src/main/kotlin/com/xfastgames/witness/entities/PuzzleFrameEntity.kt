@@ -1,7 +1,7 @@
-package com.xfastgames.witness.entity
+package com.xfastgames.witness.entities
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.entity.renderers.PuzzleFrameRenderer
+import com.xfastgames.witness.entities.renderers.PuzzleFrameRenderer
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerEntity
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry

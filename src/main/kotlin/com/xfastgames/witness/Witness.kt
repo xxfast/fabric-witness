@@ -14,11 +14,11 @@ import com.xfastgames.witness.blocks.stained.stone.StainedStoneWall
 import com.xfastgames.witness.blocks.stained.stone.bricks.*
 import com.xfastgames.witness.blocks.yucca.TallYucca
 import com.xfastgames.witness.blocks.yucca.Yucca
-import com.xfastgames.witness.entity.PuzzleFrameEntity
-import com.xfastgames.witness.feature.JasmineBushFeature
-import com.xfastgames.witness.feature.MimosaBushFeature
-import com.xfastgames.witness.feature.PinkCedarTreeFeature
-import com.xfastgames.witness.feature.YuccaFeature
+import com.xfastgames.witness.entities.PuzzleFrameEntity
+import com.xfastgames.witness.features.JasmineBushFeature
+import com.xfastgames.witness.features.MimosaBushFeature
+import com.xfastgames.witness.features.PinkCedarTreeFeature
+import com.xfastgames.witness.features.YuccaFeature
 import com.xfastgames.witness.utils.Clientside
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType

@@ -1,4 +1,4 @@
-package com.xfastgames.witness.feature.decorators
+package com.xfastgames.witness.features.decorators
 
 import com.xfastgames.witness.blocks.drapes.BlueBougainvilleaDrape
 import com.xfastgames.witness.blocks.drapes.Drape

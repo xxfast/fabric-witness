@@ -1,7 +1,8 @@
-package com.xfastgames.witness.feature
+package com.xfastgames.witness.features
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.blocks.flowers.JasmineBush
+import com.xfastgames.witness.blocks.yucca.TallYucca
+import com.xfastgames.witness.blocks.yucca.Yucca
 import com.xfastgames.witness.utils.registerFeature
 import net.minecraft.util.Identifier
 import net.minecraft.world.biome.Biomes
@@ -11,18 +12,22 @@ import net.minecraft.world.gen.decorator.Decorator
 import net.minecraft.world.gen.feature.Feature
 import net.minecraft.world.gen.feature.FeatureConfig
 
-class JasmineBushFeature : PatchOfBlocksFeature(listOf(JasmineBush.BLOCK)) {
+class YuccaFeature : PatchOfBlocksFeature(
+    blocks = listOf(Yucca.BLOCK, TallYucca.BLOCK),
+    amount = 25..50
+) {
 
     companion object {
-        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "jasmine_bush_growth")
+        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "yucca_growth")
 
         val FEATURE: Feature<FeatureConfig> = registerFeature(
             id = IDENTIFIER,
-            feature = JasmineBushFeature(),
+            feature = YuccaFeature(),
             biomes = listOf(
-                Biomes.TAIGA,
-                Biomes.TAIGA_MOUNTAINS,
-                Biomes.TAIGA_HILLS
+                Biomes.SAVANNA,
+                Biomes.SAVANNA_PLATEAU,
+                Biomes.SHATTERED_SAVANNA,
+                Biomes.SHATTERED_SAVANNA_PLATEAU
             )
         ) { registeredFeature, biome ->
             biome.addFeature(

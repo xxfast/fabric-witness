@@ -1,6 +1,6 @@
-package com.xfastgames.witness.entity.models
+package com.xfastgames.witness.entities.models
 
-import com.xfastgames.witness.entity.PuzzleFrameEntity
+import com.xfastgames.witness.entities.PuzzleFrameEntity
 import net.minecraft.client.model.ModelPart
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.entity.model.EntityModel

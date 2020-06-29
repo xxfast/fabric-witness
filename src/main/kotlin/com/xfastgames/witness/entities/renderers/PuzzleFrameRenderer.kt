@@ -1,8 +1,8 @@
-package com.xfastgames.witness.entity.renderers
+package com.xfastgames.witness.entities.renderers
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.entity.PuzzleFrameEntity
-import com.xfastgames.witness.entity.models.PuzzleFrameModel
+import com.xfastgames.witness.entities.PuzzleFrameEntity
+import com.xfastgames.witness.entities.models.PuzzleFrameModel
 import net.minecraft.client.render.entity.EntityRenderDispatcher
 import net.minecraft.client.render.entity.MobEntityRenderer
 import net.minecraft.util.Identifier
