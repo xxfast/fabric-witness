@@ -1,4 +1,4 @@
-package com.xfastgames.witness.blocks.leaves
+package com.xfastgames.witness.blocks.decorations
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.Clientside

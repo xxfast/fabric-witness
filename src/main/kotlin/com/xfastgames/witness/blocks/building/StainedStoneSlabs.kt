@@ -1,4 +1,4 @@
-package com.xfastgames.witness.blocks.stained.stone
+package com.xfastgames.witness.blocks.building
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.registerBlock

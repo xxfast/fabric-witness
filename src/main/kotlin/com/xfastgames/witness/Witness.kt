@@ -1,19 +1,7 @@
 package com.xfastgames.witness
 
-import com.xfastgames.witness.blocks.drapes.BlueBougainvilleaDrape
-import com.xfastgames.witness.blocks.drapes.PurpleBougainvilleaDrape
-import com.xfastgames.witness.blocks.flowers.JasmineBush
-import com.xfastgames.witness.blocks.flowers.MimosaBush
-import com.xfastgames.witness.blocks.leaves.OakLeavesRunners
-import com.xfastgames.witness.blocks.leaves.PinkCedarLeaves
-import com.xfastgames.witness.blocks.logs.CedarLog
-import com.xfastgames.witness.blocks.stained.stone.StainedStone
-import com.xfastgames.witness.blocks.stained.stone.StainedStoneSlabs
-import com.xfastgames.witness.blocks.stained.stone.StainedStoneStairs
-import com.xfastgames.witness.blocks.stained.stone.StainedStoneWall
-import com.xfastgames.witness.blocks.stained.stone.bricks.*
-import com.xfastgames.witness.blocks.yucca.TallYucca
-import com.xfastgames.witness.blocks.yucca.Yucca
+import com.xfastgames.witness.blocks.building.*
+import com.xfastgames.witness.blocks.decorations.*
 import com.xfastgames.witness.features.JasmineBushFeature
 import com.xfastgames.witness.features.MimosaBushFeature
 import com.xfastgames.witness.features.PinkCedarTreeFeature

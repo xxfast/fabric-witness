@@ -1,8 +1,8 @@
 package com.xfastgames.witness.features
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.blocks.yucca.TallYucca
-import com.xfastgames.witness.blocks.yucca.Yucca
+import com.xfastgames.witness.blocks.decorations.TallYucca
+import com.xfastgames.witness.blocks.decorations.Yucca
 import com.xfastgames.witness.utils.registerFeature
 import net.minecraft.util.Identifier
 import net.minecraft.world.biome.Biomes

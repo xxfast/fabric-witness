@@ -1,7 +1,7 @@
 package com.xfastgames.witness.features
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.blocks.flowers.JasmineBush
+import com.xfastgames.witness.blocks.decorations.JasmineBush
 import com.xfastgames.witness.utils.registerFeature
 import net.minecraft.util.Identifier
 import net.minecraft.world.biome.Biomes

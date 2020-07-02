@@ -1,4 +1,4 @@
-package com.xfastgames.witness.blocks.stained.stone
+package com.xfastgames.witness.blocks.building
 
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.fabricmc.fabric.api.tool.attribute.v1.FabricToolTags

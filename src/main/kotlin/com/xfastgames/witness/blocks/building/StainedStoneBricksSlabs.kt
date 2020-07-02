@@ -1,7 +1,6 @@
-package com.xfastgames.witness.blocks.stained.stone.bricks
+package com.xfastgames.witness.blocks.building
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.blocks.stained.stone.stainedStoneSettings
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.minecraft.block.SlabBlock

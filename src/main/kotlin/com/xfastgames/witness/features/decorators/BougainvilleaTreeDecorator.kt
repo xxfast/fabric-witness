@@ -1,9 +1,9 @@
 package com.xfastgames.witness.features.decorators
 
-import com.xfastgames.witness.blocks.drapes.BlueBougainvilleaDrape
-import com.xfastgames.witness.blocks.drapes.Drape
-import com.xfastgames.witness.blocks.drapes.DrapePart
-import com.xfastgames.witness.blocks.drapes.PurpleBougainvilleaDrape
+import com.xfastgames.witness.blocks.decorations.BlueBougainvilleaDrape
+import com.xfastgames.witness.blocks.decorations.Drape
+import com.xfastgames.witness.blocks.decorations.DrapePart
+import com.xfastgames.witness.blocks.decorations.PurpleBougainvilleaDrape
 import com.xfastgames.witness.utils.neighbours
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState

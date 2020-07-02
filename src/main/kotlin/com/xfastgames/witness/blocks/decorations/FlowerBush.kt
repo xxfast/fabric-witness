@@ -1,4 +1,4 @@
-package com.xfastgames.witness.blocks.flowers
+package com.xfastgames.witness.blocks.decorations
 
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*

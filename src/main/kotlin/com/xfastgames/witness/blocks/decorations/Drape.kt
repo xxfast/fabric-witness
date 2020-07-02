@@ -1,4 +1,4 @@
-package com.xfastgames.witness.blocks.drapes
+package com.xfastgames.witness.blocks.decorations
 
 import com.xfastgames.witness.utils.above
 import com.xfastgames.witness.utils.neighbours
