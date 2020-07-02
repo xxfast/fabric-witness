@@ -1,6 +1,8 @@
 package com.xfastgames.witness.utils
 
 import net.minecraft.block.Block
+import net.minecraft.block.entity.BlockEntity
+import net.minecraft.block.entity.BlockEntityType
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
 import net.minecraft.item.BlockItem
@@ -22,9 +24,12 @@ fun registerBlockItem(
     block: Block,
     id: Identifier,
     settings: Item.Settings = Item.Settings().group(ItemGroup.MISC)
-): BlockItem {
-    return Registry.register(Registry.ITEM, id, BlockItem(block, settings))
-}
+): BlockItem = Registry.register(Registry.ITEM, id, BlockItem(block, settings))
+
+fun registerBlockEntity(
+    id: Identifier,
+    blockEntityType: () -> BlockEntityType<BlockEntity>
+): BlockEntityType<BlockEntity> = Registry.register(Registry.BLOCK_ENTITY_TYPE, id, blockEntityType())
 
 // TODO: Refactor [onBiome] lambda
 fun <T : FeatureConfig> registerFeature(
