@@ -3,6 +3,7 @@
   "package": "com.xfastgames.witness.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "client.network.ClientPlayNetworkHandlerMixin"
   ],
   "client": [
     "ExampleMixin"
