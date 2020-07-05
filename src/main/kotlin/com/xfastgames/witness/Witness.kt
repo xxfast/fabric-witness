@@ -2,6 +2,8 @@ package com.xfastgames.witness
 
 import com.xfastgames.witness.blocks.building.*
 import com.xfastgames.witness.blocks.decorations.*
+import com.xfastgames.witness.blocks.redstone.PuzzleFrameBlock
+import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.features.JasmineBushFeature
 import com.xfastgames.witness.features.MimosaBushFeature
 import com.xfastgames.witness.features.PinkCedarTreeFeature
@@ -39,7 +41,8 @@ class Witness : ModInitializer, ClientModInitializer {
             PurpleBougainvilleaDrape.BLOCK,
             BlueBougainvilleaDrape.BLOCK,
             PinkCedarLeaves.BLOCK,
-            CedarLog.BLOCK
+            CedarLog.BLOCK,
+            PuzzleFrameBlock.BLOCK
         )
 
         val ITEMS: List<BlockItem> = listOf(
@@ -60,7 +63,8 @@ class Witness : ModInitializer, ClientModInitializer {
             PurpleBougainvilleaDrape.BLOCK_ITEM,
             BlueBougainvilleaDrape.BLOCK_ITEM,
             PinkCedarLeaves.BLOCK_ITEM,
-            CedarLog.BLOCK_ITEM
+            CedarLog.BLOCK_ITEM,
+            PuzzleFrameBlock.BLOCK_ITEM
         )
 
         val FEATURES: List<Feature<out FeatureConfig>> = listOf(
@@ -69,15 +73,20 @@ class Witness : ModInitializer, ClientModInitializer {
             MimosaBushFeature.FEATURE,
             PinkCedarTreeFeature.FEATURE
         )
+
+        val ENTITIES: List<Clientside> = listOf(
+            PuzzleFrameBlockEntity.Companion
+        )
     }
 
     override fun onInitialize() {}
 
     @Environment(EnvType.CLIENT)
     override fun onInitializeClient() {
-        listOf(BLOCKS, ITEMS, FEATURES)
+        listOf(BLOCKS, ITEMS, FEATURES, ENTITIES)
             .flatten()
             .filterIsInstance<Clientside>()
             .forEach { it.onClient() }
     }
+
 }

@@ -26,10 +26,10 @@ fun registerBlockItem(
     settings: Item.Settings = Item.Settings().group(ItemGroup.MISC)
 ): BlockItem = Registry.register(Registry.ITEM, id, BlockItem(block, settings))
 
-fun registerBlockEntity(
+fun <T : BlockEntity> registerBlockEntity(
     id: Identifier,
-    blockEntityType: () -> BlockEntityType<BlockEntity>
-): BlockEntityType<BlockEntity> = Registry.register(Registry.BLOCK_ENTITY_TYPE, id, blockEntityType())
+    blockEntityType: () -> BlockEntityType<T>
+): BlockEntityType<T> = Registry.register(Registry.BLOCK_ENTITY_TYPE, id, blockEntityType())
 
 // TODO: Refactor [onBiome] lambda
 fun <T : FeatureConfig> registerFeature(
