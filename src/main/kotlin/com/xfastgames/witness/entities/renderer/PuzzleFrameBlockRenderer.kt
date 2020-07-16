@@ -1,6 +1,7 @@
 package com.xfastgames.witness.entities.renderer
 
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
+import com.xfastgames.witness.items.PuzzleTile
 import com.xfastgames.witness.utils.rotate
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.render.VertexConsumerProvider
@@ -16,35 +17,34 @@ import net.minecraft.item.Items
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
 
-
 class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
     BlockEntityRenderer<PuzzleFrameBlockEntity>(dispatcher) {
 
     private val backgroundStack = ItemStack(Items.YELLOW_STAINED_GLASS_PANE, 1)
-    private val foregroundStack = ItemStack(Items.BLACK_STAINED_GLASS_PANE, 1)
+    private val foregroundStack = ItemStack(PuzzleTile.ITEM, 1)
     private val itemRenderer: ItemRenderer = MinecraftClient.getInstance().itemRenderer
 
     override fun render(
         blockEntity: PuzzleFrameBlockEntity,
         tickDelta: Float,
         matrices: MatrixStack,
-        vertexConsumers: VertexConsumerProvider,
+        vertexConsumerProvider: VertexConsumerProvider,
         light: Int,
         overlay: Int
     ) {
-        val pX: (Int) -> List<List<Int>> = { x: Int ->
-            val col = mutableListOf<List<Int>>()
-            repeat(x) {
-                val row = mutableListOf<Int>()
-                repeat(x) {
-                    row.add(1)
+        val pX: (Int) -> List<List<Boolean>> = { size: Int ->
+            val col = mutableListOf<List<Boolean>>()
+            repeat(size) { x ->
+                val row = mutableListOf<Boolean>()
+                repeat(size) { y ->
+                    row.add(true)
                 }
                 col.add(row.toList())
             }
             col.toList()
         }
 
-        val puzzle = pX(6)
+        val puzzle = pX(4)
 
         matrices.push()
 
@@ -70,7 +70,7 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
             light,
             overlay,
             matrices,
-            vertexConsumers
+            vertexConsumerProvider
         )
 
         // Scale items to fit on frame
@@ -81,7 +81,10 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         val yScale: Float = 1f / yCount
 
         // Move to front
-        matrices.translate(.0, .0, -0.035)
+        matrices.translate(.0, .0, -.035)
+
+        // Rotate the frame right way up
+        matrices.rotate(Vector3f.POSITIVE_Z, 180f)
 
         // Move to frame
         val xScaledOffset: Double = (xCount.toDouble() / 2) - 0.5
@@ -96,13 +99,13 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
                 matrices.translate(.0, dY, .0)
                 val lightAbove =
                     WorldRenderer.getLightmapCoordinates(blockEntity.world, blockEntity.pos.up())
-                if (cell == 1) itemRenderer.renderItem(
+                if (cell) itemRenderer.renderItem(
                     foregroundStack,
                     ModelTransformation.Mode.GUI,
                     lightAbove,
                     overlay,
                     matrices,
-                    vertexConsumers
+                    vertexConsumerProvider
                 )
                 matrices.translate(.0, -dY, .0)
             }
@@ -110,7 +113,6 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         }
         matrices.scale(1 + xScale, 1 + yScale, 1.0f)
 
-        // Mandatory call after GL calls
         matrices.pop()
     }
 }

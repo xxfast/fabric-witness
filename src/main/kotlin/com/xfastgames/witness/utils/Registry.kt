@@ -56,3 +56,6 @@ inline fun <T : Entity> registerEntity(
     id,
     typeBuilder()
 )
+
+fun registerItem(id: Identifier, item: Item): Item =
+    Registry.register(Registry.ITEM, id, item)

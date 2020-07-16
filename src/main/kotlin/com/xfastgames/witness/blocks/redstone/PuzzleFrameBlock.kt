@@ -2,6 +2,7 @@ package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
+import com.xfastgames.witness.items.PuzzleTile
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import com.xfastgames.witness.utils.rotateShape
@@ -20,6 +21,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.BlockView
+import net.minecraft.world.World
 
 class PuzzleFrameBlock :
     BlockWithEntity(
@@ -31,8 +33,7 @@ class PuzzleFrameBlock :
     ) {
 
     init {
-        defaultState = stateManager.defaultState
-            .with(HORIZONTAL_FACING, Direction.NORTH)
+        defaultState = stateManager.defaultState.with(HORIZONTAL_FACING, Direction.NORTH)
     }
 
     companion object {
@@ -63,5 +64,10 @@ class PuzzleFrameBlock :
             VoxelShapes.cuboid(.0, .0, .375, 1.0, 1.0, .625)
         val direction: Direction = requireNotNull(state?.get(HORIZONTAL_FACING))
         return baseShape.rotateShape(to = direction)
+    }
+
+    fun putPuzzle(world: World, pos: BlockPos, puzzleTile: PuzzleTile) {
+        val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
+        require(entity is PuzzleFrameBlockEntity)
     }
 }

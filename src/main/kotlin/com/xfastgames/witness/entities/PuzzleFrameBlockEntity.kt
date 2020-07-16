@@ -9,10 +9,13 @@ import net.fabricmc.fabric.api.client.rendereregistry.v1.BlockEntityRendererRegi
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.BlockEntityType
 import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher
+import net.minecraft.item.ItemStack
 import net.minecraft.util.Identifier
 import java.util.function.Supplier
 
 class PuzzleFrameBlockEntity : BlockEntity(ENTITY_TYPE) {
+
+    var puzzle: ItemStack? = null
 
     companion object : Clientside {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_frame_entity")
@@ -28,4 +31,5 @@ class PuzzleFrameBlockEntity : BlockEntity(ENTITY_TYPE) {
             }
         }
     }
+
 }

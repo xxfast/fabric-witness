@@ -2,6 +2,7 @@ plugins {
     id 'fabric-loom'
     id 'maven-publish'
     id "org.jetbrains.kotlin.jvm"
+    id "org.jetbrains.kotlin.plugin.serialization"
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
@@ -20,6 +21,10 @@ repositories {
 }
 
 dependencies {
+    modImplementation "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
+    modApi "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlinx_serialization_runtime_version"
+    include "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlinx_serialization_runtime_version"
+
     //to change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"

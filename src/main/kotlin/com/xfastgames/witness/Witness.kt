@@ -8,13 +8,15 @@ import com.xfastgames.witness.features.JasmineBushFeature
 import com.xfastgames.witness.features.MimosaBushFeature
 import com.xfastgames.witness.features.PinkCedarTreeFeature
 import com.xfastgames.witness.features.YuccaFeature
+import com.xfastgames.witness.items.PuzzlePanel
+import com.xfastgames.witness.items.PuzzleTile
 import com.xfastgames.witness.utils.Clientside
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.api.ModInitializer
 import net.minecraft.block.Block
-import net.minecraft.item.BlockItem
+import net.minecraft.item.Item
 import net.minecraft.world.gen.feature.Feature
 import net.minecraft.world.gen.feature.FeatureConfig
 
@@ -45,7 +47,7 @@ class Witness : ModInitializer, ClientModInitializer {
             PuzzleFrameBlock.BLOCK
         )
 
-        val ITEMS: List<BlockItem> = listOf(
+        val ITEMS: List<Item> = listOf(
             StainedStone.BLOCK_ITEM,
             StainedStoneStairs.BLOCK_ITEM,
             StainedStoneSlabs.BLOCK_ITEM,
@@ -64,7 +66,9 @@ class Witness : ModInitializer, ClientModInitializer {
             BlueBougainvilleaDrape.BLOCK_ITEM,
             PinkCedarLeaves.BLOCK_ITEM,
             CedarLog.BLOCK_ITEM,
-            PuzzleFrameBlock.BLOCK_ITEM
+            PuzzleFrameBlock.BLOCK_ITEM,
+            PuzzleTile.ITEM,
+            PuzzlePanel.ITEM
         )
 
         val FEATURES: List<Feature<out FeatureConfig>> = listOf(
