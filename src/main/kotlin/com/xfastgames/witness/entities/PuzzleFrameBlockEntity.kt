@@ -3,6 +3,7 @@ package com.xfastgames.witness.entities
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.PuzzleFrameBlock
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer
+import com.xfastgames.witness.items.PuzzlePanel
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerBlockEntity
 import net.fabricmc.fabric.api.client.rendereregistry.v1.BlockEntityRendererRegistry
@@ -15,7 +16,9 @@ import java.util.function.Supplier
 
 class PuzzleFrameBlockEntity : BlockEntity(ENTITY_TYPE) {
 
-    var puzzle: ItemStack? = null
+    var puzzle: ItemStack? = ItemStack(PuzzlePanel.ITEM, 1).apply {
+        tag = PuzzlePanel.toTag(PuzzlePanel.generate(6))
+    }
 
     companion object : Clientside {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_frame_entity")

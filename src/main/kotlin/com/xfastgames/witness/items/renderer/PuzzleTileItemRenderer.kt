@@ -28,20 +28,12 @@ class PuzzleTileItemRenderer : BuiltinItemRenderer {
     ) {
         matrices.push()
 
-        val position = Vector3f(0f, 0f, 0.5f)
-        position.add(0f, 0f, -0.01f)
+        val position = Vector3f(0f, 0f, -0.001f)
 
         // Render tile pieces
         val fillConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(fillTexture))
-        val item: PuzzleTile = stack.item as PuzzleTile
-        val tile = Tile(
-            mapOf(
-                Direction.TOP to Line.FILLED,
-                Direction.RIGHT to Line.FILLED,
-                Direction.BOTTOM to Line.FILLED,
-                Direction.LEFT to Line.FILLED
-            )
-        )
+
+        val tile: Tile = stack.tag?.let { PuzzleTile.fromTag(it) } ?: return matrices.pop()
 
         fun rectangle(position: Vector3f, width: Float, height: Float) =
             fillConsumer.rectangle(matrices, position, width, height, light, overlay)
@@ -66,13 +58,19 @@ class PuzzleTileItemRenderer : BuiltinItemRenderer {
                 Direction.RIGHT -> when (side) {
                     Line.FILLED -> rectangle(Vector3f(10.pc, 6.pc, position.z), 6.pc, 4.pc)
                     Line.SHORTENED -> rectangle(Vector3f(10.pc, 6.pc, position.z), 4.pc, 4.pc)
-                    Line.END -> TODO()
+                    Line.END -> {
+                        circle(Vector3f(12.pc, 8.pc, position.z), 2.pc, 0..180)
+                        rectangle(Vector3f(10.pc, 6.pc, position.z), 2.pc, 4.pc)
+                    }
                 }
 
                 Direction.BOTTOM -> when (side) {
                     Line.FILLED -> rectangle(Vector3f(6.pc, 10.pc, position.z), 4.pc, 6.pc)
                     Line.SHORTENED -> rectangle(Vector3f(6.pc, 10.pc, position.z), 4.pc, 4.pc)
-                    Line.END -> TODO()
+                    Line.END -> {
+                        circle(Vector3f(8.pc, 12.pc, position.z), 2.pc, arc = -90..90)
+                        rectangle(Vector3f(6.pc, 10.pc, position.z), 4.pc, 2.pc)
+                    }
                 }
 
                 Direction.LEFT -> when (side) {

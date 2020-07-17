@@ -35,22 +35,32 @@ class PuzzleTile : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_tile")
         val ITEM: Item = registerItem(IDENTIFIER, PuzzleTile())
-    }
+        val RENDERER = PuzzleTileItemRenderer()
 
-    private val json = Json(JsonConfiguration.Stable)
+        fun generate() = Tile(
+            mapOf(
+                Direction.TOP to Line.values().random(),
+                Direction.RIGHT to Line.values().random(),
+                Direction.BOTTOM to Line.values().random(),
+                Direction.LEFT to Line.values().random()
+            )
+        )
+
+        private val json = Json(JsonConfiguration.Stable)
+
+        fun fromTag(tag: CompoundTag): Tile {
+            val data: String = tag.getString(KEY_DATA)
+            return json.parse(Tile.serializer(), data)
+        }
+
+        fun toTag(tile: Tile): CompoundTag = CompoundTag().apply {
+            val data: String = json.stringify(Tile.serializer(), tile)
+            putString(KEY_DATA, data)
+        }
+    }
 
     override fun onClient() {
-        BuiltinItemRendererRegistry.INSTANCE.register(ITEM, PuzzleTileItemRenderer())
-    }
-
-    fun fromTag(tag: CompoundTag): Tile {
-        val stringData: String = tag.getString(KEY_DATA)
-        return json.parse(Tile.serializer(), stringData)
-    }
-
-    fun toTag(tile: Tile): CompoundTag = CompoundTag().apply {
-        val dataString: String = json.stringify(Tile.serializer(), tile)
-        putString(KEY_DATA, dataString)
+        BuiltinItemRendererRegistry.INSTANCE.register(ITEM, RENDERER)
     }
 }
 

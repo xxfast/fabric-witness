@@ -21,29 +21,44 @@ import net.minecraft.util.Identifier
 import net.minecraft.util.TypedActionResult
 import net.minecraft.world.World
 
-private const val KEY_DATA = "puzzleData"
-
 @Serializable
 data class Panel(val tiles: List<List<Tile>>)
+
+private const val KEY_DATA = "puzzleData"
 
 class PuzzlePanel : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
 
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_panel")
         val ITEM = registerItem(IDENTIFIER, PuzzlePanel())
-    }
 
-    private val json = Json(JsonConfiguration.Stable)
+        fun generate(size: Int): Panel {
+            val col = mutableListOf<List<Tile>>()
+            repeat(size) { x ->
+                val row = mutableListOf<Tile>()
+                repeat(size) { y ->
+                    row.add(PuzzleTile.generate())
+                }
+                col.add(row.toList())
+            }
+            return Panel(col.toList())
+        }
+
+        private val json = Json(JsonConfiguration.Stable)
+
+        fun fromTag(tag: CompoundTag): Panel {
+            val data: String = tag.getString(KEY_DATA)
+            return json.parse(Panel.serializer(), data)
+        }
+
+        fun toTag(panel: Panel): CompoundTag = CompoundTag().apply {
+            val data: String = json.stringify(Panel.serializer(), panel)
+            putString(KEY_DATA, data)
+        }
+    }
 
     override fun onClient() {
         BuiltinItemRendererRegistry.INSTANCE.register(ITEM, PuzzlePanelItemRenderer())
-    }
-
-    fun fromTag(tag: CompoundTag) {
-    }
-
-    fun toTag(): CompoundTag = CompoundTag().apply {
-
     }
 
     override fun useOnBlock(context: ItemUsageContext): ActionResult {
