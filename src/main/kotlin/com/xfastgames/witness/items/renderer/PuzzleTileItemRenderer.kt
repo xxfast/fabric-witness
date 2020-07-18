@@ -3,7 +3,6 @@ package com.xfastgames.witness.items.renderer
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.Direction
 import com.xfastgames.witness.items.Line
-import com.xfastgames.witness.items.PuzzleTile
 import com.xfastgames.witness.items.Tile
 import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRenderer
@@ -28,12 +27,12 @@ class PuzzleTileItemRenderer : BuiltinItemRenderer {
     ) {
         matrices.push()
 
+        val tile: Tile = stack.tag?.let { Tile.fromTag(it) } ?: return matrices.pop()
+
         val position = Vector3f(0f, 0f, -0.001f)
 
         // Render tile pieces
         val fillConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(fillTexture))
-
-        val tile: Tile = stack.tag?.let { PuzzleTile.fromTag(it) } ?: return matrices.pop()
 
         fun rectangle(position: Vector3f, width: Float, height: Float) =
             fillConsumer.rectangle(matrices, position, width, height, light, overlay)

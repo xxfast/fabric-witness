@@ -63,7 +63,7 @@ fun VertexConsumer.square(matrices: MatrixStack, position: Vector3f, length: Flo
         texture(offsetX, offsetY)
         overlay(overlay)
         light(light)
-        normal(normal, .5f, .5f, .5f)
+        normal(normal, 1f, 1f, 1f)
         next()
     }
 }

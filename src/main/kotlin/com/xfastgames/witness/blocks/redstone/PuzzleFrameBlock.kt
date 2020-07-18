@@ -2,20 +2,23 @@ package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
-import com.xfastgames.witness.items.PuzzleTile
+import com.xfastgames.witness.items.Panel
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import com.xfastgames.witness.utils.rotateShape
+import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*
 import net.minecraft.block.entity.BlockEntity
-import net.minecraft.item.BlockItem
-import net.minecraft.item.Item
-import net.minecraft.item.ItemGroup
-import net.minecraft.item.ItemPlacementContext
+import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.item.*
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.Properties.HORIZONTAL_FACING
+import net.minecraft.util.ActionResult
+import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
+import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.shape.VoxelShape
@@ -23,14 +26,12 @@ import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.BlockView
 import net.minecraft.world.World
 
-class PuzzleFrameBlock :
-    BlockWithEntity(
-        Settings
-            .of(Material.METAL)
-            .strength(2.5f)
-            .sounds(BlockSoundGroup.METAL)
-            .lightLevel { 5 }
-    ) {
+class PuzzleFrameBlock : BlockWithEntity(
+    FabricBlockSettings.of(Material.METAL)
+        .strength(2.5f)
+        .sounds(BlockSoundGroup.METAL)
+        .lightLevel { state -> 15 }
+) {
 
     init {
         defaultState = stateManager.defaultState.with(HORIZONTAL_FACING, Direction.NORTH)
@@ -66,8 +67,35 @@ class PuzzleFrameBlock :
         return baseShape.rotateShape(to = direction)
     }
 
-    fun putPuzzle(world: World, pos: BlockPos, puzzleTile: PuzzleTile) {
+    override fun onPlaced(
+        world: World,
+        pos: BlockPos?,
+        state: BlockState?,
+        placer: LivingEntity?,
+        itemStack: ItemStack?
+    ) {
+        if (world.isClient) return
         val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
         require(entity is PuzzleFrameBlockEntity)
+        entity.sync()
+        world.updateListeners(pos, state, state, 3)
+    }
+
+    override fun onUse(
+        state: BlockState?,
+        world: World,
+        pos: BlockPos,
+        player: PlayerEntity,
+        hand: Hand?,
+        hit: BlockHitResult?
+    ): ActionResult {
+        if (world.isClient) return ActionResult.CONSUME
+        val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
+        require(entity is PuzzleFrameBlockEntity)
+        val puzzle: Panel = Panel(5).copy(0, 0) { copy(isStart = true) }
+        entity.puzzleStack = puzzle.asItemStack()
+        entity.sync()
+        world.updateListeners(pos, state, state, 3)
+        return ActionResult.SUCCESS
     }
 }

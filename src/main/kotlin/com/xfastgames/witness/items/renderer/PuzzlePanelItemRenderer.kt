@@ -2,7 +2,6 @@ package com.xfastgames.witness.items.renderer
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.Panel
-import com.xfastgames.witness.items.PuzzlePanel
 import com.xfastgames.witness.items.PuzzleTile
 import com.xfastgames.witness.utils.pc
 import com.xfastgames.witness.utils.square
@@ -48,7 +47,8 @@ class PuzzlePanelItemRenderer : BuiltinItemRenderer {
         matrices.translate(.0, .0, .470)
         backdropConsumer.square(matrices, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
 
-        val puzzle: Panel = stack.tag?.let { PuzzlePanel.fromTag(it) } ?: return matrices.pop()
+        // Retrieve panel to render
+        val puzzle: Panel = Panel.fromTag(stack.tag)
 
         // Scale items to fit on frame
         val xCount: Int = puzzle.tiles.size
@@ -74,7 +74,7 @@ class PuzzlePanelItemRenderer : BuiltinItemRenderer {
             row.forEachIndexed { y, tile ->
                 val dY: Double = y * (yScale.toDouble() * yCount) - ((yScale * yCount) * yScaledOffset)
                 matrices.translate(.0, dY, .0)
-                val tileStack: ItemStack = ItemStack(PuzzleTile.ITEM, 1).apply { tag = PuzzleTile.toTag(tile) }
+                val tileStack: ItemStack = tile.asItemStack()
                 tileRenderer.render(tileStack, matrices, vertexConsumers, light, overlay)
                 matrices.translate(.0, -dY, .0)
             }
