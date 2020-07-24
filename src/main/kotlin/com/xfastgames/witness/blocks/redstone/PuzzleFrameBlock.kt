@@ -2,7 +2,7 @@ package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
-import com.xfastgames.witness.items.Panel
+import com.xfastgames.witness.items.PuzzlePanel
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import com.xfastgames.witness.utils.rotateShape
@@ -89,11 +89,26 @@ class PuzzleFrameBlock : BlockWithEntity(
         hand: Hand?,
         hit: BlockHitResult?
     ): ActionResult {
-        if (world.isClient) return ActionResult.CONSUME
         val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
         require(entity is PuzzleFrameBlockEntity)
-        val puzzle: Panel = Panel(5).copy(0, 0) { copy(isStart = true) }
-        entity.puzzleStack = puzzle.asItemStack()
+
+        // Action only allowed if the player is holding nothing or if the player is holding a puzzle
+        if (player.mainHandStack.item !is PuzzlePanel && !player.mainHandStack.isEmpty) return ActionResult.FAIL
+
+        when {
+            // if there's no item in the frame
+            entity.items[0].isEmpty -> entity.items[0] = player.inventory.removeStack(player.inventory.selectedSlot)
+
+            // if there is an item in the frame
+            !entity.items[0].isEmpty && player.isInSneakingPose -> {
+                val item: ItemStack = entity.items[0]
+                entity.removeStack(0)
+                player.setStackInHand(Hand.MAIN_HAND, item)
+            }
+
+        }
+
+        if (world.isClient) return ActionResult.SUCCESS
         entity.sync()
         world.updateListeners(pos, state, state, 3)
         return ActionResult.SUCCESS

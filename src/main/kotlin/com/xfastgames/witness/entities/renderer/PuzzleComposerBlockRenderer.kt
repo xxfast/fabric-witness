@@ -32,7 +32,7 @@ class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         matrices.push()
 
         // Get the relevant puzzle
-        val puzzlePanel: ItemStack? = blockEntity.puzzle
+        val inventory: ItemStack? = blockEntity.items[0]
 
         // Move to center
         matrices.translate(.5, .815, .5)
@@ -50,15 +50,16 @@ class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         // Move slightly out of center to avoid z collision
         matrices.translate(.0, .0, -.096)
 
-        // rotate the puzzle pannel right way up
+        // Scale to fit to frame
         matrices.scale(0.95f, 0.95f, 1f)
 
         // Get light above
+        // TODO: Still appear darker for some reason
         val lightAbove: Int = WorldRenderer.getLightmapCoordinates(blockEntity.world, blockEntity.pos.up())
 
         // Render puzzle panel
         itemRenderer.renderItem(
-            puzzlePanel,
+            inventory,
             ModelTransformation.Mode.GUI,
             lightAbove,
             overlay,

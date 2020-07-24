@@ -4,6 +4,7 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.Direction
 import com.xfastgames.witness.items.Line
 import com.xfastgames.witness.items.Tile
+import com.xfastgames.witness.items.getTile
 import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRenderer
 import net.minecraft.client.render.RenderLayer
@@ -27,7 +28,7 @@ class PuzzleTileItemRenderer : BuiltinItemRenderer {
     ) {
         matrices.push()
 
-        val tile: Tile = stack.tag?.let { Tile.fromTag(it) } ?: return matrices.pop()
+        val tile: Tile = stack.tag?.getTile() ?: return matrices.pop()
 
         val position = Vector3f(0f, 0f, -0.001f)
 

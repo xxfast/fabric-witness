@@ -3,22 +3,29 @@ package com.xfastgames.witness.items
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.renderer.PuzzlePanelItemRenderer
 import com.xfastgames.witness.utils.Clientside
-import com.xfastgames.witness.utils.jsonConfiguration
 import com.xfastgames.witness.utils.registerItem
-import kotlinx.serialization.Serializable
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.ListTag
+import net.minecraft.util.ActionResult
+import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
+import net.minecraft.util.TypedActionResult
+import net.minecraft.world.World
 
-@Serializable
+private const val KEY_PANEL = "panel"
+private const val KEY_SIZE = "width"
+private const val KEY_TILES = "tiles"
+
 data class Panel(val tiles: List<List<Tile>>) {
-
-    constructor(size: Int) : this(generate(size, size))
-
-    constructor(width: Int, height: Int) : this(generate(width, height))
+    constructor(size: Int) : this(generate(size).tiles)
+    constructor(size: Int, tiles: List<Tile>) : this(
+        tiles.takeIf { it.isNotEmpty() }?.chunked(size).orEmpty()
+    )
 
     fun copy(x: Int, y: Int, copier: Tile.() -> Tile): Panel =
         copy(tiles = tiles.mapIndexed { xIndex, cols ->
@@ -26,41 +33,40 @@ data class Panel(val tiles: List<List<Tile>>) {
                 if (xIndex == x && yIndex == y) copier(tile) else tile
             }
         })
-
-    fun toTag(): CompoundTag = toTag(this)
-
-    fun asItemStack(): ItemStack = ItemStack(PuzzlePanel.ITEM).apply { tag = this@Panel.toTag() }
-
-    companion object Builder {
-        val DEFAULT = Panel(3, 3)
-
-        fun generate(width: Int, height: Int): List<List<Tile>> {
-            val col = mutableListOf<List<Tile>>()
-            repeat(width) { x ->
-                val row = mutableListOf<Tile>()
-                repeat(height) { y ->
-                    row.add(Tile.DEFAULT)
-                }
-                col.add(row.toList())
-            }
-            return col.toList()
-        }
-
-        fun fromTag(tag: CompoundTag?): Panel {
-            val dataString: String = tag?.getString(KEY_DATA) ?: return DEFAULT
-            val data: Panel? = dataString.takeIf { it.isNotEmpty() }
-                ?.let { jsonConfiguration.parse(serializer(), it) }
-            return data ?: DEFAULT
-        }
-
-        fun toTag(panel: Panel): CompoundTag = CompoundTag().apply {
-            val data: String = jsonConfiguration.stringify(serializer(), panel)
-            putString(KEY_DATA, data)
-        }
-    }
 }
 
-private const val KEY_DATA = "puzzleData"
+private fun generate(size: Int): Panel {
+    val col = mutableListOf<List<Tile>>()
+    repeat(size) { x ->
+        val row = mutableListOf<Tile>()
+        repeat(size) { y ->
+            row.add(Tile())
+        }
+        col.add(row.toList())
+    }
+    return Panel(col.toList())
+}
+
+fun CompoundTag.getPanel(): Panel =
+    getCompound(KEY_PANEL).let { tag ->
+        Panel(
+            tag.getInt(KEY_SIZE),
+            tag.getList(KEY_TILES, 10) // TODO: Why 10? 🤷‍
+                .filterIsInstance<CompoundTag>()
+                .map { it.getTile() }
+        )
+    }
+
+fun CompoundTag.putPanel(panel: Panel) {
+    put(KEY_PANEL, CompoundTag().apply {
+        putInt(KEY_SIZE, panel.tiles.size)
+        put(KEY_TILES, ListTag().apply {
+            panel.tiles.flatten().map { tile ->
+                add(CompoundTag().apply { putTile(tile) })
+            }
+        })
+    })
+}
 
 class PuzzlePanel : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
 
@@ -71,5 +77,15 @@ class PuzzlePanel : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
 
     override fun onClient() {
         BuiltinItemRendererRegistry.INSTANCE.register(ITEM, PuzzlePanelItemRenderer())
+    }
+
+    override fun use(world: World?, user: PlayerEntity, hand: Hand?): TypedActionResult<ItemStack> {
+        val panel = Panel(5)
+        val tag: CompoundTag = user.mainHandStack.orCreateTag
+        tag.putPanel(panel)
+        return TypedActionResult(
+            ActionResult.SUCCESS,
+            if (hand === Hand.MAIN_HAND) user.mainHandStack else user.offHandStack
+        )
     }
 }

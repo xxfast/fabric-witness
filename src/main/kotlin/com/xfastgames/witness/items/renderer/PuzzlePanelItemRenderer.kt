@@ -2,7 +2,9 @@ package com.xfastgames.witness.items.renderer
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.Panel
+import com.xfastgames.witness.items.PuzzlePanel
 import com.xfastgames.witness.items.PuzzleTile
+import com.xfastgames.witness.items.getPanel
 import com.xfastgames.witness.utils.pc
 import com.xfastgames.witness.utils.square
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRenderer
@@ -12,6 +14,7 @@ import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
 import net.minecraft.item.ItemStack
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.Identifier
 
 class PuzzlePanelItemRenderer : BuiltinItemRenderer {
@@ -48,11 +51,12 @@ class PuzzlePanelItemRenderer : BuiltinItemRenderer {
         backdropConsumer.square(matrices, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
 
         // Retrieve panel to render
-        val puzzle: Panel = Panel.fromTag(stack.tag)
+        val tag: CompoundTag = stack.tag.takeIf { stack.item == PuzzlePanel.ITEM } ?: return matrices.pop()
+        val puzzle: Panel = tag.getPanel()
 
         // Scale items to fit on frame
         val xCount: Int = puzzle.tiles.size
-        val yCount: Int = puzzle.tiles.map { it.size }.max()!!
+        val yCount: Int = puzzle.tiles.map { it.size }.max() ?: 0
 
         val xScale: Float = 1f / xCount
         val yScale: Float = 1f / yCount

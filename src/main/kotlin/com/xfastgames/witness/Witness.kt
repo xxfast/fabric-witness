@@ -12,6 +12,7 @@ import com.xfastgames.witness.features.PinkCedarTreeFeature
 import com.xfastgames.witness.features.YuccaFeature
 import com.xfastgames.witness.items.PuzzlePanel
 import com.xfastgames.witness.items.PuzzleTile
+import com.xfastgames.witness.screens.PuzzleScreen
 import com.xfastgames.witness.utils.Clientside
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType
@@ -86,13 +87,16 @@ class Witness : ModInitializer, ClientModInitializer {
             PuzzleFrameBlockEntity.Companion,
             PuzzleComposerBlockEntity.Companion
         )
+
     }
 
     override fun onInitialize() {}
 
     @Environment(EnvType.CLIENT)
     override fun onInitializeClient() {
-        listOf(BLOCKS, ITEMS, FEATURES, ENTITIES)
+        val SCREENS: List<Clientside> = listOf(PuzzleScreen.Companion)
+
+        listOf(BLOCKS, ITEMS, FEATURES, ENTITIES, SCREENS)
             .flatten()
             .filterIsInstance<Clientside>()
             .forEach { it.onClient() }

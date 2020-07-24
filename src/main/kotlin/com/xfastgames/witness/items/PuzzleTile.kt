@@ -4,25 +4,26 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.renderer.PuzzleTileItemRenderer
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerItem
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.Identifier
+import kotlin.random.Random
 
-@Serializable
+
+private const val KEY_START = "start"
+private const val KEY_TOP = "top"
+private const val KEY_LEFT = "left"
+private const val KEY_BOTTOM = "bottom"
+private const val KEY_RIGHT = "right"
+
 enum class Direction { TOP, RIGHT, BOTTOM, LEFT }
 
-@Serializable
 enum class Line { FILLED, SHORTENED, END }
 
-@Serializable
 data class Tile(val isStart: Boolean, val lines: Map<Direction, Line>) {
-
     val left: Line? get() = lines[Direction.LEFT]
     val bottom: Line? get() = lines[Direction.BOTTOM]
     val right: Line? get() = lines[Direction.RIGHT]
@@ -41,39 +42,34 @@ data class Tile(val isStart: Boolean, val lines: Map<Direction, Line>) {
         }.toMap()
     )
 
-    fun toTag(): CompoundTag = toTag(this)
-
-    fun asItemStack(): ItemStack = ItemStack(PuzzleTile.ITEM).apply { tag = this@Tile.toTag() }
-
-    companion object Builder {
-        val DEFAULT = Tile(false, Line.FILLED, Line.FILLED, Line.FILLED, Line.FILLED)
-
-        fun generate() = Tile(
-            isStart = false,
-            lines = mapOf(
-                Direction.TOP to Line.values().random(),
-                Direction.RIGHT to Line.values().random(),
-                Direction.BOTTOM to Line.values().random(),
-                Direction.LEFT to Line.values().random()
-            )
+    constructor() : this(
+        isStart = Random.nextBoolean(),
+        lines = mapOf(
+            Direction.TOP to Line.values().random(),
+            Direction.RIGHT to Line.values().random(),
+            Direction.BOTTOM to Line.values().random(),
+            Direction.LEFT to Line.values().random()
         )
+    )
 
-        private val json = Json(JsonConfiguration.Stable)
-
-        fun fromTag(tag: CompoundTag): Tile {
-            val dataString: String = tag.getString(KEY_DATA)
-            val data: Tile? = dataString.takeIf { it.isNotEmpty() }?.let { json.parse(serializer(), dataString) }
-            return data ?: DEFAULT
-        }
-
-        fun toTag(tile: Tile): CompoundTag = CompoundTag().apply {
-            val data: String = json.stringify(serializer(), tile)
-            putString(KEY_DATA, data)
-        }
-    }
+    fun asItemStack(): ItemStack = ItemStack(PuzzleTile.ITEM).apply { orCreateTag?.putTile(this@Tile) }
 }
 
-private const val KEY_DATA = "tileData"
+fun CompoundTag.putTile(tile: Tile) {
+    putBoolean(KEY_START, tile.isStart)
+    tile.top?.let { putInt(KEY_TOP, it.ordinal) }
+    tile.left?.let { putInt(KEY_LEFT, it.ordinal) }
+    tile.bottom?.let { putInt(KEY_BOTTOM, it.ordinal) }
+    tile.right?.let { putInt(KEY_RIGHT, it.ordinal) }
+}
+
+fun CompoundTag.getTile(): Tile = Tile(
+    getBoolean(KEY_START),
+    getInt(KEY_TOP).let { Line.values()[it] },
+    getInt(KEY_LEFT).let { Line.values()[it] },
+    getInt(KEY_BOTTOM).let { Line.values()[it] },
+    getInt(KEY_RIGHT).let { Line.values()[it] }
+)
 
 class PuzzleTile : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
 
@@ -81,12 +77,9 @@ class PuzzleTile : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_tile")
         val ITEM: Item = registerItem(IDENTIFIER, PuzzleTile())
         val RENDERER = PuzzleTileItemRenderer()
-
-
     }
 
     override fun onClient() {
         BuiltinItemRendererRegistry.INSTANCE.register(ITEM, RENDERER)
     }
 }
-

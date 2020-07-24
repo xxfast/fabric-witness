@@ -30,7 +30,7 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         matrices.push()
 
         // Get the relevant puzzle
-        val puzzlePanel: ItemStack = blockEntity.puzzleStack
+        val itemStack: ItemStack = blockEntity.items[0]
 
         // Move to center
         matrices.translate(.5, .5, .5)
@@ -53,7 +53,7 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
 
         // Render puzzle panel
         itemRenderer.renderItem(
-            puzzlePanel,
+            itemStack,
             ModelTransformation.Mode.GUI,
             light,
             overlay,
