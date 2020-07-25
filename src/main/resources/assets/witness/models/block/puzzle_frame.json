@@ -17,7 +17,7 @@
       "to": [
         15,
         15,
-        8
+        9
       ],
       "rotation": {
         "angle": 0,
@@ -88,9 +88,169 @@
       }
     },
     {
-      "name": "panel_plate",
+      "name": "panel_plate_b",
+      "from": [
+        1,
+        0,
+        8
+      ],
+      "to": [
+        15,
+        1,
+        10
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8,
+          0.5,
+          9
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            15,
+            16,
+            16
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            13,
+            0,
+            15,
+            16
+          ],
+          "texture": "#missing"
+        },
+        "south": {
+          "uv": [
+            1,
+            15,
+            15,
+            16
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            14,
+            0,
+            16,
+            16
+          ],
+          "texture": "#missing"
+        },
+        "up": {
+          "uv": [
+            0,
+            13,
+            16,
+            15
+          ],
+          "rotation": 180,
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            0,
+            13,
+            16,
+            15
+          ],
+          "rotation": 180,
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "panel_plate_l",
       "from": [
         0,
+        0,
+        8
+      ],
+      "to": [
+        1,
+        16,
+        10
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          0.5,
+          8,
+          9
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            15,
+            0,
+            16,
+            16
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            1,
+            0,
+            3,
+            16
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            1,
+            16
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            13,
+            0,
+            15,
+            16
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "rotation": 180,
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            0,
+            15,
+            1,
+            16
+          ],
+          "rotation": 180,
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "panel_plate_r",
+      "from": [
+        15,
         0,
         8
       ],
@@ -103,15 +263,15 @@
         "angle": 0,
         "axis": "y",
         "origin": [
-          7.83333,
-          6.33333,
-          7.66667
+          15.5,
+          8,
+          9
         ]
       },
       "faces": {
         "north": {
           "uv": [
-            0,
+            15,
             0,
             16,
             16
@@ -120,16 +280,16 @@
         },
         "east": {
           "uv": [
-            2,
+            13,
             0,
-            4,
+            15,
             16
           ],
           "texture": "#0"
         },
         "south": {
           "uv": [
-            0,
+            15,
             0,
             16,
             16
@@ -138,19 +298,99 @@
         },
         "west": {
           "uv": [
-            7,
+            13,
             0,
-            9,
+            15,
             16
           ],
           "texture": "#0"
         },
         "up": {
           "uv": [
-            0,
+            15,
             0,
             16,
-            2
+            1
+          ],
+          "rotation": 180,
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            15,
+            15,
+            16,
+            16
+          ],
+          "rotation": 180,
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "name": "panel_plate_t",
+      "from": [
+        1,
+        15,
+        8
+      ],
+      "to": [
+        15,
+        16,
+        10
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          8,
+          15.5,
+          9
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            15,
+            16,
+            16
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            13,
+            0,
+            15,
+            16
+          ],
+          "texture": "#missing"
+        },
+        "south": {
+          "uv": [
+            1,
+            0,
+            15,
+            1
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            14,
+            0,
+            16,
+            16
+          ],
+          "texture": "#missing"
+        },
+        "up": {
+          "uv": [
+            0,
+            2,
+            16,
+            4
           ],
           "rotation": 180,
           "texture": "#0"
@@ -158,9 +398,9 @@
         "down": {
           "uv": [
             0,
-            14,
+            2,
             16,
-            16
+            4
           ],
           "rotation": 180,
           "texture": "#0"
@@ -247,5 +487,23 @@
         }
       }
     }
+  ],
+  "groups": [
+    0,
+    {
+      "name": "panel_frame",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "children": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    5
   ]
 }

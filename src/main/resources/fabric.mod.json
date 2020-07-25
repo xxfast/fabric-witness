@@ -24,7 +24,7 @@
     ]
   },
   "mixins": [
-    "modid.mixins.json"
+    "witness.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.7.1",

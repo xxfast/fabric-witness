@@ -1,17 +1,7 @@
 package com.xfastgames.witness.items
 
-import com.xfastgames.witness.Witness
-import com.xfastgames.witness.items.renderer.PuzzleTileItemRenderer
-import com.xfastgames.witness.utils.Clientside
-import com.xfastgames.witness.utils.registerItem
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
-import net.minecraft.item.Item
-import net.minecraft.item.ItemGroup
-import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.util.Identifier
 import kotlin.random.Random
-
 
 private const val KEY_START = "start"
 private const val KEY_TOP = "top"
@@ -51,8 +41,6 @@ data class Tile(val isStart: Boolean, val lines: Map<Direction, Line>) {
             Direction.LEFT to Line.values().random()
         )
     )
-
-    fun asItemStack(): ItemStack = ItemStack(PuzzleTile.ITEM).apply { orCreateTag?.putTile(this@Tile) }
 }
 
 fun CompoundTag.putTile(tile: Tile) {
@@ -70,16 +58,3 @@ fun CompoundTag.getTile(): Tile = Tile(
     getInt(KEY_BOTTOM).let { Line.values()[it] },
     getInt(KEY_RIGHT).let { Line.values()[it] }
 )
-
-class PuzzleTile : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
-
-    companion object {
-        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_tile")
-        val ITEM: Item = registerItem(IDENTIFIER, PuzzleTile())
-        val RENDERER = PuzzleTileItemRenderer()
-    }
-
-    override fun onClient() {
-        BuiltinItemRendererRegistry.INSTANCE.register(ITEM, RENDERER)
-    }
-}

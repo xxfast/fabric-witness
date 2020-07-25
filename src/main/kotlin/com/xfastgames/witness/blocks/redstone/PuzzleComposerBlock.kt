@@ -4,8 +4,6 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*
 import net.minecraft.block.entity.BlockEntity
@@ -71,14 +69,8 @@ class PuzzleComposerBlock : BlockWithEntity(
         hand: Hand?,
         hit: BlockHitResult?
     ): ActionResult {
-        openComposerScreen(state, player, world, pos)
-        return ActionResult.SUCCESS
-    }
-
-    @Environment(EnvType.CLIENT)
-    fun openComposerScreen(state: BlockState, player: PlayerEntity, world: World, pos: BlockPos?) {
-        // TODO: This will crash the the server
         player.openHandledScreen(state.createScreenHandlerFactory(world, pos))
+        return ActionResult.SUCCESS
     }
 
     override fun onStateReplaced(

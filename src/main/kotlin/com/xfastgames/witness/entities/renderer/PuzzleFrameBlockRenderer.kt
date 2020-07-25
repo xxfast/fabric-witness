@@ -43,13 +43,13 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         matrices.scale(0.85f, 0.85f, 1f)
 
         // Move slightly out of center to avoid z collision
-        matrices.translate(.0, .0, -.096)
+        matrices.translate(.0, .0, -.034)
 
         // Rotate the puzzle panel right way up
 //        matrices.rotate(Vector3f.POSITIVE_Z, 180f)
 
         // Scale to frame
-        matrices.scale(0.95f, 0.95f, 1f)
+        matrices.scale(1f, 1f, 1f)
 
         // Render puzzle panel
         itemRenderer.renderItem(

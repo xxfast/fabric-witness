@@ -2,7 +2,7 @@ package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
-import com.xfastgames.witness.items.PuzzlePanel
+import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import com.xfastgames.witness.utils.rotateShape
@@ -13,6 +13,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.*
 import net.minecraft.sound.BlockSoundGroup
+import net.minecraft.sound.SoundEvents
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.Properties.HORIZONTAL_FACING
 import net.minecraft.util.ActionResult
@@ -92,19 +93,29 @@ class PuzzleFrameBlock : BlockWithEntity(
         val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
         require(entity is PuzzleFrameBlockEntity)
 
-        // Action only allowed if the player is holding nothing or if the player is holding a puzzle
-        if (player.mainHandStack.item !is PuzzlePanel && !player.mainHandStack.isEmpty) return ActionResult.FAIL
-
         when {
-            // if there's no item in the frame
-            entity.items[0].isEmpty -> entity.items[0] = player.inventory.removeStack(player.inventory.selectedSlot)
+            // if there's no item in the frame, and player is holding a panel
+            entity.items[0].isEmpty && player.mainHandStack.item is PuzzlePanelItem -> {
+                entity.items[0] = player.inventory.removeStack(player.inventory.selectedSlot)
+                player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_IRON, 1f, 1f)
+            }
 
             // if there is an item in the frame
-            !entity.items[0].isEmpty && player.isInSneakingPose -> {
-                val item: ItemStack = entity.items[0]
-                entity.removeStack(0)
-                player.setStackInHand(Hand.MAIN_HAND, item)
+            !entity.items[0].isEmpty && player.isInSneakingPose -> when {
+                player.mainHandStack.isEmpty -> {
+                    val item: ItemStack = entity.items[0]
+                    entity.removeStack(0)
+                    player.setStackInHand(Hand.MAIN_HAND, item)
+                }
+                player.offHandStack.isEmpty -> {
+                    val item: ItemStack = entity.items[0]
+                    entity.removeStack(0)
+                    player.setStackInHand(Hand.OFF_HAND, item)
+                }
+                else -> ActionResult.FAIL
             }
+
+            else -> return ActionResult.FAIL
 
         }
 

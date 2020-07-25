@@ -10,8 +10,7 @@ import com.xfastgames.witness.features.JasmineBushFeature
 import com.xfastgames.witness.features.MimosaBushFeature
 import com.xfastgames.witness.features.PinkCedarTreeFeature
 import com.xfastgames.witness.features.YuccaFeature
-import com.xfastgames.witness.items.PuzzlePanel
-import com.xfastgames.witness.items.PuzzleTile
+import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.screens.PuzzleScreen
 import com.xfastgames.witness.utils.Clientside
 import net.fabricmc.api.ClientModInitializer
@@ -72,8 +71,7 @@ class Witness : ModInitializer, ClientModInitializer {
             CedarLog.BLOCK_ITEM,
             PuzzleFrameBlock.BLOCK_ITEM,
             PuzzleComposerBlock.BLOCK_ITEM,
-            PuzzleTile.ITEM,
-            PuzzlePanel.ITEM
+            PuzzlePanelItem.ITEM
         )
 
         val FEATURES: List<Feature<out FeatureConfig>> = listOf(

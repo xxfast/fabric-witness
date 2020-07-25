@@ -77,8 +77,7 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
     override fun toClientTag(tag: CompoundTag): CompoundTag = toTag(tag)
     override fun fromClientTag(tag: CompoundTag) = fromTag(null, tag)
 
-    override fun sync() {
-        super.sync()
-        markDirty()
+    override fun markDirty() {
+        sync()
     }
 }

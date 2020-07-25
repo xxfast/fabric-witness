@@ -14,14 +14,24 @@ interface BlockInventory : SidedInventory {
     override fun size(): Int = items.size
     override fun isEmpty(): Boolean = items.isEmpty()
     override fun getStack(slot: Int): ItemStack = items[slot]
-    override fun removeStack(slot: Int): ItemStack = Inventories.removeStack(items, slot)
-    override fun removeStack(slot: Int, amount: Int): ItemStack = Inventories.splitStack(items, slot, amount)
+    override fun removeStack(slot: Int): ItemStack {
+        val itemStack: ItemStack = Inventories.removeStack(items, slot)
+        markDirty()
+        return itemStack
+    }
+
+    override fun removeStack(slot: Int, amount: Int): ItemStack {
+        val itemStack: ItemStack = Inventories.splitStack(items, slot, amount)
+        markDirty()
+        return itemStack
+    }
 
     override fun setStack(slot: Int, stack: ItemStack) {
         items[slot] = stack
         if (stack.count > maxCountPerStack) {
             stack.count = maxCountPerStack
         }
+        markDirty()
     }
 
     override fun getAvailableSlots(side: Direction?): IntArray {
