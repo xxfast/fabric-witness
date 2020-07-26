@@ -20,5 +20,6 @@
   "block.witness.puzzle_composer": "Puzzle Composer",
   "block.witness.puzzle_frame": "Puzzle Frame",
   "item.witness.puzzle_panel": "Puzzle Panel",
-  "item.witness.puzzle_tile": "Puzzle Tile"
+  "item.witness.puzzle_tile": "Puzzle Tile",
+  "item.witness.ancient_puzzle_tablet": "Ancient Puzzle Tablet"
 }

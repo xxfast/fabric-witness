@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:ancient_debris"
+    }
+  ],
+  "result": {
+    "item": "witness:ancient_puzzle_tablet",
+    "count": 8
+  }
+}

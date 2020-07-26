@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "stained_stone_bricks",
+  "pattern": [
+    "TD",
+    "DT"
+  ],
+  "key": {
+    "T": {
+      "item": "witness:ancient_puzzle_tablet"
+    },
+    "D": {
+      "item": "minecraft:yellow_dye"
+    }
+  },
+  "result": {
+    "item": "witness:puzzle_panel"
+  }
+}

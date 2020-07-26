@@ -10,6 +10,7 @@ import com.xfastgames.witness.features.JasmineBushFeature
 import com.xfastgames.witness.features.MimosaBushFeature
 import com.xfastgames.witness.features.PinkCedarTreeFeature
 import com.xfastgames.witness.features.YuccaFeature
+import com.xfastgames.witness.items.AncientPuzzleTablet
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.screens.PuzzleScreen
 import com.xfastgames.witness.utils.BiomeFeature
@@ -70,7 +71,8 @@ class Witness : ModInitializer, ClientModInitializer {
             CedarLog.BLOCK_ITEM,
             PuzzleFrameBlock.BLOCK_ITEM,
             PuzzleComposerBlock.BLOCK_ITEM,
-            PuzzlePanelItem.ITEM
+            PuzzlePanelItem.ITEM,
+            AncientPuzzleTablet.ITEM
         )
 
         val FEATURES: List<BiomeFeature<*, *>> = listOf(
