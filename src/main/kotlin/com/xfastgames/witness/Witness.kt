@@ -12,6 +12,7 @@ import com.xfastgames.witness.features.PinkCedarTreeFeature
 import com.xfastgames.witness.features.YuccaFeature
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.screens.PuzzleScreen
+import com.xfastgames.witness.utils.BiomeFeature
 import com.xfastgames.witness.utils.Clientside
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType
@@ -19,8 +20,6 @@ import net.fabricmc.api.Environment
 import net.fabricmc.api.ModInitializer
 import net.minecraft.block.Block
 import net.minecraft.item.Item
-import net.minecraft.world.gen.feature.Feature
-import net.minecraft.world.gen.feature.FeatureConfig
 
 class Witness : ModInitializer, ClientModInitializer {
 
@@ -74,21 +73,22 @@ class Witness : ModInitializer, ClientModInitializer {
             PuzzlePanelItem.ITEM
         )
 
-        val FEATURES: List<Feature<out FeatureConfig>> = listOf(
-            YuccaFeature.FEATURE,
-            JasmineBushFeature.FEATURE,
-            MimosaBushFeature.FEATURE,
-            PinkCedarTreeFeature.FEATURE
+        val FEATURES: List<BiomeFeature<*, *>> = listOf(
+            YuccaFeature,
+            JasmineBushFeature,
+            MimosaBushFeature,
+            PinkCedarTreeFeature
         )
 
         val ENTITIES: List<Clientside> = listOf(
             PuzzleFrameBlockEntity.Companion,
             PuzzleComposerBlockEntity.Companion
         )
-
     }
 
-    override fun onInitialize() {}
+    override fun onInitialize() {
+        FEATURES.forEach { it.register() }
+    }
 
     @Environment(EnvType.CLIENT)
     override fun onInitializeClient() {
