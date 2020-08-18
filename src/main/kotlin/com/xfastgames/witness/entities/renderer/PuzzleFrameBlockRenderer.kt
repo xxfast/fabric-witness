@@ -1,13 +1,12 @@
 package com.xfastgames.witness.entities.renderer
 
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
+import com.xfastgames.witness.items.PuzzlePanelItem
+import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.rotate
-import net.minecraft.client.MinecraftClient
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher
 import net.minecraft.client.render.block.entity.BlockEntityRenderer
-import net.minecraft.client.render.item.ItemRenderer
-import net.minecraft.client.render.model.json.ModelTransformation
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
 import net.minecraft.item.ItemStack
@@ -17,7 +16,7 @@ import net.minecraft.util.math.Direction
 class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
     BlockEntityRenderer<PuzzleFrameBlockEntity>(dispatcher) {
 
-    private val itemRenderer: ItemRenderer = MinecraftClient.getInstance().itemRenderer
+    private val puzzlePanelRenderer: PuzzlePanelRenderer = PuzzlePanelItem.RENDERER
 
     override fun render(
         blockEntity: PuzzleFrameBlockEntity,
@@ -30,7 +29,7 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         matrices.push()
 
         // Get the relevant puzzle
-        val itemStack: ItemStack = blockEntity.items[0]
+        val itemStack: ItemStack = blockEntity.inventory.items[0]
 
         // Move to center
         matrices.translate(.5, .5, .5)
@@ -48,18 +47,13 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         // Rotate the puzzle panel right way up
 //        matrices.rotate(Vector3f.POSITIVE_Z, 180f)
 
-        // Scale to frame
-        matrices.scale(1f, 1f, 1f)
+        // Move to corner
+        matrices.translate(-.5, -.5, -.05)
+
+        if (itemStack.isEmpty) return matrices.pop()
 
         // Render puzzle panel
-        itemRenderer.renderItem(
-            itemStack,
-            ModelTransformation.Mode.GUI,
-            light,
-            overlay,
-            matrices,
-            vertexConsumerProvider
-        )
+        puzzlePanelRenderer.renderPanel(itemStack, matrices, vertexConsumerProvider, light, overlay)
 
         matrices.pop()
     }

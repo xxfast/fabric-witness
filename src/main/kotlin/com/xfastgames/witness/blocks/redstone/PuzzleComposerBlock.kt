@@ -7,11 +7,9 @@ import com.xfastgames.witness.utils.registerBlockItem
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*
 import net.minecraft.block.entity.BlockEntity
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.BlockItem
-import net.minecraft.item.Item
-import net.minecraft.item.ItemGroup
-import net.minecraft.item.ItemPlacementContext
+import net.minecraft.item.*
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.Properties.HORIZONTAL_FACING
@@ -61,6 +59,20 @@ class PuzzleComposerBlock : BlockWithEntity(
         context: ShapeContext?
     ): VoxelShape = VoxelShapes.fullCube()
 
+    override fun onPlaced(
+        world: World,
+        pos: BlockPos?,
+        state: BlockState?,
+        placer: LivingEntity?,
+        itemStack: ItemStack?
+    ) {
+        if (world.isClient) return
+        val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
+        require(entity is PuzzleComposerBlockEntity)
+        entity.sync()
+        world.updateListeners(pos, state, state, 3)
+    }
+
     override fun onUse(
         state: BlockState,
         world: World,
@@ -71,14 +83,5 @@ class PuzzleComposerBlock : BlockWithEntity(
     ): ActionResult {
         player.openHandledScreen(state.createScreenHandlerFactory(world, pos))
         return ActionResult.SUCCESS
-    }
-
-    override fun onStateReplaced(
-        state: BlockState?,
-        world: World?,
-        pos: BlockPos?,
-        newState: BlockState?,
-        moved: Boolean
-    ) {
     }
 }

@@ -1,39 +1,45 @@
 package com.xfastgames.witness.items.renderer
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.items.Panel
 import com.xfastgames.witness.items.PuzzlePanelItem
-import com.xfastgames.witness.items.getPanel
-import com.xfastgames.witness.utils.pc
-import com.xfastgames.witness.utils.rotate
-import com.xfastgames.witness.utils.square
+import com.xfastgames.witness.items.data.*
+import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRenderer
 import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.VertexConsumerProvider
-import net.minecraft.client.render.entity.EntityRenderDispatcher
-import net.minecraft.client.render.entity.PlayerEntityRenderer
 import net.minecraft.client.render.item.HeldItemRenderer
+import net.minecraft.client.util.ModelIdentifier
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.util.Arm
 import net.minecraft.util.Identifier
 
 class PuzzlePanelRenderer(val client: MinecraftClient) : BuiltinItemRenderer, HeldItemRenderer(client) {
 
-    private val backdropTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_backdrop.png")
-    private val tileRenderer: PuzzleTileItemRenderer = PuzzleTileItemRenderer()
-    private val renderManager: EntityRenderDispatcher by lazy { client.entityRenderManager }
-    private val playerEntityRenderer: PlayerEntityRenderer by lazy {
-        renderManager.getRenderer(client.player) as PlayerEntityRenderer
+    private val itemModel = ModelIdentifier(PuzzlePanelItem.IDENTIFIER.toString())
+    internal val backdropTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_backdrop.png")
+    private val fillTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_fill.png")
+
+    override fun render(
+        stack: ItemStack,
+        matrices: MatrixStack,
+        vertexConsumers: VertexConsumerProvider,
+        light: Int,
+        overlay: Int
+    ) {
+        matrices.translate(1.0, .0, .5)
+        matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+        renderPanel(stack, matrices, vertexConsumers, light, overlay)
     }
 
-    private fun renderPanel(
+    /** Pixel coordinates */
+    private val Int.pc: Float get() = (1f / 16f) * this
+
+    fun renderPanel(
         stack: ItemStack,
         matrices: MatrixStack,
         vertexConsumers: VertexConsumerProvider,
@@ -41,13 +47,14 @@ class PuzzlePanelRenderer(val client: MinecraftClient) : BuiltinItemRenderer, He
         overlay: Int
     ) {
         matrices.push()
+
         val backdropConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(backdropTexture))
 
-        matrices.translate(.0, .0, .470)
         backdropConsumer.square(matrices, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
 
         // Retrieve panel to render
         val tag: CompoundTag = stack.tag.takeIf { stack.item == PuzzlePanelItem.ITEM } ?: return matrices.pop()
+
         val puzzle: Panel = tag.getPanel()
 
         // Rotate if handheld
@@ -77,7 +84,7 @@ class PuzzlePanelRenderer(val client: MinecraftClient) : BuiltinItemRenderer, He
             row.forEachIndexed { y, tile ->
                 val dY: Double = y * (yScale.toDouble() * yCount) - ((yScale * yCount) * yScaledOffset)
                 matrices.translate(.0, dY, .0)
-                tileRenderer.render(tile, matrices, vertexConsumers, light, overlay)
+                renderTile(tile, matrices, vertexConsumers, light, overlay)
                 matrices.translate(.0, -dY, .0)
             }
             matrices.translate(-dX, .0, .0)
@@ -86,46 +93,105 @@ class PuzzlePanelRenderer(val client: MinecraftClient) : BuiltinItemRenderer, He
         matrices.pop()
     }
 
-    override fun render(
-        stack: ItemStack,
+    private fun renderTile(
+        tile: Tile,
         matrices: MatrixStack,
         vertexConsumers: VertexConsumerProvider,
         light: Int,
         overlay: Int
     ) {
-        renderPanel(stack, matrices, vertexConsumers, light, overlay)
-    }
-
-    override fun renderItem(
-        tickDelta: Float,
-        matrices: MatrixStack,
-        vertexConsumers: VertexConsumerProvider.Immediate,
-        player: ClientPlayerEntity,
-        light: Int
-    ) {
-        renderArm(matrices, vertexConsumers, light, player, Arm.LEFT)
-        renderArm(matrices, vertexConsumers, light, player, Arm.RIGHT)
-
-        matrices.scale(10f, 10f, 10f)
-        renderPanel(player.mainHandStack, matrices, vertexConsumers, light, 1)
-    }
-
-    private fun renderArm(
-        matrices: MatrixStack,
-        vertexConsumers: VertexConsumerProvider,
-        light: Int,
-        player: ClientPlayerEntity,
-        arm: Arm
-    ) {
-        client.textureManager.bindTexture(player.skinTexture)
         matrices.push()
-        val positionOffset: Float = if (arm == Arm.RIGHT) 1.0f else -1.0f
-        matrices.multiply(Vector3f.POSITIVE_Y.getDegreesQuaternion(92.0f))
-        matrices.multiply(Vector3f.POSITIVE_X.getDegreesQuaternion(45.0f))
-        matrices.multiply(Vector3f.POSITIVE_Z.getDegreesQuaternion(positionOffset * -41.0f))
-        matrices.translate((positionOffset * 0.3f).toDouble(), -1.100000023841858, 0.44999998807907104)
-        if (arm == Arm.RIGHT) playerEntityRenderer.renderRightArm(matrices, vertexConsumers, light, player)
-        else playerEntityRenderer.renderLeftArm(matrices, vertexConsumers, light, player)
+
+        val position = Vector3f(0f, 0f, -0.001f)
+
+        // Render tile pieces
+        val fillConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(fillTexture))
+
+        fun rectangle(position: Vector3f, width: Float, height: Float) =
+            fillConsumer.rectangle(matrices, position, width, height, light, overlay)
+
+        fun square(position: Vector3f, length: Float) =
+            fillConsumer.square(matrices, position, length, light, overlay)
+
+        fun circle(position: Vector3f, radius: Float, arc: IntRange = 0..360) =
+            fillConsumer.circle(matrices, position, radius, light, overlay, arc)
+
+        tile.lines.forEach { (direction, side) ->
+            when (direction) {
+                Direction.TOP -> when (side) {
+                    Line.FILLED -> rectangle(Vector3f(6.pc, 0.pc, position.z), 4.pc, 6.pc)
+                    Line.SHORTENED -> rectangle(Vector3f(6.pc, 2.pc, position.z), 4.pc, 4.pc)
+                    Line.END -> {
+                        circle(Vector3f(8.pc, 4.pc, position.z), 2.pc, arc = 90..270)
+                        rectangle(Vector3f(6.pc, 4.pc, position.z), 4.pc, 2.pc)
+                    }
+                }
+
+                Direction.RIGHT -> when (side) {
+                    Line.FILLED -> rectangle(Vector3f(10.pc, 6.pc, position.z), 6.pc, 4.pc)
+                    Line.SHORTENED -> rectangle(Vector3f(10.pc, 6.pc, position.z), 4.pc, 4.pc)
+                    Line.END -> {
+                        circle(Vector3f(12.pc, 8.pc, position.z), 2.pc, 0..180)
+                        rectangle(Vector3f(10.pc, 6.pc, position.z), 2.pc, 4.pc)
+                    }
+                }
+
+                Direction.BOTTOM -> when (side) {
+                    Line.FILLED -> rectangle(Vector3f(6.pc, 10.pc, position.z), 4.pc, 6.pc)
+                    Line.SHORTENED -> rectangle(Vector3f(6.pc, 10.pc, position.z), 4.pc, 4.pc)
+                    Line.END -> {
+                        circle(Vector3f(8.pc, 12.pc, position.z), 2.pc, arc = -90..90)
+                        rectangle(Vector3f(6.pc, 10.pc, position.z), 4.pc, 2.pc)
+                    }
+                }
+
+                Direction.LEFT -> when (side) {
+                    Line.FILLED -> rectangle(Vector3f(0.pc, 6.pc, position.z), 6.pc, 4.pc)
+                    Line.SHORTENED -> rectangle(Vector3f(2.pc, 6.pc, position.z), 4.pc, 4.pc)
+                    Line.END -> {
+                        circle(Vector3f(4.pc, 8.pc, position.z), 2.pc, 180..360)
+                        rectangle(Vector3f(4.pc, 6.pc, position.z), 2.pc, 4.pc)
+                    }
+                }
+            }
+        }
+
+        if (tile.isStart) circle(Vector3f(8.pc, 8.pc, position.z), 5.pc)
+        else when {
+            tile.center.containsOnly(Direction.TOP, Direction.LEFT) -> {
+                square(Vector3f(6.pc, 6.pc, position.z), 2.pc)
+                square(Vector3f(8.pc, 6.pc, position.z), 2.pc)
+                square(Vector3f(6.pc, 8.pc, position.z), 2.pc)
+                circle(Vector3f(8.pc, 8.pc, position.z), 2.pc, 0..90)
+            }
+
+            tile.center.containsOnly(Direction.TOP, Direction.RIGHT) -> {
+                square(Vector3f(6.pc, 6.pc, position.z), 2.pc)
+                square(Vector3f(8.pc, 6.pc, position.z), 2.pc)
+                square(Vector3f(8.pc, 8.pc, position.z), 2.pc)
+                circle(Vector3f(8.pc, 8.pc, position.z), 2.pc, 270..360)
+            }
+
+            tile.center.containsOnly(Direction.BOTTOM, Direction.LEFT) -> {
+                square(Vector3f(6.pc, 6.pc, position.z), 2.pc)
+                square(Vector3f(8.pc, 8.pc, position.z), 2.pc)
+                square(Vector3f(6.pc, 8.pc, position.z), 2.pc)
+                circle(Vector3f(8.pc, 8.pc, position.z), 2.pc, 90..180)
+            }
+
+            tile.center.containsOnly(Direction.BOTTOM, Direction.RIGHT) -> {
+                square(Vector3f(8.pc, 6.pc, position.z), 2.pc)
+                square(Vector3f(6.pc, 8.pc, position.z), 2.pc)
+                square(Vector3f(8.pc, 8.pc, position.z), 2.pc)
+                circle(Vector3f(8.pc, 8.pc, position.z), 2.pc, 180..270)
+            }
+
+            tile.center.isEmpty() -> {
+            }
+
+            else -> square(Vector3f(6.pc, 6.pc, position.z), 4.pc)
+        }
+
         matrices.pop()
     }
 }

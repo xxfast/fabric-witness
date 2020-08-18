@@ -3,6 +3,7 @@ package com.xfastgames.witness.blocks.redstone
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
+import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import com.xfastgames.witness.utils.rotateShape
@@ -92,24 +93,24 @@ class PuzzleFrameBlock : BlockWithEntity(
     ): ActionResult {
         val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
         require(entity is PuzzleFrameBlockEntity)
-
+        val inventory: BlockInventory = entity.inventory
         when {
             // if there's no item in the frame, and player is holding a panel
-            entity.items[0].isEmpty && player.mainHandStack.item is PuzzlePanelItem -> {
-                entity.items[0] = player.inventory.removeStack(player.inventory.selectedSlot)
+            inventory.items[0].isEmpty && player.mainHandStack.item is PuzzlePanelItem -> {
+                inventory.items[0] = player.inventory.removeStack(player.inventory.selectedSlot)
                 player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_IRON, 1f, 1f)
             }
 
             // if there is an item in the frame
-            !entity.items[0].isEmpty && player.isInSneakingPose -> when {
+            !inventory.items[0].isEmpty && player.isInSneakingPose -> when {
                 player.mainHandStack.isEmpty -> {
-                    val item: ItemStack = entity.items[0]
-                    entity.removeStack(0)
+                    val item: ItemStack = inventory.items[0]
+                    inventory.removeStack(0)
                     player.setStackInHand(Hand.MAIN_HAND, item)
                 }
                 player.offHandStack.isEmpty -> {
-                    val item: ItemStack = entity.items[0]
-                    entity.removeStack(0)
+                    val item: ItemStack = inventory.items[0]
+                    inventory.removeStack(0)
                     player.setStackInHand(Hand.OFF_HAND, item)
                 }
                 else -> ActionResult.FAIL

@@ -1,14 +1,13 @@
 package com.xfastgames.witness.entities.renderer
 
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
+import com.xfastgames.witness.items.PuzzlePanelItem
+import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.rotate
-import net.minecraft.client.MinecraftClient
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.WorldRenderer
 import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher
 import net.minecraft.client.render.block.entity.BlockEntityRenderer
-import net.minecraft.client.render.item.ItemRenderer
-import net.minecraft.client.render.model.json.ModelTransformation
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
 import net.minecraft.item.ItemStack
@@ -19,7 +18,7 @@ import net.minecraft.util.math.Direction
 class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
     BlockEntityRenderer<PuzzleComposerBlockEntity>(dispatcher) {
 
-    private val itemRenderer: ItemRenderer = MinecraftClient.getInstance().itemRenderer
+    private val puzzlePanelRenderer: PuzzlePanelRenderer = PuzzlePanelItem.RENDERER
 
     override fun render(
         blockEntity: PuzzleComposerBlockEntity,
@@ -32,7 +31,8 @@ class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         matrices.push()
 
         // Get the relevant puzzle
-        val inventory: ItemStack? = blockEntity.items[0]
+        val itemStack: ItemStack = blockEntity.inventory.items[0]
+        if (itemStack.isEmpty) return matrices.pop()
 
         // Move to center
         matrices.translate(.5, .815, .5)
@@ -48,7 +48,7 @@ class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         matrices.scale(0.85f, 0.85f, 1f)
 
         // Move slightly out of center to avoid z collision
-        matrices.translate(.0, .0, -.096)
+        matrices.translate(-.475, -.475, -.125)
 
         // Scale to fit to frame
         matrices.scale(0.95f, 0.95f, 1f)
@@ -58,14 +58,7 @@ class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         val lightAbove: Int = WorldRenderer.getLightmapCoordinates(blockEntity.world, blockEntity.pos.up())
 
         // Render puzzle panel
-        itemRenderer.renderItem(
-            inventory,
-            ModelTransformation.Mode.GUI,
-            lightAbove,
-            overlay,
-            matrices,
-            vertexConsumerProvider
-        )
+        puzzlePanelRenderer.renderPanel(itemStack, matrices, vertexConsumerProvider, lightAbove, overlay)
 
         matrices.pop()
     }

@@ -1,3 +1,6 @@
 {
-  "parent": "builtin/entity"
+  "parent": "builtin/entity",
+  "textures": {
+    "layer0": "witness:item/puzzle_panel"
+  }
 }

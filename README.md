@@ -1,5 +1,6 @@
 # fabric-witness
 ![Gradle build](https://github.com/xxfast/fabric-witness/workflows/Gradle%20build/badge.svg)
+[![Release](https://img.shields.io/github/v/release/xxfast/fabric-witness.svg?include_prereleases&logo=mojang-studios)](https://github.com/xxfast/fabric-witness/releases)
 
 <img src="src/main/resources/assets/witness/icon.png" align="right">
 
@@ -17,7 +18,6 @@ Make sure to also load in these dependencies
 2. [fabric-language-kotlin](https://www.curseforge.com/minecraft/mc-mods/fabric-language-kotlin)
 
 ## License
-
 
 Copyright 2020 © Isuru Rajapakse
 

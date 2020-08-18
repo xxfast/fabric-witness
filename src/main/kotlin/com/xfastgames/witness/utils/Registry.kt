@@ -1,5 +1,7 @@
 package com.xfastgames.witness.utils
 
+import net.fabricmc.fabric.api.network.PacketContext
+import net.fabricmc.fabric.api.network.ServerSidePacketRegistry
 import net.minecraft.block.Block
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.BlockEntityType
@@ -8,6 +10,7 @@ import net.minecraft.entity.EntityType
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
+import net.minecraft.network.PacketByteBuf
 import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.gen.feature.Feature
@@ -46,3 +49,6 @@ inline fun <T : Entity> registerEntity(
 
 fun registerItem(id: Identifier, item: Item): Item =
     Registry.register(Registry.ITEM, id, item)
+
+fun registerC2P(id: Identifier, packetConsumer: (context: PacketContext, buffer: PacketByteBuf) -> Unit) =
+    ServerSidePacketRegistry.INSTANCE.register(id, packetConsumer)
