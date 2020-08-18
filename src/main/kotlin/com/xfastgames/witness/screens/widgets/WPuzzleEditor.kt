@@ -1,8 +1,10 @@
 package com.xfastgames.witness.screens.widgets
 
+import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
+import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.nextIn
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
 import io.github.cottonmc.cotton.gui.widget.WWidget
@@ -136,5 +138,8 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
 
         tag.putPanel(updatedPuzzle)
         inventory.setStack(slotIndex, puzzleStack)
+        require(inventory is BlockInventory)
+        require(inventory.owner is PuzzleComposerBlockEntity)
+        inventory.owner.syncInventorySlotTag(slotIndex, tag)
     }
 }
