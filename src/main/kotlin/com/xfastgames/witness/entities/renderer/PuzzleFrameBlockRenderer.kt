@@ -1,7 +1,6 @@
 package com.xfastgames.witness.entities.renderer
 
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
-import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.rotate
 import net.minecraft.client.render.VertexConsumerProvider
@@ -16,7 +15,7 @@ import net.minecraft.util.math.Direction
 class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
     BlockEntityRenderer<PuzzleFrameBlockEntity>(dispatcher) {
 
-    private val puzzlePanelRenderer: PuzzlePanelRenderer = PuzzlePanelItem.RENDERER
+    private val puzzlePanelRenderer = PuzzlePanelRenderer
 
     override fun render(
         blockEntity: PuzzleFrameBlockEntity,
@@ -54,7 +53,7 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
 
         // Render puzzle panel
         puzzlePanelRenderer.renderPanel(itemStack, matrices, vertexConsumerProvider, light, overlay)
-
+        puzzlePanelRenderer.renderLine(itemStack, matrices, vertexConsumerProvider, light, overlay)
         matrices.pop()
     }
 }

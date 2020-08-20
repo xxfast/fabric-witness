@@ -1,7 +1,6 @@
 package com.xfastgames.witness.entities.renderer
 
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
-import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.rotate
 import net.minecraft.client.render.VertexConsumerProvider
@@ -18,7 +17,7 @@ import net.minecraft.util.math.Direction
 class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
     BlockEntityRenderer<PuzzleComposerBlockEntity>(dispatcher) {
 
-    private val puzzlePanelRenderer: PuzzlePanelRenderer = PuzzlePanelItem.RENDERER
+    private val puzzlePanelRenderer = PuzzlePanelRenderer
 
     override fun render(
         blockEntity: PuzzleComposerBlockEntity,
@@ -54,7 +53,7 @@ class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         matrices.scale(0.95f, 0.95f, 1f)
 
         // Get light above
-        // TODO: Still appear darker for some reason
+        // TODO: Figure out lighting so that panel is lit properly
         val lightAbove: Int = WorldRenderer.getLightmapCoordinates(blockEntity.world, blockEntity.pos.up())
 
         // Render puzzle panel

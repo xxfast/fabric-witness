@@ -3,7 +3,7 @@ package com.xfastgames.witness.entities
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
 import com.xfastgames.witness.entities.renderer.PuzzleComposerBlockRenderer
-import com.xfastgames.witness.screens.PuzzleScreen
+import com.xfastgames.witness.screens.PuzzleScreenDescription
 import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerBlockEntity
@@ -81,7 +81,7 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
     val inventory = BlockInventory(INVENTORY_SIZE, this)
 
     override fun createMenu(syncId: Int, inv: PlayerInventory, player: PlayerEntity?): ScreenHandler? =
-        PuzzleScreen.PuzzleScreenDescription(syncId, inv, ScreenHandlerContext.create(world, pos))
+        PuzzleScreenDescription(syncId, inv, ScreenHandlerContext.create(world, pos))
 
     override fun writeScreenOpeningData(player: ServerPlayerEntity?, buf: PacketByteBuf) {
         buf.writeBlockPos(pos)

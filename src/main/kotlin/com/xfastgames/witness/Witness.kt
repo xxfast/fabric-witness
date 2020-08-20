@@ -6,14 +6,9 @@ import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
 import com.xfastgames.witness.blocks.redstone.PuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
-import com.xfastgames.witness.features.JasmineBushFeature
-import com.xfastgames.witness.features.MimosaBushFeature
-import com.xfastgames.witness.features.PinkCedarTreeFeature
-import com.xfastgames.witness.features.YuccaFeature
 import com.xfastgames.witness.items.AncientPuzzleTablet
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.screens.PuzzleScreen
-import com.xfastgames.witness.utils.BiomeFeature
 import com.xfastgames.witness.utils.Clientside
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType
@@ -75,31 +70,24 @@ class Witness : ModInitializer, ClientModInitializer {
             AncientPuzzleTablet.ITEM
         )
 
-        val FEATURES: List<BiomeFeature<*, *>> = listOf(
-            YuccaFeature,
-            JasmineBushFeature,
-            MimosaBushFeature,
-            PinkCedarTreeFeature
-        )
-
         val ENTITIES: List<Clientside> = listOf(
             PuzzleFrameBlockEntity.Companion,
             PuzzleComposerBlockEntity.Companion
         )
+
+        val SCREENS: List<Clientside> by lazy {
+            listOf(PuzzleScreen.Companion)
+        }
     }
 
-    override fun onInitialize() {
-        FEATURES.forEach { it.register() }
-    }
+    override fun onInitialize() {}
 
     @Environment(EnvType.CLIENT)
     override fun onInitializeClient() {
-        val SCREENS: List<Clientside> = listOf(PuzzleScreen.Companion)
 
-        listOf(BLOCKS, ITEMS, FEATURES, ENTITIES, SCREENS)
+        listOf(BLOCKS, ITEMS, ENTITIES, SCREENS)
             .flatten()
             .filterIsInstance<Clientside>()
             .forEach { it.onClient() }
     }
-
 }

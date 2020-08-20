@@ -8,9 +8,9 @@ import com.xfastgames.witness.utils.BiomeFeature
 import com.xfastgames.witness.utils.registerFeature
 import net.minecraft.util.Identifier
 import net.minecraft.world.biome.Biome
-import net.minecraft.world.biome.Biomes
+import net.minecraft.world.gen.UniformIntDistribution
 import net.minecraft.world.gen.decorator.ConfiguredDecorator
-import net.minecraft.world.gen.decorator.CountExtraChanceDecoratorConfig
+import net.minecraft.world.gen.decorator.CountExtraDecoratorConfig
 import net.minecraft.world.gen.decorator.Decorator
 import net.minecraft.world.gen.feature.Feature
 import net.minecraft.world.gen.feature.TreeFeature
@@ -21,11 +21,11 @@ import net.minecraft.world.gen.stateprovider.SimpleBlockStateProvider
 import net.minecraft.world.gen.trunk.StraightTrunkPlacer
 
 // TODO: This seems to be broken
-object PinkCedarTreeFeature : BiomeFeature<TreeFeatureConfig, CountExtraChanceDecoratorConfig>() {
+object PinkCedarTreeFeature : BiomeFeature<TreeFeatureConfig, CountExtraDecoratorConfig>() {
 
     val IDENTIFIER = Identifier(Witness.IDENTIFIER, "pink_cedar_trees")
 
-    override val biomes: List<Biome> = listOf(Biomes.FLOWER_FOREST)
+    override val biomes: List<Biome> = emptyList()
 
     override val feature: Feature<TreeFeatureConfig> =
         registerFeature(IDENTIFIER, TreeFeature(TreeFeatureConfig.CODEC))
@@ -34,7 +34,11 @@ object PinkCedarTreeFeature : BiomeFeature<TreeFeatureConfig, CountExtraChanceDe
         .Builder(
             SimpleBlockStateProvider(CedarLog.BLOCK.defaultState),
             SimpleBlockStateProvider(PinkCedarLeaves.BLOCK.defaultState),
-            BlobFoliagePlacer(2, 0, 0, 0, 3),
+            BlobFoliagePlacer(
+                UniformIntDistribution.of(2),
+                UniformIntDistribution.of(0),
+                0
+            ),
             StraightTrunkPlacer(5, 2, 0),
             TwoLayersFeatureSize(1, 0, 1)
         )
@@ -42,6 +46,6 @@ object PinkCedarTreeFeature : BiomeFeature<TreeFeatureConfig, CountExtraChanceDe
         .ignoreVines()
         .build()
 
-    override val decorator: ConfiguredDecorator<CountExtraChanceDecoratorConfig> =
-        Decorator.COUNT_EXTRA_HEIGHTMAP.configure(CountExtraChanceDecoratorConfig(1, 0.1f, 0))
+    override val decorator: ConfiguredDecorator<CountExtraDecoratorConfig> =
+        Decorator.COUNT_EXTRA.configure(CountExtraDecoratorConfig(1, 0.1f, 0))
 }

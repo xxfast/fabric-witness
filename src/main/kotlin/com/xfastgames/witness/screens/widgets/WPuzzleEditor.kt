@@ -1,17 +1,20 @@
 package com.xfastgames.witness.screens.widgets
 
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
-import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.nextIn
+import com.xfastgames.witness.utils.rotate
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
 import io.github.cottonmc.cotton.gui.widget.WWidget
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.render.OverlayTexture
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.util.math.MatrixStack
+import net.minecraft.client.util.math.Vector3f
 import net.minecraft.inventory.Inventory
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
@@ -22,11 +25,11 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
     override fun getWidth(): Int = 18 * 6
     override fun getHeight(): Int = 18 * 6
 
-    private val client: MinecraftClient = MinecraftClient.getInstance()
-    private val backgroundPainter: BackgroundPainter = BackgroundPainter.SLOT
+    private val client: MinecraftClient by lazy { MinecraftClient.getInstance() }
+    private val backgroundPainter: BackgroundPainter by lazy { BackgroundPainter.SLOT }
+    private val puzzlePanelRenderer: PuzzlePanelRenderer by lazy { PuzzlePanelRenderer }
 
-    private val puzzlePanelRenderer: PuzzlePanelRenderer = PuzzlePanelItem.RENDERER
-
+    @Environment(EnvType.CLIENT)
     override fun paint(matrices: MatrixStack, x: Int, y: Int, mouseX: Int, mouseY: Int) {
         backgroundPainter.paintBackground(x, y, this)
         matrices.push()
@@ -39,8 +42,9 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
         val immediateConsumer: VertexConsumerProvider.Immediate = client.bufferBuilders.entityVertexConsumers
         val puzzleScale = 6.75f
         matrices.scale(puzzleScale, -puzzleScale, puzzleScale)
-        // TODO: translate relative to panel placement
-        matrices.translate(.26, -.24, .0)
+        matrices.rotate(Vector3f.POSITIVE_Z, 180f)
+        // Translate relative to panel placement
+        matrices.translate(-1.25, -.75, .0)
 
         puzzlePanelRenderer.renderPanel(
             puzzleStack,
@@ -69,15 +73,15 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
         val puzzleDY: Float = (relativeY / 6f) * size
         val tileDX: Float = puzzleDX - truncate(puzzleDX)
         val tileDY: Float = puzzleDY - truncate(puzzleDY)
-        val puzzleX: Int = puzzleDX.toInt()
-        val puzzleY: Int = puzzleDY.toInt()
+        val puzzleX: Int = (size - 1) - puzzleDX.toInt()
+        val puzzleY: Int = (size - 1) - puzzleDY.toInt()
         val lineWidth: Float = 1 / 6f
         val lineRange: ClosedFloatingPointRange<Float> = (0.5f - lineWidth)..(0.5f + lineWidth)
         val isCenter: Boolean = tileDX in lineRange && tileDY in lineRange
-        val isTop: Boolean = !isCenter && tileDY < 0.5f && tileDX in lineRange
-        val isLeft: Boolean = !isCenter && tileDX < 0.5f && tileDY in lineRange
-        val isRight: Boolean = !isCenter && tileDX > 0.5f && tileDY in lineRange
-        val isBottom: Boolean = !isCenter && tileDY > 0.5f && tileDX in lineRange
+        val isTop: Boolean = !isCenter && tileDY > 0.5f && tileDX in lineRange
+        val isLeft: Boolean = !isCenter && tileDX > 0.5f && tileDY in lineRange
+        val isRight: Boolean = !isCenter && tileDX < 0.5f && tileDY in lineRange
+        val isBottom: Boolean = !isCenter && tileDY < 0.5f && tileDX in lineRange
 
         val isXBorder: Boolean = (puzzleX == 0 && isLeft) || (puzzleX == size - 1 && isRight)
         val isYBorder: Boolean = (puzzleY == 0 && isTop) || (puzzleY == size - 1 && isBottom)

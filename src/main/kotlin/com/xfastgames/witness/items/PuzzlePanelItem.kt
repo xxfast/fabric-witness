@@ -8,7 +8,6 @@ import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerItem
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
-import net.minecraft.client.MinecraftClient
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
@@ -27,15 +26,10 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
             IDENTIFIER,
             PuzzlePanelItem()
         )
-        val RENDERER = PuzzlePanelRenderer(MinecraftClient.getInstance())
     }
 
     override fun onClient() {
-        BuiltinItemRendererRegistry.INSTANCE.register(
-            ITEM,
-            RENDERER
-        )
-//        HeldItemRendererRegistry.INSTANCE.register(ITEM, RENDERER)
+        BuiltinItemRendererRegistry.INSTANCE.register(ITEM, PuzzlePanelRenderer)
     }
 
     override fun use(world: World, user: PlayerEntity, hand: Hand?): TypedActionResult<ItemStack> {

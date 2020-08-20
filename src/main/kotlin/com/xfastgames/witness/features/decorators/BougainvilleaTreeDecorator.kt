@@ -10,16 +10,16 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.LeavesBlock
 import net.minecraft.util.math.BlockBox
 import net.minecraft.util.math.BlockPos
-import net.minecraft.world.WorldAccess
-import net.minecraft.world.gen.decorator.TreeDecorator
-import net.minecraft.world.gen.decorator.TreeDecoratorType
+import net.minecraft.world.StructureWorldAccess
+import net.minecraft.world.gen.tree.TreeDecorator
+import net.minecraft.world.gen.tree.TreeDecoratorType
 import java.util.*
 import kotlin.random.asKotlinRandom
 
 class BougainvilleaTreeDecorator : TreeDecorator() {
 
     override fun generate(
-        world: WorldAccess,
+        world: StructureWorldAccess,
         random: Random,
         logPositions: MutableList<BlockPos>,
         leavesPositions: MutableList<BlockPos>,

@@ -76,10 +76,10 @@ class PuzzleComposerBlock : BlockWithEntity(
     override fun onUse(
         state: BlockState,
         world: World,
-        pos: BlockPos?,
+        pos: BlockPos,
         player: PlayerEntity,
         hand: Hand?,
-        hit: BlockHitResult?
+        hit: BlockHitResult
     ): ActionResult {
         player.openHandledScreen(state.createScreenHandlerFactory(world, pos))
         return ActionResult.SUCCESS

@@ -4,7 +4,6 @@ import com.xfastgames.witness.blocks.decorations.JasmineBush
 import com.xfastgames.witness.utils.BiomeFeature
 import net.minecraft.block.Blocks
 import net.minecraft.world.biome.Biome
-import net.minecraft.world.biome.Biomes
 import net.minecraft.world.gen.decorator.ChanceDecoratorConfig
 import net.minecraft.world.gen.decorator.ConfiguredDecorator
 import net.minecraft.world.gen.decorator.Decorator
@@ -15,7 +14,7 @@ import net.minecraft.world.gen.stateprovider.SimpleBlockStateProvider
 
 object JasmineBushFeature : BiomeFeature<RandomPatchFeatureConfig, ChanceDecoratorConfig>() {
 
-    override val biomes: List<Biome> = listOf(Biomes.TAIGA, Biomes.TAIGA_MOUNTAINS, Biomes.TAIGA_HILLS)
+    override val biomes: List<Biome> = emptyList()
 
     override val feature: Feature<RandomPatchFeatureConfig> = Feature.RANDOM_PATCH
 
@@ -28,5 +27,5 @@ object JasmineBushFeature : BiomeFeature<RandomPatchFeatureConfig, ChanceDecorat
         .cannotProject().build()
 
     override val decorator: ConfiguredDecorator<ChanceDecoratorConfig> =
-        Decorator.CHANCE_HEIGHTMAP_DOUBLE.configure(ChanceDecoratorConfig(10))
+        Decorator.CHANCE.configure(ChanceDecoratorConfig(10))
 }

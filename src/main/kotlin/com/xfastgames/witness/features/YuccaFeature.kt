@@ -5,7 +5,6 @@ import com.xfastgames.witness.blocks.decorations.Yucca
 import com.xfastgames.witness.utils.BiomeFeature
 import net.minecraft.block.Blocks
 import net.minecraft.world.biome.Biome
-import net.minecraft.world.biome.Biomes
 import net.minecraft.world.gen.decorator.ChanceDecoratorConfig
 import net.minecraft.world.gen.decorator.ConfiguredDecorator
 import net.minecraft.world.gen.decorator.Decorator
@@ -16,12 +15,7 @@ import net.minecraft.world.gen.stateprovider.WeightedBlockStateProvider
 
 object YuccaFeature : BiomeFeature<RandomPatchFeatureConfig, ChanceDecoratorConfig>() {
 
-    override val biomes: List<Biome> = listOf(
-        Biomes.SAVANNA,
-        Biomes.SAVANNA_PLATEAU,
-        Biomes.SHATTERED_SAVANNA,
-        Biomes.SHATTERED_SAVANNA_PLATEAU
-    )
+    override val biomes: List<Biome> = emptyList()
 
     override val feature: Feature<RandomPatchFeatureConfig> = Feature.RANDOM_PATCH
 
@@ -38,5 +32,5 @@ object YuccaFeature : BiomeFeature<RandomPatchFeatureConfig, ChanceDecoratorConf
         .build()
 
     override val decorator: ConfiguredDecorator<ChanceDecoratorConfig> =
-        Decorator.CHANCE_HEIGHTMAP_DOUBLE.configure(ChanceDecoratorConfig(10))
+        Decorator.CHANCE.configure(ChanceDecoratorConfig(10))
 }
