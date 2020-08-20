@@ -2,9 +2,9 @@
   "parent": "block/block",
   "credit": "Made with Blockbench",
   "textures": {
-    "0": "witness:block/puzzle_frame",
-    "1": "witness:block/puzzle_frame_base",
-    "particle": "witness:block/puzzle_frame"
+    "0": "witness:block/iron_puzzle_frame",
+    "1": "witness:block/iron_puzzle_frame_base",
+    "particle": "witness:block/iron_puzzle_frame"
   },
   "elements": [
     {

@@ -1,7 +1,7 @@
 package com.xfastgames.witness.entities
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.blocks.redstone.PuzzleFrameBlock
+import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer
 import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.Clientside
@@ -34,7 +34,7 @@ class PuzzleFrameBlockEntity : BlockEntity(ENTITY_TYPE),
 
         val ENTITY_TYPE: BlockEntityType<PuzzleFrameBlockEntity> = registerBlockEntity(IDENTIFIER) {
             BlockEntityType.Builder
-                .create(Supplier { PuzzleFrameBlockEntity() }, PuzzleFrameBlock.BLOCK)
+                .create(Supplier { PuzzleFrameBlockEntity() }, IronPuzzleFrameBlock.BLOCK)
                 .build(null)
         }
 

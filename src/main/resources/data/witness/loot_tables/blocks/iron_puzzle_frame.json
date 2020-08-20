@@ -6,7 +6,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "witness:puzzle_frame"
+          "name": "witness:iron_puzzle_frame"
         }
       ],
       "conditions": [

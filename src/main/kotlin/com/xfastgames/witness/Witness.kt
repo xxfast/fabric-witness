@@ -2,8 +2,8 @@ package com.xfastgames.witness
 
 import com.xfastgames.witness.blocks.building.*
 import com.xfastgames.witness.blocks.decorations.*
+import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
-import com.xfastgames.witness.blocks.redstone.PuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.AncientPuzzleTablet
@@ -41,7 +41,7 @@ class Witness : ModInitializer, ClientModInitializer {
             BlueBougainvilleaDrape.BLOCK,
             PinkCedarLeaves.BLOCK,
             CedarLog.BLOCK,
-            PuzzleFrameBlock.BLOCK,
+            IronPuzzleFrameBlock.BLOCK,
             PuzzleComposerBlock.BLOCK
         )
 
@@ -64,7 +64,7 @@ class Witness : ModInitializer, ClientModInitializer {
             BlueBougainvilleaDrape.BLOCK_ITEM,
             PinkCedarLeaves.BLOCK_ITEM,
             CedarLog.BLOCK_ITEM,
-            PuzzleFrameBlock.BLOCK_ITEM,
+            IronPuzzleFrameBlock.BLOCK_ITEM,
             PuzzleComposerBlock.BLOCK_ITEM,
             PuzzlePanelItem.ITEM,
             AncientPuzzleTablet.ITEM

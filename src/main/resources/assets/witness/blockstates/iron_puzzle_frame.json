@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "witness:block/iron_puzzle_frame",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "witness:block/iron_puzzle_frame"
+    },
+    "facing=south": {
+      "model": "witness:block/iron_puzzle_frame",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "witness:block/iron_puzzle_frame",
+      "y": 270
+    }
+  }
+}

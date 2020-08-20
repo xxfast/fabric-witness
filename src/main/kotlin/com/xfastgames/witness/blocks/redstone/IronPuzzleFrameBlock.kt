@@ -29,7 +29,7 @@ import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.BlockView
 import net.minecraft.world.World
 
-class PuzzleFrameBlock : BlockWithEntity(
+class IronPuzzleFrameBlock : BlockWithEntity(
     FabricBlockSettings.of(Material.METAL)
         .strength(2.5f)
         .sounds(BlockSoundGroup.METAL)
@@ -41,8 +41,8 @@ class PuzzleFrameBlock : BlockWithEntity(
     companion object {
         val ENABLED: BooleanProperty = BooleanProperty.of("enabled")
 
-        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_frame")
-        val BLOCK: Block = registerBlock(PuzzleFrameBlock(), IDENTIFIER)
+        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "iron_puzzle_frame")
+        val BLOCK: Block = registerBlock(IronPuzzleFrameBlock(), IDENTIFIER)
         val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.REDSTONE))
     }
 
