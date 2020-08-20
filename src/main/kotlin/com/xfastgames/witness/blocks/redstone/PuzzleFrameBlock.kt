@@ -16,6 +16,7 @@ import net.minecraft.item.*
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.sound.SoundEvents
 import net.minecraft.state.StateManager
+import net.minecraft.state.property.BooleanProperty
 import net.minecraft.state.property.Properties.HORIZONTAL_FACING
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
@@ -32,17 +33,23 @@ class PuzzleFrameBlock : BlockWithEntity(
     FabricBlockSettings.of(Material.METAL)
         .strength(2.5f)
         .sounds(BlockSoundGroup.METAL)
-        .lightLevel { state -> 15 }
+        .lightLevel { state ->
+            if (state[ENABLED]) 10 else 0
+        }
 ) {
 
-    init {
-        defaultState = stateManager.defaultState.with(HORIZONTAL_FACING, Direction.NORTH)
-    }
-
     companion object {
+        val ENABLED: BooleanProperty = BooleanProperty.of("enabled")
+
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_frame")
         val BLOCK: Block = registerBlock(PuzzleFrameBlock(), IDENTIFIER)
         val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.REDSTONE))
+    }
+
+    init {
+        defaultState = stateManager.defaultState
+            .with(HORIZONTAL_FACING, Direction.NORTH)
+            .with(ENABLED, false)
     }
 
     override fun getRenderType(state: BlockState?): BlockRenderType = BlockRenderType.MODEL
@@ -55,6 +62,7 @@ class PuzzleFrameBlock : BlockWithEntity(
 
     override fun appendProperties(stateManager: StateManager.Builder<Block, BlockState>) {
         stateManager.add(HORIZONTAL_FACING)
+        stateManager.add(ENABLED)
     }
 
     override fun getOutlineShape(
@@ -84,7 +92,7 @@ class PuzzleFrameBlock : BlockWithEntity(
     }
 
     override fun onUse(
-        state: BlockState?,
+        state: BlockState,
         world: World,
         pos: BlockPos,
         player: PlayerEntity,
@@ -119,6 +127,10 @@ class PuzzleFrameBlock : BlockWithEntity(
             else -> return ActionResult.FAIL
 
         }
+
+        // Update block state
+        if (inventory.items[0].isEmpty) world.setBlockState(pos, state.with(ENABLED, false))
+        else world.setBlockState(pos, state.with(ENABLED, true))
 
         if (world.isClient) return ActionResult.SUCCESS
         entity.sync()
