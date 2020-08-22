@@ -10,8 +10,7 @@ private const val KEY_TILES = "tiles"
 private const val KEY_LINE = "line"
 
 data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
-    constructor(size: Int) :
-            this(generate(size).tiles, listOf(1.1f, 1.2f))
+    constructor(size: Int) : this(generate(size).tiles, listOf(1.1f, 1.2f))
 
     fun put(x: Int, y: Int, copier: Tile.() -> Tile): Panel = copy(
         tiles = tiles.mapIndexed { xIndex, cols ->
@@ -20,6 +19,27 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
             }
         }
     )
+
+    fun resize(by: Int): Panel {
+        val newTiles: MutableList<List<Tile>> = tiles
+            .map { cols ->
+                val mutableCols: MutableList<Tile> =
+                    cols.map { tile -> tile.apply { right = Line.FILLED } }.toMutableList()
+
+                repeat(by) { mutableCols.add(Tile(false, Line.FILLED, Line.FILLED, Line.FILLED, Line.FILLED)) }
+                return@map mutableCols.toList()
+            }
+            .toMutableList()
+        repeat(by) {
+            newTiles.add(mutableListOf<Tile>().apply {
+                repeat(height + by) { add(Tile(false, Line.FILLED, Line.FILLED, Line.FILLED, Line.FILLED)) }
+            })
+        }
+        return copy(tiles = newTiles)
+    }
+
+    val width: Int get() = tiles.size
+    val height: Int get() = tiles.maxBy { it.size }!!.size
 }
 
 private fun generate(size: Int): Panel {

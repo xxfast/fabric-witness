@@ -3,6 +3,8 @@ package com.xfastgames.witness.screens
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
+import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.getPanel
 import com.xfastgames.witness.screens.widgets.WPuzzleEditor
 import com.xfastgames.witness.utils.Clientside
 import io.github.cottonmc.cotton.gui.SyncedGuiDescription
@@ -10,10 +12,13 @@ import io.github.cottonmc.cotton.gui.client.CottonInventoryScreen
 import io.github.cottonmc.cotton.gui.widget.WItemSlot
 import io.github.cottonmc.cotton.gui.widget.WLabel
 import io.github.cottonmc.cotton.gui.widget.WPlainPanel
+import io.github.cottonmc.cotton.gui.widget.WSlider
+import io.github.cottonmc.cotton.gui.widget.data.Axis
 import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
 import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.screen.ScreenHandlerContext
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.text.Text

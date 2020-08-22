@@ -7,3 +7,6 @@ val BlockPos.neighbours: List<BlockPos>
 
 val BlockPos.above: BlockPos
     get() = this.up()
+
+val BlockPos.below: BlockPos
+    get() = this.down()

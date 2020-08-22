@@ -1,6 +1,6 @@
 {
-  "parent": "block/block",
   "credit": "Made with Blockbench",
+  "parent": "block/block",
   "textures": {
     "0": "witness:block/iron_puzzle_frame",
     "1": "witness:block/iron_puzzle_frame_base",
@@ -406,86 +406,6 @@
           "texture": "#0"
         }
       }
-    },
-    {
-      "name": "bottom_stand",
-      "from": [
-        6,
-        0,
-        6
-      ],
-      "to": [
-        9,
-        1,
-        8
-      ],
-      "rotation": {
-        "angle": 0,
-        "axis": "y",
-        "origin": [
-          7.83333,
-          6.33333,
-          7.66667
-        ]
-      },
-      "faces": {
-        "north": {
-          "uv": [
-            0,
-            0,
-            3,
-            2
-          ],
-          "texture": "#1"
-        },
-        "east": {
-          "uv": [
-            0,
-            0,
-            3,
-            2
-          ],
-          "texture": "#1"
-        },
-        "south": {
-          "uv": [
-            0,
-            0,
-            3,
-            2
-          ],
-          "texture": "#1"
-        },
-        "west": {
-          "uv": [
-            0,
-            0,
-            3,
-            2
-          ],
-          "texture": "#1"
-        },
-        "up": {
-          "uv": [
-            0,
-            0,
-            3,
-            2
-          ],
-          "rotation": 180,
-          "texture": "#1"
-        },
-        "down": {
-          "uv": [
-            0,
-            0,
-            3,
-            2
-          ],
-          "rotation": 180,
-          "texture": "#1"
-        }
-      }
     }
   ],
   "groups": [
@@ -503,7 +423,6 @@
         3,
         4
       ]
-    },
-    5
+    }
   ]
 }

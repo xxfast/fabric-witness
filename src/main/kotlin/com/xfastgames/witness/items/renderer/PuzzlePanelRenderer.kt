@@ -36,7 +36,7 @@ object PuzzlePanelRenderer : BuiltinItemRenderer {
     }
 
     /** Pixel coordinates */
-    private val Int.pc: Float get() = (1f / 16f) * this
+    private val Int.pc: Float get() = this.pcF
 
     fun renderPanel(
         stack: ItemStack,

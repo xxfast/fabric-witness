@@ -3,6 +3,7 @@ package com.xfastgames.witness
 import com.xfastgames.witness.blocks.building.*
 import com.xfastgames.witness.blocks.decorations.*
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
+import com.xfastgames.witness.blocks.redstone.IronStandBlock
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
@@ -42,7 +43,8 @@ class Witness : ModInitializer, ClientModInitializer {
             PinkCedarLeaves.BLOCK,
             CedarLog.BLOCK,
             IronPuzzleFrameBlock.BLOCK,
-            PuzzleComposerBlock.BLOCK
+            PuzzleComposerBlock.BLOCK,
+            IronStandBlock.BLOCK
         )
 
         val ITEMS: List<Item> = listOf(
@@ -66,6 +68,7 @@ class Witness : ModInitializer, ClientModInitializer {
             CedarLog.BLOCK_ITEM,
             IronPuzzleFrameBlock.BLOCK_ITEM,
             PuzzleComposerBlock.BLOCK_ITEM,
+            IronStandBlock.BLOCK_ITEM,
             PuzzlePanelItem.ITEM,
             AncientPuzzleTablet.ITEM
         )

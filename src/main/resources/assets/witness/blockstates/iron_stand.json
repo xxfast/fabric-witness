@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "witness:block/iron_stand",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "witness:block/iron_stand"
+    },
+    "facing=south": {
+      "model": "witness:block/iron_stand",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "witness:block/iron_stand",
+      "y": 270
+    }
+  }
+}

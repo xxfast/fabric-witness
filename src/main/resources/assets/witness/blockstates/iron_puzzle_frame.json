@@ -1,19 +1,196 @@
 {
-  "variants": {
-    "facing=east": {
-      "model": "witness:block/iron_puzzle_frame",
-      "y": 90
+  "multipart": [
+    {
+      "when": {
+        "facing": "east"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame",
+        "y": 90
+      }
     },
-    "facing=north": {
-      "model": "witness:block/iron_puzzle_frame"
+    {
+      "when": {
+        "facing": "north"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame"
+      }
     },
-    "facing=south": {
-      "model": "witness:block/iron_puzzle_frame",
-      "y": 180
+    {
+      "when": {
+        "facing": "south"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame",
+        "y": 180
+      }
     },
-    "facing=west": {
-      "model": "witness:block/iron_puzzle_frame",
-      "y": 270
+    {
+      "when": {
+        "facing": "west"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "bottom_connected": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_bottom",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "bottom_connected": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_bottom"
+      }
+    },
+    {
+      "when": {
+        "bottom_connected": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_bottom",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "bottom_connected": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_bottom",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "top_connected": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_top",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "top_connected": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_top"
+      }
+    },
+    {
+      "when": {
+        "top_connected": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_top",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "top_connected": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_top",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "left_connected": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_left",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "left_connected": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_left"
+      }
+    },
+    {
+      "when": {
+        "left_connected": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_left",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "left_connected": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_left",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "right_connected": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_right",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "right_connected": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_right"
+      }
+    },
+    {
+      "when": {
+        "right_connected": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_right",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "right_connected": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "witness:block/iron_puzzle_frame_connector_right",
+        "y": 270
+      }
     }
-  }
+  ]
 }
+

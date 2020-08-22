@@ -3,10 +3,7 @@ package com.xfastgames.witness.blocks.redstone
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
-import com.xfastgames.witness.utils.BlockInventory
-import com.xfastgames.witness.utils.registerBlock
-import com.xfastgames.witness.utils.registerBlockItem
-import com.xfastgames.witness.utils.rotateShape
+import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*
 import net.minecraft.block.entity.BlockEntity
@@ -40,6 +37,10 @@ class IronPuzzleFrameBlock : BlockWithEntity(
 
     companion object {
         val ENABLED: BooleanProperty = BooleanProperty.of("enabled")
+        val TOP_CONNECTED: BooleanProperty = BooleanProperty.of("top_connected")
+        val LEFT_CONNECTED: BooleanProperty = BooleanProperty.of("left_connected")
+        val RIGHT_CONNECTED: BooleanProperty = BooleanProperty.of("right_connected")
+        val BOTTOM_CONNECTED: BooleanProperty = BooleanProperty.of("bottom_connected")
 
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "iron_puzzle_frame")
         val BLOCK: Block = registerBlock(IronPuzzleFrameBlock(), IDENTIFIER)
@@ -50,6 +51,10 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         defaultState = stateManager.defaultState
             .with(HORIZONTAL_FACING, Direction.NORTH)
             .with(ENABLED, false)
+            .with(TOP_CONNECTED, false)
+            .with(LEFT_CONNECTED, false)
+            .with(RIGHT_CONNECTED, false)
+            .with(BOTTOM_CONNECTED, false)
     }
 
     override fun getRenderType(state: BlockState?): BlockRenderType = BlockRenderType.MODEL
@@ -57,12 +62,106 @@ class IronPuzzleFrameBlock : BlockWithEntity(
     override fun createBlockEntity(world: BlockView?): BlockEntity? = PuzzleFrameBlockEntity()
 
     override fun getPlacementState(ctx: ItemPlacementContext): BlockState? {
-        return super.getPlacementState(ctx)?.with(HORIZONTAL_FACING, ctx.playerFacing)
+        val blockBelow: Block = ctx.world.getBlockState(ctx.blockPos.below).block
+        val blockAbove: Block = ctx.world.getBlockState(ctx.blockPos.above).block
+        val blockNorth: Block = ctx.world.getBlockState(ctx.blockPos.north()).block
+        val blockSouth: Block = ctx.world.getBlockState(ctx.blockPos.south()).block
+        val blockEast: Block = ctx.world.getBlockState(ctx.blockPos.east()).block
+        val blockWest: Block = ctx.world.getBlockState(ctx.blockPos.west()).block
+
+        val blockLeft: Block =
+            when (ctx.playerFacing.axis) {
+                Direction.Axis.X -> when (ctx.playerFacing.direction) {
+                    Direction.AxisDirection.POSITIVE -> blockNorth
+                    // Direction.AxisDirection.NEGATIVE
+                    else -> blockSouth
+                }
+                // Direction.Axis.Z
+                else -> when (ctx.playerFacing.direction) {
+                    Direction.AxisDirection.POSITIVE -> blockEast
+                    // Direction.AxisDirection.NEGATIVE
+                    else -> blockWest
+                }
+            }
+
+        val blockRight: Block =
+            when (ctx.playerFacing.axis) {
+                Direction.Axis.X -> when (ctx.playerFacing.direction) {
+                    Direction.AxisDirection.POSITIVE -> blockSouth
+                    // Direction.AxisDirection.NEGATIVE
+                    else -> blockNorth
+                }
+                // Direction.Axis.Z
+                else -> when (ctx.playerFacing.direction) {
+                    Direction.AxisDirection.POSITIVE -> blockWest
+                    // Direction.AxisDirection.NEGATIVE
+                    else -> blockEast
+                }
+            }
+
+        val onTopOfFrameOrStand: Boolean = blockBelow is IronStandBlock || blockBelow is IronPuzzleFrameBlock
+        val onBelowOfFrameOrStand: Boolean = blockAbove is IronStandBlock || blockAbove is IronPuzzleFrameBlock
+        val onLeftOfFrame: Boolean = blockRight is IronPuzzleFrameBlock
+        val onRightOfFrame: Boolean = blockLeft is IronPuzzleFrameBlock
+
+        return super.getPlacementState(ctx)
+            ?.with(HORIZONTAL_FACING, ctx.playerFacing)
+            ?.with(BOTTOM_CONNECTED, onTopOfFrameOrStand)
+            ?.with(TOP_CONNECTED, onBelowOfFrameOrStand)
+            ?.with(LEFT_CONNECTED, onRightOfFrame)
+            ?.with(RIGHT_CONNECTED, onLeftOfFrame)
+    }
+
+    override fun neighborUpdate(
+        state: BlockState,
+        world: World,
+        pos: BlockPos,
+        block: Block,
+        fromPos: BlockPos,
+        notify: Boolean
+    ) {
+        val blockUp: Block = world.getBlockState(pos.up()).block
+        val blockDown: Block = world.getBlockState(pos.down()).block
+        val blockEast: Block = world.getBlockState(pos.east()).block
+        val blockWest: Block = world.getBlockState(pos.west()).block
+        val blockNorth: Block = world.getBlockState(pos.north()).block
+        val blockSouth: Block = world.getBlockState(pos.south()).block
+
+        val isRightConnected: Boolean = when (state[HORIZONTAL_FACING]) {
+            Direction.NORTH -> blockEast is IronPuzzleFrameBlock
+            Direction.SOUTH -> blockWest is IronPuzzleFrameBlock
+            Direction.WEST -> blockNorth is IronPuzzleFrameBlock
+            Direction.EAST -> blockSouth is IronPuzzleFrameBlock
+            else -> false
+        }
+
+        val isLeftConnected: Boolean = when (state[HORIZONTAL_FACING]) {
+            Direction.NORTH -> blockWest is IronPuzzleFrameBlock
+            Direction.SOUTH -> blockEast is IronPuzzleFrameBlock
+            Direction.WEST -> blockSouth is IronPuzzleFrameBlock
+            Direction.EAST -> blockNorth is IronPuzzleFrameBlock
+            else -> false
+        }
+
+        val isTopConnected: Boolean = blockUp is IronPuzzleFrameBlock
+        val isBottomConnected: Boolean = blockDown is IronPuzzleFrameBlock || blockDown is IronStandBlock
+
+        world.setBlockState(
+            pos, state
+                .with(RIGHT_CONNECTED, isRightConnected)
+                .with(LEFT_CONNECTED, isLeftConnected)
+                .with(TOP_CONNECTED, isTopConnected)
+                .with(BOTTOM_CONNECTED, isBottomConnected)
+        )
     }
 
     override fun appendProperties(stateManager: StateManager.Builder<Block, BlockState>) {
         stateManager.add(HORIZONTAL_FACING)
         stateManager.add(ENABLED)
+        stateManager.add(TOP_CONNECTED)
+        stateManager.add(LEFT_CONNECTED)
+        stateManager.add(RIGHT_CONNECTED)
+        stateManager.add(BOTTOM_CONNECTED)
     }
 
     override fun getOutlineShape(

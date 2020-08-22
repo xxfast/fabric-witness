@@ -142,6 +142,10 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
 
         tag.putPanel(updatedPuzzle)
         inventory.setStack(slotIndex, puzzleStack)
+        updateInventory(tag)
+    }
+
+    fun updateInventory(tag: CompoundTag) {
         require(inventory is BlockInventory)
         require(inventory.owner is PuzzleComposerBlockEntity)
         inventory.owner.syncInventorySlotTag(slotIndex, tag)
