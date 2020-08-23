@@ -81,8 +81,8 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
                 removedTiles
                     .mapIndexed { rowIndex, tile ->
                         tile.apply {
-                            right = Line.FILLED.takeIf { colIndex != removedColumns.lastIndex }
-                            bottom = Line.FILLED.takeIf { rowIndex != removedTiles.lastIndex }
+                            right = tile.right.takeIf { colIndex != removedColumns.lastIndex }
+                            bottom = tile.bottom.takeIf { rowIndex != removedTiles.lastIndex }
                         }
                     }
             }

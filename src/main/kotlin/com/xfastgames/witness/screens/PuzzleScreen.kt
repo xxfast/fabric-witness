@@ -36,6 +36,8 @@ val PUZZLE_SCREEN_HANDLER: ScreenHandlerType<PuzzleScreenDescription> =
         )
     }
 
+const val PUZZLE_INPUT_SLOT_INDEX = 0
+
 class PuzzleScreen(gui: PuzzleScreenDescription?, player: PlayerEntity?, title: Text?) :
     CottonInventoryScreen<PuzzleScreenDescription?>(gui, player, title) {
 
@@ -63,12 +65,15 @@ class PuzzleScreenDescription(
         val root: WPlainPanel = WPlainPanel().apply { setSize(150, 150) }
         setRootPanel(root)
 
-        val puzzleInputSlot: WItemSlot = WItemSlot(blockInventory, 0, 1, 1, true)
+        val puzzleInputSlot: WItemSlot = WItemSlot(blockInventory, PUZZLE_INPUT_SLOT_INDEX, 1, 1, true)
             .apply { setFilter { itemStack -> itemStack.item is PuzzlePanelItem } }
 
+
         val composerInventorySlots = WItemSlot.of(blockInventory, 1, 2, 3)
-        val puzzleSlot = WPuzzleEditor(blockInventory, 0)
+
+        val puzzleSlot = WPuzzleEditor(blockInventory, PUZZLE_INPUT_SLOT_INDEX)
         val resizeSlider = WSlider(2, 10, Axis.VERTICAL)
+
         resizeSlider.setValueChangeListener { value ->
             val itemStack: ItemStack = blockInventory.getStack(0)
             val tag: CompoundTag = itemStack.tag ?: return@setValueChangeListener
@@ -76,6 +81,12 @@ class PuzzleScreenDescription(
             val updatedPuzzle: Panel = puzzle.resize(value)
             tag.putPanel(updatedPuzzle)
             puzzleSlot.updateInventory(tag)
+        }
+
+        puzzleInputSlot.addChangeListener { slot, inventory, index, stack ->
+            if (index != PUZZLE_INPUT_SLOT_INDEX) return@addChangeListener
+            val width: Int = stack.tag?.getPanel()?.width ?: 0
+            resizeSlider.setValue(width, false)
         }
 
         val hotBarLabel = WLabel(playerInventory.displayName)
