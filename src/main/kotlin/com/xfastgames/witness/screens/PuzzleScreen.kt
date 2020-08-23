@@ -5,6 +5,7 @@ import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.getPanel
+import com.xfastgames.witness.items.data.putPanel
 import com.xfastgames.witness.screens.widgets.WPuzzleEditor
 import com.xfastgames.witness.utils.Clientside
 import io.github.cottonmc.cotton.gui.SyncedGuiDescription
@@ -18,6 +19,7 @@ import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
 import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
+import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.screen.ScreenHandlerContext
 import net.minecraft.screen.ScreenHandlerType
@@ -66,10 +68,13 @@ class PuzzleScreenDescription(
 
         val composerInventorySlots = WItemSlot.of(blockInventory, 1, 2, 3)
         val puzzleSlot = WPuzzleEditor(blockInventory, 0)
-        val resizeYSlide = WSlider(0, 100, Axis.VERTICAL)
-        resizeYSlide.setValueChangeListener { value ->
-            val tag: CompoundTag = requireNotNull(blockInventory.getStack(0).tag)
+        val resizeSlider = WSlider(2, 10, Axis.VERTICAL)
+        resizeSlider.setValueChangeListener { value ->
+            val itemStack: ItemStack = blockInventory.getStack(0)
+            val tag: CompoundTag = itemStack.tag ?: return@setValueChangeListener
             val puzzle: Panel = tag.getPanel()
+            val updatedPuzzle: Panel = puzzle.resize(value)
+            tag.putPanel(updatedPuzzle)
             puzzleSlot.updateInventory(tag)
         }
 
@@ -78,7 +83,7 @@ class PuzzleScreenDescription(
 
         var y = 16
         root.add(puzzleSlot, 38, y)
-        root.add(resizeYSlide, 142, y - 2)
+        root.add(resizeSlider, 150, y - 2, 5, 110)
         y += 16
         root.add(puzzleInputSlot, 8, y)
         y += 24

@@ -73,6 +73,7 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
     }
 
     fun shrink(by: Int): Panel {
+        require(by > 0)
         val removedColumns: List<List<Tile>> = tiles.dropLast(by)
         val removedRows: List<List<Tile>> = removedColumns
             .mapIndexed { colIndex, col ->
@@ -91,7 +92,7 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
 
     fun resize(length: Int): Panel =
         if (length > width) grow(length - width)
-        else shrink(length - width)
+        else shrink(width - length)
 
     val width: Int get() = tiles.size
     val height: Int get() = tiles.maxBy { it.size }!!.size
