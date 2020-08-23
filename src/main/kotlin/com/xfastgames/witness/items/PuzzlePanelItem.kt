@@ -37,7 +37,7 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
     override fun use(world: World, user: PlayerEntity, hand: Hand?): TypedActionResult<ItemStack> {
         val panel =
             if (user.mainHandStack.hasTag())
-                requireNotNull(user.mainHandStack.tag).getPanel().resize(1)
+                requireNotNull(user.mainHandStack.tag).getPanel().shrink(1)
             else Panel(2)
 
         user.mainHandStack.orCreateTag?.putPanel(panel)

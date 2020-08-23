@@ -20,23 +20,78 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
         }
     )
 
-    fun resize(by: Int): Panel {
-        val newTiles: MutableList<List<Tile>> = tiles
-            .map { cols ->
-                val mutableCols: MutableList<Tile> =
-                    cols.map { tile -> tile.apply { right = Line.FILLED } }.toMutableList()
+    fun grow(by: Int): Panel {
+        require(by > 0)
 
-                repeat(by) { mutableCols.add(Tile(false, Line.FILLED, Line.FILLED, Line.FILLED, Line.FILLED)) }
-                return@map mutableCols.toList()
+        val mutableTiles: MutableList<MutableList<Tile>> =
+            tiles.map { column -> column.toMutableList() }.toMutableList()
+
+        mutableTiles.forEachIndexed { index, row ->
+            // Connect the bottoms and rights
+            val lastTile: Tile = row.removeAt(row.lastIndex)
+            val updatedLastTile: Tile = lastTile.apply { bottom = Line.FILLED }
+            row.add(updatedLastTile)
+            if (index == mutableTiles.lastIndex) {
+                row.forEach { tile -> tile.right = Line.FILLED }
             }
-            .toMutableList()
-        repeat(by) {
-            newTiles.add(mutableListOf<Tile>().apply {
-                repeat(height + by) { add(Tile(false, Line.FILLED, Line.FILLED, Line.FILLED, Line.FILLED)) }
-            })
+            // Add additional cell(s)
+            val isStartingCol: Boolean = index == 0
+            repeat(by) { rowIndex ->
+                val isLastRow: Boolean = rowIndex == by - 1
+                row.add(
+                    Tile(
+                        start = false,
+                        top = Line.FILLED,
+                        left = Line.FILLED.takeIf { !isStartingCol },
+                        bottom = Line.FILLED.takeIf { !isLastRow },
+                        right = Line.FILLED
+                    )
+                )
+            }
         }
-        return copy(tiles = newTiles)
+
+        val extrudeHeight = height + by
+        repeat(by) { index ->
+            val isLastCol: Boolean = index == by - 1
+            val newRow: MutableList<Tile> = mutableListOf()
+            repeat(extrudeHeight) { rowIndex ->
+                val isFirstRow: Boolean = rowIndex == 0
+                val isLastRow: Boolean = rowIndex == extrudeHeight - 1
+                newRow.add(
+                    Tile(
+                        start = false,
+                        top = Line.FILLED.takeIf { !isFirstRow },
+                        left = Line.FILLED,
+                        bottom = Line.FILLED.takeIf { !isLastRow },
+                        right = Line.FILLED.takeIf { !isLastCol }
+                    )
+                )
+            }
+            mutableTiles.add(newRow)
+        }
+        return copy(tiles = mutableTiles)
     }
+
+    fun shrink(by: Int): Panel {
+        val removedColumns: List<List<Tile>> = tiles.dropLast(by)
+        val removedRows: List<List<Tile>> = removedColumns
+            .mapIndexed { colIndex, col ->
+                val removedTiles: List<Tile> = col.dropLast(by)
+                removedTiles
+                    .mapIndexed { rowIndex, tile ->
+                        tile.apply {
+                            right = Line.FILLED.takeIf { colIndex != removedColumns.lastIndex }
+                            bottom = Line.FILLED.takeIf { rowIndex != removedTiles.lastIndex }
+                        }
+                    }
+            }
+
+        return copy(tiles = removedRows)
+    }
+
+    fun resize(length: Int): Panel =
+        if (length > width) grow(length - width)
+        else shrink(length - width)
 
     val width: Int get() = tiles.size
     val height: Int get() = tiles.maxBy { it.size }!!.size

@@ -66,12 +66,19 @@ class PuzzleScreenDescription(
 
         val composerInventorySlots = WItemSlot.of(blockInventory, 1, 2, 3)
         val puzzleSlot = WPuzzleEditor(blockInventory, 0)
+        val resizeYSlide = WSlider(0, 100, Axis.VERTICAL)
+        resizeYSlide.setValueChangeListener { value ->
+            val tag: CompoundTag = requireNotNull(blockInventory.getStack(0).tag)
+            val puzzle: Panel = tag.getPanel()
+            puzzleSlot.updateInventory(tag)
+        }
 
         val hotBarLabel = WLabel(playerInventory.displayName)
         val hotBar: WItemSlot = WItemSlot.of(playerInventory, 0, 9, 1)
 
         var y = 16
-        root.add(puzzleSlot, 45, y)
+        root.add(puzzleSlot, 38, y)
+        root.add(resizeYSlide, 142, y - 2)
         y += 16
         root.add(puzzleInputSlot, 8, y)
         y += 24

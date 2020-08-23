@@ -44,7 +44,7 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
         matrices.scale(puzzleScale, -puzzleScale, puzzleScale)
         matrices.rotate(Vector3f.POSITIVE_Z, 180f)
         // Translate relative to panel placement
-        matrices.translate(-1.25, -.75, .0)
+        matrices.translate(-1.2, -.765, .0)
 
         puzzlePanelRenderer.renderPanel(
             puzzleStack,
