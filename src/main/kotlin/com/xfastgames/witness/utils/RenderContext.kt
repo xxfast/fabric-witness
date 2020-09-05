@@ -13,6 +13,9 @@ fun RenderContext.square(position: Vector3f, length: Float) =
 fun RenderContext.circle(position: Vector3f, radius: Float, arc: IntRange = 0..360) =
     vertexConsumer.circle(matrices, position, radius, light, overlay, arc)
 
+fun RenderContext.line(start: Vector3f, end: Vector3f, thickness: Float) =
+    vertexConsumer.line(matrices, start, end, thickness, light, overlay)
+
 fun withRenderContext(
     matrices: MatrixStack,
     vertexConsumer: VertexConsumer,

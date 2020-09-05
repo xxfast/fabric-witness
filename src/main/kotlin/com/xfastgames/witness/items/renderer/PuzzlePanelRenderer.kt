@@ -217,12 +217,20 @@ object PuzzlePanelRenderer : BuiltinItemRenderer {
             .0
         )
 
-        matrices.scale(xScale, yScale, 1f)
-
-        // Render line
-        val line: List<Float> = listOf(.0f, .0f, 0.0f, 1.0f, 1.0f, 1.0f)
         val consumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(solutionFillTexture))
         val position = Vector3f(0f, 0f, -0.002f)
+
+        val start = Vector3f(2.pc, 2.pc, position.z)
+        withRenderContext(matrices, consumer, light, overlay) {
+            line(start.copy().apply { add(-2.pc, 0.pc, 0f) }, start.copy().apply { add(-4.pc, 0.pc, 0f) }, 1.pc)
+            line(start.copy().apply { add(2.pc, 0.pc, 0f) }, start.copy().apply { add(4.pc, 0.pc, 0f) }, 1.pc)
+            line(start.copy().apply { add(0.pc, -2.pc, 0f) }, start.copy().apply { add(0.pc, -4.pc, 0f) }, 1.pc)
+            line(start.copy().apply { add(0.pc, 2.pc, 0f) }, start.copy().apply { add(0.pc, 4.pc, 0f) }, 1.pc)
+        }
+
+        matrices.scale(xScale, yScale, 1f)
+        // Render line
+        val line: List<Float> = listOf(.0f, .0f, 0.0f, 1.0f, 1.0f, 1.0f)
         withRenderContext(matrices, consumer, light, overlay) {
             val coordinates: List<Pair<Float, Float>> = line.chunked(2).map { (x, y) -> x to y }
             val (startX, startY) = coordinates.first()
@@ -230,14 +238,7 @@ object PuzzlePanelRenderer : BuiltinItemRenderer {
             val dY: Double = startY * (yScale.toDouble() * yCount) - ((yScale * yCount) * yScaledOffset)
             matrices.translate(dX, .0, .0)
             matrices.translate(.0, dY, .0)
-            circle(Vector3f(8.pc, 8.pc, position.z), 5.pc)
-
-            val middleOfLine: List<Pair<Float, Float>> = coordinates.drop(1).dropLast(1)
-            middleOfLine.forEach { (x, y) ->
-                val positionX: Int = x.toInt()
-                val positionY: Int = y.toInt()
-                rectangle(Vector3f(x, y, position.z), 4.pc, 16.pc)
-            }
+//            circle(Vector3f(8.pc, 8.pc, position.z), 5.pc)
         }
         matrices.scale(1 + xScale, 1 + yScale, 1f)
         matrices.pop()

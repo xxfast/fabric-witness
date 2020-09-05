@@ -21,7 +21,7 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
     )
 
     fun grow(by: Int): Panel {
-        require(by > 0)
+        if (by <= 0) return this
 
         val mutableTiles: MutableList<MutableList<Tile>> =
             tiles.map { column -> column.toMutableList() }.toMutableList()
@@ -73,7 +73,7 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
     }
 
     fun shrink(by: Int): Panel {
-        require(by > 0)
+        if (by <= 0) return this
         val removedColumns: List<List<Tile>> = tiles.dropLast(by)
         val removedRows: List<List<Tile>> = removedColumns
             .mapIndexed { colIndex, col ->
