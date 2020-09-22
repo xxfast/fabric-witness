@@ -35,17 +35,7 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
     }
 
     override fun use(world: World, user: PlayerEntity, hand: Hand?): TypedActionResult<ItemStack> {
-        val panel =
-            when {
-                user.mainHandStack.hasTag() && user.isInSneakingPose ->
-                    requireNotNull(user.mainHandStack.tag).getPanel().shrink(1)
-
-                user.mainHandStack.hasTag() && !user.isInSneakingPose ->
-                    requireNotNull(user.mainHandStack.tag).getPanel().grow(1)
-
-                else -> Panel(2)
-            }
-
+        val panel: Panel = requireNotNull(user.mainHandStack.tag).getPanel().copy(line = listOf(1f, 0f, 0f, 0f, 0f, 1f))
         user.mainHandStack.orCreateTag?.putPanel(panel)
         return TypedActionResult(
             ActionResult.SUCCESS,

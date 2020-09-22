@@ -15,6 +15,10 @@ import net.minecraft.util.math.Direction
 class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
     BlockEntityRenderer<PuzzleFrameBlockEntity>(dispatcher) {
 
+    companion object {
+        val PUZZLE_FRAME_SCALE = 0.85f
+    }
+
     private val puzzlePanelRenderer = PuzzlePanelRenderer
 
     override fun render(
@@ -38,7 +42,7 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         matrices.rotate(Vector3f.POSITIVE_Y, -direction.asRotation())
 
         // Scale the panel
-        matrices.scale(0.85f, 0.85f, 1f)
+        matrices.scale(PUZZLE_FRAME_SCALE, PUZZLE_FRAME_SCALE, 1f)
 
         // Move slightly out of center to avoid z collision
         matrices.translate(.0, .0, -.034)

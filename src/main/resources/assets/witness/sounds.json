@@ -1,0 +1,22 @@
+{
+  "panel_start_tracing": {
+    "sounds": [
+      "witness:panel_start_tracing"
+    ]
+  },
+  "pointless_click": {
+    "sounds": [
+      "witness:pointless_click"
+    ]
+  },
+  "focus_mode_enter": {
+    "sounds": [
+      "witness:focus_mode_enter"
+    ]
+  },
+  "focus_mode_exit": {
+    "sounds": [
+      "witness:focus_mode_exit"
+    ]
+  }
+}

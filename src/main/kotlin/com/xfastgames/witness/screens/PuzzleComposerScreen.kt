@@ -6,6 +6,7 @@ import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.getPanel
 import com.xfastgames.witness.items.data.putPanel
+import com.xfastgames.witness.screens.PuzzleComposerScreen.Companion.PUZZLE_INPUT_SLOT_INDEX
 import com.xfastgames.witness.screens.widgets.WPuzzleEditor
 import com.xfastgames.witness.utils.Clientside
 import io.github.cottonmc.cotton.gui.SyncedGuiDescription
@@ -26,36 +27,39 @@ import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
 
-val PUZZLE_SCREEN_HANDLER: ScreenHandlerType<PuzzleScreenDescription> =
+val PUZZLE_COMPOSER_SCREEN_HANDLER: ScreenHandlerType<PuzzleComposerScreenDescription> =
     ScreenHandlerRegistry.registerExtended(PuzzleComposerBlock.IDENTIFIER) { syncId, playerInventory, buf ->
         val pos: BlockPos = buf.readBlockPos()
-        PuzzleScreenDescription(
+        PuzzleComposerScreenDescription(
             syncId,
             playerInventory,
             ScreenHandlerContext.create(playerInventory.player.world, pos)
         )
     }
 
-const val PUZZLE_INPUT_SLOT_INDEX = 0
-
-class PuzzleScreen(gui: PuzzleScreenDescription?, player: PlayerEntity?, title: Text?) :
-    CottonInventoryScreen<PuzzleScreenDescription?>(gui, player, title) {
+class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription?, player: PlayerEntity?, title: Text?) :
+    CottonInventoryScreen<PuzzleComposerScreenDescription?>(gui, player, title) {
 
     companion object : Clientside {
+
+        const val PUZZLE_INPUT_SLOT_INDEX = 0
+
         override fun onClient() {
-            ScreenRegistry.register<PuzzleScreenDescription, PuzzleScreen>(PUZZLE_SCREEN_HANDLER) { gui, inventory, title ->
-                PuzzleScreen(gui, inventory.player, title)
+            ScreenRegistry.register<PuzzleComposerScreenDescription, PuzzleComposerScreen>(
+                PUZZLE_COMPOSER_SCREEN_HANDLER
+            ) { gui, inventory, title ->
+                PuzzleComposerScreen(gui, inventory.player, title)
             }
         }
     }
 }
 
-class PuzzleScreenDescription(
+class PuzzleComposerScreenDescription(
     syncId: Int,
     playerInventory: PlayerInventory,
     context: ScreenHandlerContext?
 ) : SyncedGuiDescription(
-    PUZZLE_SCREEN_HANDLER,
+    PUZZLE_COMPOSER_SCREEN_HANDLER,
     syncId,
     playerInventory,
     getBlockInventory(context, PuzzleComposerBlockEntity.INVENTORY_SIZE),

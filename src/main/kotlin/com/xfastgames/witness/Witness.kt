@@ -9,7 +9,7 @@ import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.AncientPuzzleTablet
 import com.xfastgames.witness.items.PuzzlePanelItem
-import com.xfastgames.witness.screens.PuzzleScreen
+import com.xfastgames.witness.screens.PuzzleComposerScreen
 import com.xfastgames.witness.utils.Clientside
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.EnvType
@@ -79,7 +79,7 @@ class Witness : ModInitializer, ClientModInitializer {
         )
 
         val SCREENS: List<Clientside> by lazy {
-            listOf(PuzzleScreen.Companion)
+            listOf(PuzzleComposerScreen.Companion)
         }
     }
 

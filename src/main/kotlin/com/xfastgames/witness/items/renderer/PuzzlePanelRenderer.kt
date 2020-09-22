@@ -35,9 +35,6 @@ object PuzzlePanelRenderer : BuiltinItemRenderer {
         renderPanel(stack, matrices, vertexConsumers, light, overlay)
     }
 
-    /** Pixel coordinates */
-    private val Int.pc: Float get() = this.pcF
-
     fun renderPanel(
         stack: ItemStack,
         matrices: MatrixStack,
@@ -220,25 +217,30 @@ object PuzzlePanelRenderer : BuiltinItemRenderer {
         val consumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(solutionFillTexture))
         val position = Vector3f(0f, 0f, -0.002f)
 
-        val start = Vector3f(2.pc, 2.pc, position.z)
-        withRenderContext(matrices, consumer, light, overlay) {
-            line(start.copy().apply { add(-2.pc, 0.pc, 0f) }, start.copy().apply { add(-4.pc, 0.pc, 0f) }, 1.pc)
-            line(start.copy().apply { add(2.pc, 0.pc, 0f) }, start.copy().apply { add(4.pc, 0.pc, 0f) }, 1.pc)
-            line(start.copy().apply { add(0.pc, -2.pc, 0f) }, start.copy().apply { add(0.pc, -4.pc, 0f) }, 1.pc)
-            line(start.copy().apply { add(0.pc, 2.pc, 0f) }, start.copy().apply { add(0.pc, 4.pc, 0f) }, 1.pc)
-        }
-
         matrices.scale(xScale, yScale, 1f)
+
         // Render line
-        val line: List<Float> = listOf(.0f, .0f, 0.0f, 1.0f, 1.0f, 1.0f)
         withRenderContext(matrices, consumer, light, overlay) {
-            val coordinates: List<Pair<Float, Float>> = line.chunked(2).map { (x, y) -> x to y }
-            val (startX, startY) = coordinates.first()
-            val dX: Double = startX * (xScale.toDouble() * xCount) - ((xScale * xCount) * xScaledOffset)
-            val dY: Double = startY * (yScale.toDouble() * yCount) - ((yScale * yCount) * yScaledOffset)
-            matrices.translate(dX, .0, .0)
-            matrices.translate(.0, dY, .0)
-//            circle(Vector3f(8.pc, 8.pc, position.z), 5.pc)
+            val coordinates: List<Pair<Float, Float>> = puzzle.line.chunked(2).map { (x, y) -> x to y }
+            val (originX, originY) = coordinates.first()
+            val dX: Double = originX * (xScale.toDouble() * xCount) - ((xScale * xCount) * xScaledOffset)
+            val dY: Double = originY * (yScale.toDouble() * yCount) - ((yScale * yCount) * yScaledOffset)
+            matrices.translate(dX, dY, .0)
+            circle(Vector3f(8.pc, 8.pc, position.z), 5.pc)
+
+            // TODO: Render only the relevant arch of the circle at vertex
+            coordinates.forEach { (x, y) ->
+                val centered = Vector3f(x, y, position.z).apply { add(8.pc, 8.pc, 0f) }
+                circle(centered, 2.pc)
+            }
+
+            val offsetCoordinate: List<Pair<Float, Float>?> = listOf(null).plus(coordinates)
+            offsetCoordinate.zip(coordinates).forEach { (first, second) ->
+                if (first == null) return@forEach
+                val start: Vector3f = first.let { (x, y) -> Vector3f(x, y, position.z) }.apply { add(8.pc, 8.pc, 0f) }
+                val end: Vector3f = second.let { (x, y) -> Vector3f(x, y, position.z) }.apply { add(8.pc, 8.pc, 0f) }
+                line(start, end, 4.pc)
+            }
         }
         matrices.scale(1 + xScale, 1 + yScale, 1f)
         matrices.pop()

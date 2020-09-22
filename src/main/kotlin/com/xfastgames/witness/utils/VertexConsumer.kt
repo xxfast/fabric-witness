@@ -135,33 +135,36 @@ fun VertexConsumer.line(
     end: Vector3f,
     thickness: Float,
     light: Int,
-    overlay: Int
+    overlay: Int,
+    capped: Boolean = false
 ) {
     val halfThickness: Float = thickness / 2
+    val cappedThickness: Float = if (capped) halfThickness else 0f
     val isHorizontal: Boolean = start.y == end.y && start.x != end.x
     val isVertical: Boolean = start.x == end.x && start.y != end.y
     val vertices: List<Vector3f> = when {
         isHorizontal -> {
             val xMax: Vector3f = if (start.x > end.x) start else end
             val xMin: Vector3f = if (start.x < end.x) start else end
-            val r1: Vector3f = xMax.copy().apply { add(halfThickness, -halfThickness, 0f) }
-            val r2: Vector3f = xMax.copy().apply { add(halfThickness, halfThickness, 0f) }
-            val r3: Vector3f = xMin.copy().apply { add(-halfThickness, halfThickness, 0f) }
-            val r4: Vector3f = xMin.copy().apply { add(-halfThickness, -halfThickness, 0f) }
+            val r1: Vector3f = xMax.copy().apply { add(cappedThickness, -halfThickness, 0f) }
+            val r2: Vector3f = xMax.copy().apply { add(cappedThickness, halfThickness, 0f) }
+            val r3: Vector3f = xMin.copy().apply { add(-cappedThickness, halfThickness, 0f) }
+            val r4: Vector3f = xMin.copy().apply { add(-cappedThickness, -halfThickness, 0f) }
             listOf(r4, r3, r2, r1)
         }
 
         isVertical -> {
             val yMin: Vector3f = if (start.y < end.y) start else end
             val yMax: Vector3f = if (start.y > end.y) start else end
-            val r1: Vector3f = yMin.copy().apply { add(halfThickness, -halfThickness, 0f) }
-            val r2: Vector3f = yMax.copy().apply { add(halfThickness, halfThickness, 0f) }
-            val r3: Vector3f = yMax.copy().apply { add(-halfThickness, halfThickness, 0f) }
-            val r4: Vector3f = yMin.copy().apply { add(-halfThickness, -halfThickness, 0f) }
+            val r1: Vector3f = yMin.copy().apply { add(halfThickness, -cappedThickness, 0f) }
+            val r2: Vector3f = yMax.copy().apply { add(halfThickness, cappedThickness, 0f) }
+            val r3: Vector3f = yMax.copy().apply { add(-halfThickness, cappedThickness, 0f) }
+            val r4: Vector3f = yMin.copy().apply { add(-halfThickness, -cappedThickness, 0f) }
             listOf(r4, r3, r2, r1)
         }
 
-        else -> throw IllegalArgumentException("Only horizontal or diagonals allowed")
+        else ->
+            throw IllegalArgumentException("Only horizontal or diagonals allowed")
     }
 
     vertices.forEach { position ->

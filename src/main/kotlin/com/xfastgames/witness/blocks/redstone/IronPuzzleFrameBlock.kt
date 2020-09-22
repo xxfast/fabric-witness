@@ -3,14 +3,17 @@ package com.xfastgames.witness.blocks.redstone
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
+import com.xfastgames.witness.screens.PuzzleSolverScreen
 import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*
 import net.minecraft.block.entity.BlockEntity
+import net.minecraft.client.MinecraftClient
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.*
 import net.minecraft.sound.BlockSoundGroup
+import net.minecraft.sound.SoundEvent
 import net.minecraft.sound.SoundEvents
 import net.minecraft.state.StateManager
 import net.minecraft.state.property.BooleanProperty
@@ -34,6 +37,9 @@ class IronPuzzleFrameBlock : BlockWithEntity(
             if (state[ENABLED]) 10 else 0
         }
 ) {
+    object Sounds {
+        val START_TRACING: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "panel_start_tracing"))
+    }
 
     companion object {
         val ENABLED: BooleanProperty = BooleanProperty.of("enabled")
@@ -202,13 +208,13 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         require(entity is PuzzleFrameBlockEntity)
         val inventory: BlockInventory = entity.inventory
         when {
-            // if there's no item in the frame, and player is holding a panel
+            // when there's no item in the frame, and player is holding a panel
             inventory.items[0].isEmpty && player.mainHandStack.item is PuzzlePanelItem -> {
                 inventory.items[0] = player.inventory.removeStack(player.inventory.selectedSlot)
                 player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_IRON, 1f, 1f)
             }
 
-            // if there is an item in the frame
+            // when there is an item in the frame and player is sneaking
             !inventory.items[0].isEmpty && player.isInSneakingPose -> when {
                 player.mainHandStack.isEmpty -> {
                     val item: ItemStack = inventory.items[0]
@@ -221,6 +227,15 @@ class IronPuzzleFrameBlock : BlockWithEntity(
                     player.setStackInHand(Hand.OFF_HAND, item)
                 }
                 else -> ActionResult.FAIL
+            }
+
+            // when there's a panel and player is not sneaking
+            !inventory.items[0].isEmpty -> {
+                if (hit?.side == state[HORIZONTAL_FACING].opposite) {
+                    MinecraftClient.getInstance().openScreen(PuzzleSolverScreen())
+                    return ActionResult.CONSUME
+                }
+                return ActionResult.FAIL
             }
 
             else -> return ActionResult.FAIL

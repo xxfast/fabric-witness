@@ -11,6 +11,7 @@ import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.network.PacketByteBuf
+import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.gen.feature.Feature
@@ -52,3 +53,6 @@ fun registerItem(id: Identifier, item: Item): Item =
 
 fun registerC2P(id: Identifier, packetConsumer: (context: PacketContext, buffer: PacketByteBuf) -> Unit) =
     ServerSidePacketRegistry.INSTANCE.register(id, packetConsumer)
+
+fun registerSound(id: Identifier, event: SoundEvent): SoundEvent = Registry.register(Registry.SOUND_EVENT, id, event)
+fun registerSound(id: Identifier): SoundEvent = Registry.register(Registry.SOUND_EVENT, id, SoundEvent(id))

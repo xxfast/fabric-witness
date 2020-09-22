@@ -1,10 +1,7 @@
 package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.utils.pcD
-import com.xfastgames.witness.utils.registerBlock
-import com.xfastgames.witness.utils.registerBlockItem
-import com.xfastgames.witness.utils.rotateShape
+import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
@@ -55,8 +52,8 @@ class IronStandBlock : Block(
         pos: BlockPos?,
         context: ShapeContext?
     ): VoxelShape {
-        val standShape: VoxelShape = VoxelShapes.cuboid(6.pcD, 1.pcD, 6.pcD, 10.pcD, 16.pcD, 8.pcD)
-        val baseShape: VoxelShape = VoxelShapes.cuboid(3.pcD, 0.pcD, 5.pcD, 13.pcD, 1.pcD, 11.pcD)
+        val standShape: VoxelShape = VoxelShapes.cuboid(6.pc.d, 1.pc.d, 6.pc.d, 10.pc.d, 16.pc.d, 8.pc.d)
+        val baseShape: VoxelShape = VoxelShapes.cuboid(3.pc.d, 0.pc.d, 5.pc.d, 13.pc.d, 1.pc.d, 11.pc.d)
         val fullShape: VoxelShape = VoxelShapes.union(standShape, baseShape)
         val direction: Direction = requireNotNull(state?.get(HORIZONTAL_FACING))
         return fullShape.rotateShape(to = direction)
