@@ -163,8 +163,8 @@ fun VertexConsumer.line(
             listOf(r4, r3, r2, r1)
         }
 
-        else ->
-            throw IllegalArgumentException("Only horizontal or diagonals allowed")
+        // Only horizontal or diagonals allowed
+        else -> return
     }
 
     vertices.forEach { position ->

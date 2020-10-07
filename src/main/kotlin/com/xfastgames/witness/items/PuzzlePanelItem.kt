@@ -13,6 +13,7 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.item.ItemStack
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.text.Text
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
@@ -28,6 +29,10 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
             IDENTIFIER,
             PuzzlePanelItem()
         )
+    }
+
+    override fun onCraft(stack: ItemStack?, world: World?, player: PlayerEntity?) {
+        stack?.tag = CompoundTag().apply { putPanel(Panel(3)) }
     }
 
     override fun onClient() {

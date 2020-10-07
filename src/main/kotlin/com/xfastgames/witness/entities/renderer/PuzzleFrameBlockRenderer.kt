@@ -57,7 +57,7 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
 
         // Render puzzle panel
         puzzlePanelRenderer.renderPanel(itemStack, matrices, vertexConsumerProvider, light, overlay)
-        puzzlePanelRenderer.renderLine(itemStack, matrices, vertexConsumerProvider, light, overlay)
+//        puzzlePanelRenderer.renderLine(itemStack, matrices, vertexConsumerProvider, light, overlay)
         matrices.pop()
     }
 }

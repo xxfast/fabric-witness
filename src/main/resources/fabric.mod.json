@@ -12,8 +12,7 @@
     "sources": "https://github.com/xxfast/fabric-witness"
   },
   "license": "CC0-1.0",
-  "icon": "assets/modid/icon.png",
-
+  "icon": "assets/witness/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [

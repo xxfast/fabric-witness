@@ -1,10 +1,22 @@
 package com.xfastgames.witness.utils
 
-data class Interpolator(var min: Double, var max: Double, var speed: Double) {
-    val value: Double get() = min
+data class Interpolator<T : Comparable<T>>(
+    val start: T,
+    val end: T,
+    val interpolator: (Interpolator<T>) -> Unit
+) {
+
+    var value: T = start
+        set(value) {
+            field = when {
+                start < end -> value.coerceAtLeast(start).coerceAtMost(end)
+                start > end -> value.coerceAtMost(start).coerceAtLeast(end)
+                else -> start
+            }
+        }
 
     fun interpolate() {
-        if (min < max) min += speed
+        interpolator(this)
     }
 }
 

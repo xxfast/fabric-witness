@@ -39,7 +39,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
-import net.minecraft.world.RayTraceContext
+import net.minecraft.world.RaycastContext
 
 
 private const val BORDER_WIDTH = 14
@@ -53,29 +53,31 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val FOCUS_MODE_EXIT: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_exit"))
     }
 
-    private val borderAlpha = Interpolator(.0, .8, .05)
-    private var cursorPass = 0f
+    private val borderAlpha = Interpolator(.0f, .8f) { it.value += .05f }
+    private val cursorShadowSize = Interpolator(BORDER_WIDTH * 4, BORDER_WIDTH / 2) { it.value -= 2 }
+    private val mouseBuffer: MutableList<Pair<Double, Double>> = mutableListOf()
+    private var targetBlockEntity: PuzzleFrameBlockEntity? = null
 
     override fun init(client: MinecraftClient?, width: Int, height: Int) {
         super.init(client, width, height)
         val mouse: Mouse = requireNotNull(client?.mouse)
         mouse.hide()
         client?.player?.playSound(Sounds.FOCUS_MODE_ENTER, 0.5f, 1f)
+        client?.options?.hudHidden = true
     }
 
     override fun isPauseScreen(): Boolean = false
 
     override fun render(matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float) {
         borderAlpha.interpolate()
-        if (cursorPass < 1f) cursorPass += 0.05f
-        val circleDelta: Float = cursorPass.coerceAtMost(1.0f)
-        val circleRadius: Int = ((BORDER_WIDTH / 2) / circleDelta.coerceAtLeast(0.1f)).toInt()
-        val borderAlpha: Float = borderAlpha.value.toFloat()
+        cursorShadowSize.interpolate()
+        val borderAlpha: Float = borderAlpha.value
+        val cursorShadowSize: Int = cursorShadowSize.value
         fill(matrices, BORDER_WIDTH, 0, width - BORDER_WIDTH, BORDER_WIDTH, 1f, 1f, 1f, borderAlpha)
         fill(matrices, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
         fill(matrices, 0, 0, BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
         fill(matrices, width - BORDER_WIDTH, 0, width, height, 1f, 1f, 1f, borderAlpha)
-        circle(matrices, mouseX, mouseY, circleRadius, 1f, 1f, 1f, .25f)
+        circle(matrices, mouseX, mouseY, cursorShadowSize, 1f, 1f, 1f, .25f)
         circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 1f, 1f, 1f, .9f)
     }
 
@@ -89,7 +91,144 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         return super.keyPressed(keyCode, scanCode, modifiers)
     }
 
-    override fun mouseMoved(mouseX: Double, mouseY: Double) {
+    // TODO: Override the fun once the feature is ready to be shipped
+    private fun onMouseMoved(mouseX: Double, mouseY: Double) {
+        mouseBuffer.add(mouseX to mouseY)
+        if (mouseBuffer.size > 5) mouseBuffer.removeAt(0)
+
+        val mouseDeltas = mouseBuffer
+            .zipSelf()
+            .map { (previous, current) ->
+                val (d1x, d1y) = previous
+                val (d2x, d2y) = current
+                (d2x - d1x) to (d2y - d1y)
+            }
+
+        if (mouseDeltas.isEmpty()) return
+        val (dx: Double, dy: Double) = mouseDeltas.reduce { previous, current ->
+            val (d1x, d1y) = previous
+            val (d2x, d2y) = current
+            (d2x + d1x) / 2 to (d2y + d1y) / 2
+        }
+
+        val blockEntity: PuzzleFrameBlockEntity = targetBlockEntity ?: return
+
+        // Only respond if the entity has an panel
+        val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
+        val tag: CompoundTag = puzzleStack.tag ?: return
+        val puzzle: Panel? = tag.getPanel()
+        if (puzzleStack.item !is PuzzlePanelItem) return
+        if (puzzle == null) return
+
+        val clampedDx: Float = dx.coerceIn(-1.0..1.0).toFloat()
+        val clampedDy: Float = dy.coerceIn(-1.0..1.0).toFloat()
+
+        val (lastX: Float, lastY: Float) = puzzle.line
+            .takeLast(2)
+            .paired()
+            .first()
+
+        val distanceToFrame = 2f
+        val updatedX = (lastX + clampedDx) / distanceToFrame
+        val updatedY = (lastY + clampedDy) / distanceToFrame
+
+        val updatedLine: List<Float> = when {
+            dx > dy -> puzzle.line
+                .plus(updatedX)
+                .plus(lastY)
+
+            dy > dx -> puzzle.line
+                .plus(lastX)
+                .plus(updatedY)
+
+            else -> puzzle.line
+        }
+
+        val optimizedLine: List<Float> = emptyList()
+
+        val updatedPanel = puzzle.copy(line = updatedLine)
+        tag.putPanel(updatedPanel)
+
+    }
+
+    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
+        val client: MinecraftClient = requireNotNull(client)
+        val player: ClientPlayerEntity = requireNotNull(client.player)
+        val world: ClientWorld = requireNotNull(client.world)
+
+        // If left button, close the screen
+        if (button == 1) {
+            client.closeScreen()
+            return true
+        }
+
+        val hit: HitResult? = rayCast(mouseX, mouseY)
+
+        // Only respond to block hit results
+        if (hit == null) return missClick(player)
+        if (hit.type != HitResult.Type.BLOCK) return missClick(player)
+        if (hit !is BlockHitResult) return missClick(player)
+
+        val blockPos: BlockPos = hit.blockPos
+
+        // Only respond if the block has an entity
+        val blockEntity: BlockEntity = world.getBlockEntity(blockPos) ?: return missClick(player)
+        if (blockEntity !is PuzzleFrameBlockEntity) return missClick(player)
+        targetBlockEntity = blockEntity
+
+        // Only respond if the entity has an panel
+        val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
+        val tag: CompoundTag = puzzleStack.tag ?: return missClick(player)
+        val puzzle: Panel? = tag.getPanel()
+        if (puzzleStack.item !is PuzzlePanelItem) return missClick(player)
+        if (puzzle == null) return missClick(player)
+
+        // Only respond to block hit results for puzzle frames
+        val blockState: BlockState = world.getBlockState(blockPos)
+        val block: Block = blockState.block
+        if (block !is IronPuzzleFrameBlock) return missClick(player)
+
+        // Only respond if the hit is one the face of the puzzle frame
+        val facing: Direction = blockState[Properties.HORIZONTAL_FACING]
+        if (hit.side != facing.opposite) return missClick(player)
+
+        player.playSound(IronPuzzleFrameBlock.Sounds.START_TRACING, 1f, 1f)
+
+        // TODO: Remove the return once teh feature is ready to be shipped
+        return true
+
+        // Transform to frame size
+        val scale: Double = PuzzleFrameBlockRenderer.PUZZLE_FRAME_SCALE.toDouble()
+        val hitPos: Vec3d = hit.pos
+        val voxelCoordinate = Vec3d(hitPos.x - blockPos.x, hitPos.y - blockPos.y, hitPos.z - blockPos.z)
+
+        // TODO: Clip to padding
+        //  val padding = 1f * scale
+        // if (voxelCoordinate.x !in 1 - padding..padding) return false
+
+        // TODO: Figure out why I cant do this transformation with rotation
+        val (panelX, panelY) = when (facing) {
+            Direction.EAST -> 1 - voxelCoordinate.z to voxelCoordinate.y
+            Direction.WEST -> voxelCoordinate.z to voxelCoordinate.y
+            Direction.NORTH -> 1 - voxelCoordinate.x to voxelCoordinate.y
+            Direction.SOUTH -> voxelCoordinate.x to voxelCoordinate.y
+            else -> return false
+        }
+
+        val xCount: Int = puzzle.tiles.size
+        val yCount: Int = puzzle.tiles.map { it.size }.maxOrNull() ?: 0
+
+        val startX: Double = (panelX / scale) * xCount - 1
+        val startY: Double = (panelY / scale) * yCount - 1
+        val updatedPanel: Panel = puzzle.copy(line = listOf(startX.toFloat(), startY.toFloat()))
+        tag.putPanel(updatedPanel)
+        return false
+    }
+
+    override fun onClose() {
+        client?.options?.hudHidden = false
+        client?.player?.playSound(Sounds.FOCUS_MODE_EXIT, 0.5f, 1f)
+        super.onClose()
     }
 
     private fun rayCast(mouseX: Double, mouseY: Double, tickDelta: Float = 0.0f): HitResult? {
@@ -135,12 +274,12 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         var reachDistance: Double = interactionManager.reachDistance.toDouble() //Change this to extend the reach
         val end: Vec3d = entity.getCameraPosVec(tickDelta).add(direction.multiply(reachDistance))
 
-        var target: HitResult? = entity.world.rayTrace(
-            RayTraceContext(
+        var target: HitResult? = entity.world.raycast(
+            RaycastContext(
                 entity.getCameraPosVec(tickDelta),
                 end,
-                RayTraceContext.ShapeType.OUTLINE,
-                RayTraceContext.FluidHandling.NONE,
+                RaycastContext.ShapeType.OUTLINE,
+                RaycastContext.FluidHandling.NONE,
                 entity
             )
         )
@@ -168,7 +307,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val rayTracePredicate: (Entity) -> Boolean = { e: Entity -> !e.isSpectator && e.collides() }
         val entityHitResult: EntityHitResult? =
-            ProjectileUtil.rayTrace(entity, cameraPos, vec3d3, box, rayTracePredicate, extendedReach)
+            ProjectileUtil.raycast(entity, cameraPos, vec3d3, box, rayTracePredicate, extendedReach)
 
         if (entityHitResult == null) return target
 
@@ -189,84 +328,5 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     private fun missClick(player: ClientPlayerEntity): Boolean {
         player.playSound(Sounds.POINTLESS_CLICK, 0.5f, 1f)
         return false
-    }
-
-    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-
-        val client: MinecraftClient = requireNotNull(client)
-        val player: ClientPlayerEntity = requireNotNull(client.player)
-        val world: ClientWorld = requireNotNull(client.world)
-
-        // If left button, close the screen
-        if (button == 1) {
-            client.closeScreen()
-            return true
-        }
-
-        val hit: HitResult? = rayCast(mouseX, mouseY)
-
-        // Only respond to block hit results
-        if (hit == null) return missClick(player)
-        if (hit.type != HitResult.Type.BLOCK) return missClick(player)
-        if (hit !is BlockHitResult) return missClick(player)
-
-        val blockPos: BlockPos = hit.blockPos
-
-        // Only respond if the block has an entity
-        val blockEntity: BlockEntity = world.getBlockEntity(blockPos) ?: return missClick(player)
-        if (blockEntity !is PuzzleFrameBlockEntity) return missClick(player)
-
-        // Only respond if the entity has an panel
-        val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
-        val tag: CompoundTag = puzzleStack.tag ?: return false
-        val puzzle: Panel? = tag.getPanel()
-        if (puzzleStack.item !is PuzzlePanelItem) return false
-        if (puzzle == null) return false
-
-        // Only respond to block hit results for puzzle frames
-        val blockState: BlockState = world.getBlockState(blockPos)
-        val block: Block = blockState.block
-        if (block !is IronPuzzleFrameBlock) return false
-
-        // Only respond if the hit is one the face of the puzzle frame
-        val facing: Direction = blockState[Properties.HORIZONTAL_FACING]
-        if (hit.side != facing.opposite) return false
-
-        // Transform to frame size
-        val scale: Double = PuzzleFrameBlockRenderer.PUZZLE_FRAME_SCALE.toDouble()
-        val hitPos: Vec3d = hit.pos
-        val voxelCoordinate = Vec3d(hitPos.x - blockPos.x, hitPos.y - blockPos.y, hitPos.z - blockPos.z)
-
-        // TODO: Clip to padding
-        //  val padding = 1f * scale
-        // if (voxelCoordinate.x !in 1 - padding..padding) return false
-
-        // TODO: Figure out why I cant do this transformation with rotation
-        val (panelX, panelY) = when (facing) {
-            Direction.EAST -> 1 - voxelCoordinate.z to voxelCoordinate.y
-            Direction.WEST -> voxelCoordinate.z to voxelCoordinate.y
-            Direction.NORTH -> 1 - voxelCoordinate.x to voxelCoordinate.y
-            Direction.SOUTH -> voxelCoordinate.x to voxelCoordinate.y
-            else -> return false
-        }
-
-        player.playSound(IronPuzzleFrameBlock.Sounds.START_TRACING, 1f, 1f)
-
-        val xCount: Int = puzzle.tiles.size
-        val yCount: Int = puzzle.tiles.map { it.size }.max() ?: 0
-
-        val xScale: Float = 1f / xCount
-        val yScale: Float = 1f / yCount
-
-        val startX = (panelX / scale) * xCount - 1
-        val startY = (panelY / scale) * yCount - 1
-        val updatedPanel: Panel = puzzle.copy(line = listOf(startX.toFloat(), startY.toFloat()))
-        tag.putPanel(updatedPanel)
-        return false
-    }
-
-    override fun onClose() {
-        client?.player?.playSound(Sounds.FOCUS_MODE_EXIT, 0.5f, 1f)
-        super.onClose()
     }
 }

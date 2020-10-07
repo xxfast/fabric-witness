@@ -34,7 +34,6 @@ import net.minecraft.text.TranslatableText
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.WorldAccess
-import java.util.function.Supplier
 
 class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
     NamedScreenHandlerFactory,
@@ -48,11 +47,11 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
         // client-side editor needs to send a packet to server to synchronise the client inventory with server's
         val SYNCHRONIZE_C2P_ID = Identifier(Witness.IDENTIFIER, "synchronise_puzzle_slot")
 
-        const val INVENTORY_SIZE = 7
+        const val INVENTORY_SIZE = 8
 
         val ENTITY_TYPE: BlockEntityType<PuzzleComposerBlockEntity> = registerBlockEntity(IDENTIFIER) {
             BlockEntityType.Builder
-                .create(Supplier { PuzzleComposerBlockEntity() }, PuzzleComposerBlock.BLOCK)
+                .create({ PuzzleComposerBlockEntity() }, PuzzleComposerBlock.BLOCK)
                 .build(null)
         }
 
@@ -60,13 +59,11 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
             registerC2P(SYNCHRONIZE_C2P_ID) { context, buffer ->
                 val inventoryPos: BlockPos = buffer.readBlockPos()
                 val slotIndex: Int = buffer.readInt()
-                val tag: CompoundTag = requireNotNull(buffer.readCompoundTag())
-
+                val itemStack: ItemStack = buffer.readItemStack()
                 context.taskQueue.execute {
                     val entity: BlockEntity? = context.player.world.getBlockEntity(inventoryPos)
                     require(entity is PuzzleComposerBlockEntity)
-                    val updatedStack: ItemStack = entity.inventory.getStack(slotIndex).apply { this.tag = tag }
-                    entity.inventory.setStack(slotIndex, updatedStack)
+                    entity.inventory.setStack(slotIndex, itemStack)
                 }
             }
         }
@@ -106,11 +103,11 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
     override fun toClientTag(tag: CompoundTag): CompoundTag = toTag(tag)
     override fun fromClientTag(tag: CompoundTag) = fromTag(cachedState, tag)
 
-    fun syncInventorySlotTag(slotIndex: Int, tag: CompoundTag) {
+    fun syncInventorySlotTag(slotIndex: Int, itemStack: ItemStack) {
         val passedData = PacketByteBuf(Unpooled.buffer())
         passedData.writeBlockPos(pos)
         passedData.writeInt(slotIndex)
-        passedData.writeCompoundTag(tag)
+        passedData.writeItemStack(itemStack)
         ClientSidePacketRegistry.INSTANCE.sendToServer(SYNCHRONIZE_C2P_ID, passedData)
     }
 }

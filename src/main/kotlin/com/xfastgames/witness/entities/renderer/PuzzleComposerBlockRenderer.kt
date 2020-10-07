@@ -2,6 +2,7 @@ package com.xfastgames.witness.entities.renderer
 
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
+import com.xfastgames.witness.screens.PuzzleComposerScreen.Companion.PUZZLE_OUTPUT_SLOT_INDEX
 import com.xfastgames.witness.utils.rotate
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.WorldRenderer
@@ -30,7 +31,7 @@ class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         matrices.push()
 
         // Get the relevant puzzle
-        val itemStack: ItemStack = blockEntity.inventory.items[0]
+        val itemStack: ItemStack = blockEntity.inventory.items[PUZZLE_OUTPUT_SLOT_INDEX]
         if (itemStack.isEmpty) return matrices.pop()
 
         // Move to center

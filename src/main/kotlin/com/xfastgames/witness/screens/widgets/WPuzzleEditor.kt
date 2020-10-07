@@ -1,7 +1,10 @@
 package com.xfastgames.witness.screens.widgets
 
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
-import com.xfastgames.witness.items.data.*
+import com.xfastgames.witness.items.data.Line
+import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.Tile
+import com.xfastgames.witness.items.data.getPanel
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.nextIn
@@ -20,20 +23,33 @@ import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
 import kotlin.math.truncate
 
-class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int) : WWidget() {
+class WPuzzleEditor(
+    private val inventory: Inventory,
+    private val outputSlotIndex: Int
+) : WWidget() {
 
-    override fun getWidth(): Int = 18 * 6
-    override fun getHeight(): Int = 18 * 6
+    fun interface OnClickListener {
+        fun onClick(updatedPuzzle: Panel)
+    }
 
     private val client: MinecraftClient by lazy { MinecraftClient.getInstance() }
     private val backgroundPainter: BackgroundPainter by lazy { BackgroundPainter.SLOT }
     private val puzzlePanelRenderer: PuzzlePanelRenderer by lazy { PuzzlePanelRenderer }
 
+    private var onClickListener: OnClickListener? = null
+
+    override fun getWidth(): Int = 18 * 6
+    override fun getHeight(): Int = 18 * 6
+
+    fun setClickListener(clickListener: OnClickListener) {
+        onClickListener = clickListener
+    }
+
     @Environment(EnvType.CLIENT)
     override fun paint(matrices: MatrixStack, x: Int, y: Int, mouseX: Int, mouseY: Int) {
         backgroundPainter.paintBackground(x, y, this)
         matrices.push()
-        val puzzleStack: ItemStack = inventory.getStack(slotIndex)
+        val puzzleStack: ItemStack = inventory.getStack(outputSlotIndex)
         if (puzzleStack.isEmpty) return matrices.pop()
 
         /** TODO: Figure out why the puzzle background is not rendered in the render pass
@@ -44,7 +60,7 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
         matrices.scale(puzzleScale, -puzzleScale, puzzleScale)
         matrices.rotate(Vector3f.POSITIVE_Z, 180f)
         // Translate relative to panel placement
-        matrices.translate(-1.2, -.765, .0)
+        matrices.translate(-1.2, -.895, .0)
 
         puzzlePanelRenderer.renderPanel(
             puzzleStack,
@@ -62,11 +78,11 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
     }
 
     override fun onClick(x: Int, y: Int, button: Int) {
-        val puzzleStack: ItemStack = inventory.getStack(slotIndex)
-        if (puzzleStack.isEmpty) return
-        val tag: CompoundTag = puzzleStack.tag ?: return
-        val puzzle: Panel = tag.getPanel()
-        val size: Int = puzzle.tiles.size
+        val inputStack: ItemStack = inventory.getStack(outputSlotIndex)
+        if (inputStack.isEmpty) return
+        val tag: CompoundTag = inputStack.tag ?: return
+        val inputPuzzle: Panel = tag.getPanel()
+        val size: Int = inputPuzzle.tiles.size
         val relativeX: Float = x / width.toFloat()
         val relativeY: Float = y / height.toFloat()
         val puzzleDX: Float = (relativeX / 6f) * size
@@ -87,7 +103,7 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
         val isYBorder: Boolean = (puzzleY == 0 && isTop) || (puzzleY == size - 1 && isBottom)
 
         // Tile update logic
-        var updatedPuzzle: Panel = puzzle.put(puzzleX, puzzleY) {
+        var updatedPuzzle: Panel = inputPuzzle.put(puzzleX, puzzleY) {
 
             val start: Boolean = if (isCenter) !isStart else isStart
 
@@ -140,14 +156,13 @@ class WPuzzleEditor(private val inventory: Inventory, private val slotIndex: Int
             else -> updatedPuzzle
         }
 
-        tag.putPanel(updatedPuzzle)
-        inventory.setStack(slotIndex, puzzleStack)
-        updateInventory(tag)
+        if (updatedPuzzle == inputPuzzle) return
+        onClickListener?.onClick(updatedPuzzle)
     }
 
-    fun updateInventory(tag: CompoundTag) {
+    fun updateInventory(slotIndex: Int, itemStack: ItemStack) {
         require(inventory is BlockInventory)
         require(inventory.owner is PuzzleComposerBlockEntity)
-        inventory.owner.syncInventorySlotTag(slotIndex, tag)
+        inventory.owner.syncInventorySlotTag(slotIndex, itemStack)
     }
 }

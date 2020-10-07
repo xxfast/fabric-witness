@@ -9,8 +9,11 @@ private const val KEY_SIZE = "width"
 private const val KEY_TILES = "tiles"
 private const val KEY_LINE = "line"
 
-data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
-    constructor(size: Int) : this(generate(size).tiles, listOf(1.1f, 1.2f))
+data class Panel(
+    val tiles: List<List<Tile>>,
+    val line: List<Float>
+) {
+    constructor(size: Int) : this(generate(size).tiles, emptyList())
 
     fun put(x: Int, y: Int, copier: Tile.() -> Tile): Panel = copy(
         tiles = tiles.mapIndexed { xIndex, cols ->
@@ -20,7 +23,7 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
         }
     )
 
-    fun grow(by: Int): Panel {
+    private fun grow(by: Int): Panel {
         if (by <= 0) return this
 
         val mutableTiles: MutableList<MutableList<Tile>> =
@@ -72,7 +75,7 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
         return copy(tiles = mutableTiles)
     }
 
-    fun shrink(by: Int): Panel {
+    private fun shrink(by: Int): Panel {
         if (by <= 0) return this
         val removedColumns: List<List<Tile>> = tiles.dropLast(by)
         val removedRows: List<List<Tile>> = removedColumns
@@ -95,7 +98,7 @@ data class Panel(val tiles: List<List<Tile>>, val line: List<Float>) {
         else shrink(width - length)
 
     val width: Int get() = tiles.size
-    val height: Int get() = tiles.maxBy { it.size }!!.size
+    val height: Int get() = tiles.maxByOrNull { it.size }!!.size
 }
 
 private fun generate(size: Int): Panel {
