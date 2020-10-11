@@ -4,10 +4,11 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.utils.*
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRenderer
+import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.VertexConsumerProvider
+import net.minecraft.client.render.model.json.ModelTransformation
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
 import net.minecraft.entity.player.PlayerEntity
@@ -16,7 +17,7 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 
-object PuzzlePanelRenderer : BuiltinItemRenderer {
+object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
 
     private val lineFillTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_line_fill.png")
     private val solutionFillTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_solution_fill.png")
@@ -26,6 +27,7 @@ object PuzzlePanelRenderer : BuiltinItemRenderer {
 
     override fun render(
         stack: ItemStack,
+        mode: ModelTransformation.Mode?,
         matrices: MatrixStack,
         vertexConsumers: VertexConsumerProvider,
         light: Int,
@@ -46,8 +48,8 @@ object PuzzlePanelRenderer : BuiltinItemRenderer {
         matrices.push()
 
         // Retrieve panel to render
-        val tag: CompoundTag = stack.tag.takeIf { stack.item == PuzzlePanelItem.ITEM } ?: return matrices.pop()
-        val puzzle: Panel = tag.getPanel()
+        // If there's no tag
+        val puzzle: Panel = stack.tag?.getPanel() ?: Panel.DEFAULT
 
         // Render Panel background
         val backdropTexture: Identifier = getBackdropTexture(puzzle.backgroundColor)

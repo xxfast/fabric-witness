@@ -16,6 +16,10 @@ data class Panel(
     val line: List<Float>,
     val backgroundColor: DyeColor
 ) {
+    companion object {
+        val DEFAULT = Panel(3)
+    }
+
     constructor(size: Int) : this(generate(size).tiles, emptyList(), DyeColor.WHITE)
 
     fun put(x: Int, y: Int, copier: Tile.() -> Tile): Panel = copy(

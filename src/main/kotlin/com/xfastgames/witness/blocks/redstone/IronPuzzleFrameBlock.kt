@@ -210,27 +210,42 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         when {
             // when there's no item in the frame, and player is holding a panel
             inventory.items[0].isEmpty && player.mainHandStack.item is PuzzlePanelItem -> {
-                inventory.items[0] = player.inventory.removeStack(player.inventory.selectedSlot)
+                // Only put one of the panel in the frame
+                val holdingStack: ItemStack = player.inventory.mainHandStack
+                val frameStack: ItemStack = holdingStack.split(1)
+                // The rest goes back to players hand
+                player.inventory.setStack(player.inventory.selectedSlot, holdingStack)
+                inventory.items[0] = frameStack
                 player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_IRON, 1f, 1f)
             }
 
             // when there is an item in the frame and player is sneaking
-            !inventory.items[0].isEmpty && player.isInSneakingPose -> when {
-                player.mainHandStack.isEmpty -> {
-                    val item: ItemStack = inventory.items[0]
-                    inventory.removeStack(0)
-                    player.setStackInHand(Hand.MAIN_HAND, item)
+            inventory.items[0].isNotEmpty && player.isInSneakingPose -> {
+                val frameStack: ItemStack = inventory.items[0]
+                when {
+                    // If the player has and empty main hand
+                    player.mainHandStack.isEmpty -> {
+                        inventory.removeStack(0)
+                        player.setStackInHand(Hand.MAIN_HAND, frameStack)
+                    }
+
+                    // If the player has a puzzle that is the same as the one in the frame
+                    player.mainHandStack.isItemEqual(frameStack) &&
+                            player.mainHandStack.tag == frameStack.tag -> {
+                        inventory.removeStack(0)
+                        player.mainHandStack.increment(1)
+                    }
+
+                    player.offHandStack.isEmpty -> {
+                        inventory.removeStack(0)
+                        player.setStackInHand(Hand.OFF_HAND, frameStack)
+                    }
+                    else -> ActionResult.FAIL
                 }
-                player.offHandStack.isEmpty -> {
-                    val item: ItemStack = inventory.items[0]
-                    inventory.removeStack(0)
-                    player.setStackInHand(Hand.OFF_HAND, item)
-                }
-                else -> ActionResult.FAIL
             }
 
             // when there's a panel and player is not sneaking
-            !inventory.items[0].isEmpty -> {
+            inventory.items[0].isNotEmpty -> {
                 if (hit?.side == state[HORIZONTAL_FACING].opposite) {
                     if (world.isClient) MinecraftClient.getInstance().openScreen(PuzzleSolverScreen())
                     return ActionResult.CONSUME
