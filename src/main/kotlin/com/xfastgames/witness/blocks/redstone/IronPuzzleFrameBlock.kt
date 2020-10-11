@@ -232,7 +232,7 @@ class IronPuzzleFrameBlock : BlockWithEntity(
             // when there's a panel and player is not sneaking
             !inventory.items[0].isEmpty -> {
                 if (hit?.side == state[HORIZONTAL_FACING].opposite) {
-                    MinecraftClient.getInstance().openScreen(PuzzleSolverScreen())
+                    if (world.isClient) MinecraftClient.getInstance().openScreen(PuzzleSolverScreen())
                     return ActionResult.CONSUME
                 }
                 return ActionResult.FAIL

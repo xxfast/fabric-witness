@@ -7,7 +7,7 @@ import com.xfastgames.witness.screens.PuzzleComposerScreenDescription
 import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerBlockEntity
-import com.xfastgames.witness.utils.registerC2P
+import com.xfastgames.witness.utils.registerC2S
 import io.netty.buffer.Unpooled
 import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable
 import net.fabricmc.fabric.api.client.rendereregistry.v1.BlockEntityRendererRegistry
@@ -45,7 +45,7 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_composer_entity")
 
         // client-side editor needs to send a packet to server to synchronise the client inventory with server's
-        val SYNCHRONIZE_C2P_ID = Identifier(Witness.IDENTIFIER, "synchronise_puzzle_slot")
+        val SYNCHRONIZE_C2S_ID = Identifier(Witness.IDENTIFIER, "synchronise_puzzle_slot")
 
         const val INVENTORY_SIZE = 8
 
@@ -56,7 +56,7 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
         }
 
         init {
-            registerC2P(SYNCHRONIZE_C2P_ID) { context, buffer ->
+            registerC2S(SYNCHRONIZE_C2S_ID) { context, buffer ->
                 val inventoryPos: BlockPos = buffer.readBlockPos()
                 val slotIndex: Int = buffer.readInt()
                 val itemStack: ItemStack = buffer.readItemStack()
@@ -108,6 +108,6 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
         passedData.writeBlockPos(pos)
         passedData.writeInt(slotIndex)
         passedData.writeItemStack(itemStack)
-        ClientSidePacketRegistry.INSTANCE.sendToServer(SYNCHRONIZE_C2P_ID, passedData)
+        ClientSidePacketRegistry.INSTANCE.sendToServer(SYNCHRONIZE_C2S_ID, passedData)
     }
 }

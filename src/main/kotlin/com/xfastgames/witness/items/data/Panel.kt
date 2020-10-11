@@ -3,17 +3,20 @@ package com.xfastgames.witness.items.data
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.FloatTag
 import net.minecraft.nbt.ListTag
+import net.minecraft.util.DyeColor
 
 private const val KEY_PANEL = "panel"
 private const val KEY_SIZE = "width"
 private const val KEY_TILES = "tiles"
 private const val KEY_LINE = "line"
+private const val KEY_BACKGROUND_COLOR = "backgroundColor"
 
 data class Panel(
     val tiles: List<List<Tile>>,
-    val line: List<Float>
+    val line: List<Float>,
+    val backgroundColor: DyeColor
 ) {
-    constructor(size: Int) : this(generate(size).tiles, emptyList())
+    constructor(size: Int) : this(generate(size).tiles, emptyList(), DyeColor.WHITE)
 
     fun put(x: Int, y: Int, copier: Tile.() -> Tile): Panel = copy(
         tiles = tiles.mapIndexed { xIndex, cols ->
@@ -115,20 +118,21 @@ private fun generate(size: Int): Panel {
         }
         col.add(row.toList())
     }
-    return Panel(col.toList(), emptyList())
+    return Panel(col.toList(), emptyList(), DyeColor.WHITE)
 }
 
 fun CompoundTag.getPanel(): Panel =
     getCompound(KEY_PANEL).let { tag ->
         Panel(
-            tag.getList(KEY_TILES, 10)
+            tiles = tag.getList(KEY_TILES, 10)
                 .filterIsInstance<CompoundTag>()
                 .map { it.getTile() }
                 .chunked(tag.getInt(KEY_SIZE)),
-            tag.getList(KEY_LINE, 5)
+            line = tag.getList(KEY_LINE, 5)
                 .filterIsInstance<FloatTag>()
                 .map { it.float }
-                .toList()
+                .toList(),
+            backgroundColor = DyeColor.values()[tag.getInt(KEY_BACKGROUND_COLOR)]
         )
     }
 
@@ -143,5 +147,6 @@ fun CompoundTag.putPanel(panel: Panel) {
         put(KEY_LINE, ListTag().apply {
             panel.line.forEach { point -> add(FloatTag.of(point)) }
         })
+        putInt(KEY_BACKGROUND_COLOR, panel.backgroundColor.ordinal)
     })
 }

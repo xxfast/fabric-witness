@@ -51,7 +51,7 @@ inline fun <T : Entity> registerEntity(
 fun registerItem(id: Identifier, item: Item): Item =
     Registry.register(Registry.ITEM, id, item)
 
-fun registerC2P(id: Identifier, packetConsumer: (context: PacketContext, buffer: PacketByteBuf) -> Unit) =
+fun registerC2S(id: Identifier, packetConsumer: (context: PacketContext, buffer: PacketByteBuf) -> Unit) =
     ServerSidePacketRegistry.INSTANCE.register(id, packetConsumer)
 
 fun registerSound(id: Identifier, event: SoundEvent): SoundEvent = Registry.register(Registry.SOUND_EVENT, id, event)

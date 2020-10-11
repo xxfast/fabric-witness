@@ -8,20 +8,21 @@ import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRenderer
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.VertexConsumerProvider
-import net.minecraft.client.util.ModelIdentifier
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 
 object PuzzlePanelRenderer : BuiltinItemRenderer {
 
-    private val itemModel = ModelIdentifier(PuzzlePanelItem.IDENTIFIER.toString())
-    private val backdropTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_backdrop.png")
     private val lineFillTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_line_fill.png")
     private val solutionFillTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_solution_fill.png")
+
+    private fun getBackdropTexture(color: DyeColor): Identifier =
+        Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_backdrop_${color.name.toLowerCase()}.png")
 
     override fun render(
         stack: ItemStack,
@@ -44,20 +45,21 @@ object PuzzlePanelRenderer : BuiltinItemRenderer {
     ) {
         matrices.push()
 
-        // Render Panel background
-        val backdropConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(backdropTexture))
-        backdropConsumer.square(matrices, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
-
         // Retrieve panel to render
         val tag: CompoundTag = stack.tag.takeIf { stack.item == PuzzlePanelItem.ITEM } ?: return matrices.pop()
         val puzzle: Panel = tag.getPanel()
+
+        // Render Panel background
+        val backdropTexture: Identifier = getBackdropTexture(puzzle.backgroundColor)
+        val backdropConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(backdropTexture))
+        backdropConsumer.square(matrices, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
 
         // Rotate if handheld
         if (stack.holder is PlayerEntity) matrices.rotate(Vector3f.POSITIVE_Z, 180f)
 
         // Scale items to fit on frame
         val xCount: Int = puzzle.tiles.size
-        val yCount: Int = puzzle.tiles.map { it.size }.max() ?: 0
+        val yCount: Int = puzzle.tiles.map { it.size }.maxOrNull() ?: 0
 
         val xScale: Float = 1f / xCount
         val yScale: Float = 1f / yCount
@@ -200,7 +202,7 @@ object PuzzlePanelRenderer : BuiltinItemRenderer {
 
         // Scale items to fit on frame
         val xCount: Int = puzzle.tiles.size
-        val yCount: Int = puzzle.tiles.map { it.size }.max() ?: 0
+        val yCount: Int = puzzle.tiles.map { it.size }.maxOrNull() ?: 0
 
         val xScale: Float = 1f / xCount
         val yScale: Float = 1f / yCount

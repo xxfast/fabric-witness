@@ -1,12 +1,10 @@
 package com.xfastgames.witness.screens.widgets
 
-import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.items.data.Line
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.Tile
 import com.xfastgames.witness.items.data.getPanel
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
-import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.nextIn
 import com.xfastgames.witness.utils.rotate
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
@@ -158,11 +156,5 @@ class WPuzzleEditor(
 
         if (updatedPuzzle == inputPuzzle) return
         onClickListener?.onClick(updatedPuzzle)
-    }
-
-    fun updateInventory(slotIndex: Int, itemStack: ItemStack) {
-        require(inventory is BlockInventory)
-        require(inventory.owner is PuzzleComposerBlockEntity)
-        inventory.owner.syncInventorySlotTag(slotIndex, itemStack)
     }
 }

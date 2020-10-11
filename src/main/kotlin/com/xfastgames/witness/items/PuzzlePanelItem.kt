@@ -54,7 +54,9 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
         tooltip: MutableList<Text>,
         context: TooltipContext?
     ) {
-        val puzzle: Panel? = stack.tag?.getPanel()
-        puzzle?.let { tooltip.add(Text.of("size ${it.width} x ${it.height}")) }
+        val puzzle: Panel = stack.tag?.getPanel() ?: return
+        tooltip.add(Text.of(puzzle.backgroundColor.name))
+        tooltip.add(Text.of("${puzzle.width} x ${puzzle.height}"))
+        tooltip.reverse()
     }
 }
