@@ -6,6 +6,8 @@
 
 ## What is it?
 
+<img src="https://user-images.githubusercontent.com/13775137/95962402-0e99ce00-0e52-11eb-87a4-a8959bb7aefe.png" align="center">
+
 The fabric mod that adds puzzle frames from The Witness to Minecraft
 
 This is also a companion mod for The Witness Minecraft [youtube](https://www.youtube.com/channel/UCrLikF1yl6dqz0N9OaJlAcA) series - and adds a variety of decoration blocks to the game to recreate the island 
@@ -18,6 +20,7 @@ This is also a companion mod for The Witness Minecraft [youtube](https://www.you
 Make sure to also load in these dependencies
 1. [fabric-api](https://www.curseforge.com/minecraft/mc-mods/fabric-api)
 2. [fabric-language-kotlin](https://www.curseforge.com/minecraft/mc-mods/fabric-language-kotlin)
+2. [lib-gui](https://github.com/CottonMC/LibGui)
 
 ## License
 
