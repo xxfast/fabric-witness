@@ -125,7 +125,8 @@ class PuzzleComposerScreenDescription(
         inputSlot.setFilter { itemStack -> itemStack.item is PuzzlePanelItem }
         outputSlot.setFilter { itemStack -> itemStack.item is PuzzlePanelItem }
         inputSlot.isInsertingAllowed = true
-        outputSlot.isInsertingAllowed = false
+        outputSlot.isModifiable = false
+        outputSlot.isTakingAllowed = true
 
         resizeSlider.setValueChangeListener { value ->
             val itemStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
@@ -194,9 +195,11 @@ class PuzzleComposerScreenDescription(
             // Consume dye if the puzzle color has changed
             val inputBackgroundColor: DyeColor? = inputStack.tag?.getPanel()?.backgroundColor
             val outputBackgroundColor: DyeColor? = changedItemStack.tag?.getPanel()?.backgroundColor
-            // TODO: This consumes more dye than it should
-            if (inputBackgroundColor != outputBackgroundColor)
-                updateInventory(PUZZLE_BACKGROUND_DYE_SLOT_INDEX, dyeStack.apply { decrement(changedItemStack.count) })
+            // TODO: This is currently broken
+            if (inputBackgroundColor != outputBackgroundColor) {
+                val updatedDyeStack: ItemStack = dyeStack.copy().apply { decrement(changedItemStack.count) }
+                updateInventory(PUZZLE_BACKGROUND_DYE_SLOT_INDEX, updatedDyeStack)
+            }
         }
 
         editor.setClickListener { panel ->

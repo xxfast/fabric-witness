@@ -2,6 +2,7 @@ package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
+import com.xfastgames.witness.screens.PuzzleComposerScreen.Companion.PUZZLE_OUTPUT_SLOT_INDEX
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
@@ -16,6 +17,7 @@ import net.minecraft.state.property.Properties.HORIZONTAL_FACING
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.Identifier
+import net.minecraft.util.collection.DefaultedList
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -71,6 +73,16 @@ class PuzzleComposerBlock : BlockWithEntity(
         require(entity is PuzzleComposerBlockEntity)
         entity.sync()
         world.updateListeners(pos, state, state, 3)
+    }
+
+    override fun onBreak(world: World, pos: BlockPos, state: BlockState, player: PlayerEntity) {
+        val entity: BlockEntity? = world.getBlockEntity(pos)
+        require(entity is PuzzleComposerBlockEntity)
+        // Output slot should not be dropped
+        entity.inventory.removeStack(PUZZLE_OUTPUT_SLOT_INDEX)
+        val updatedList: DefaultedList<ItemStack> = entity.inventory.items
+        updatedList.forEach { stack -> dropStack(world, pos, stack) }
+        super.onBreak(world, pos, state, player)
     }
 
     override fun onUse(

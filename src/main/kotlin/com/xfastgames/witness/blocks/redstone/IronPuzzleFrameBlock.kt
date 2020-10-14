@@ -182,6 +182,13 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         return baseShape.rotateShape(to = direction)
     }
 
+    override fun onBreak(world: World, pos: BlockPos, state: BlockState, player: PlayerEntity) {
+        val entity: BlockEntity? = world.getBlockEntity(pos)
+        require(entity is PuzzleFrameBlockEntity)
+        entity.inventory.items.forEach { stack -> dropStack(world, pos, stack) }
+        super.onBreak(world, pos, state, player)
+    }
+
     override fun onPlaced(
         world: World,
         pos: BlockPos?,
@@ -227,13 +234,6 @@ class IronPuzzleFrameBlock : BlockWithEntity(
                     player.mainHandStack.isEmpty -> {
                         inventory.removeStack(0)
                         player.setStackInHand(Hand.MAIN_HAND, frameStack)
-                    }
-
-                    // If the player has a puzzle that is the same as the one in the frame
-                    player.mainHandStack.isItemEqual(frameStack) &&
-                            player.mainHandStack.tag == frameStack.tag -> {
-                        inventory.removeStack(0)
-                        player.mainHandStack.increment(1)
                     }
 
                     player.offHandStack.isEmpty -> {

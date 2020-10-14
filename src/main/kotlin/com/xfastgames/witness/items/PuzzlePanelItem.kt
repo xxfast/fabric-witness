@@ -50,9 +50,6 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
             .split("_")
             .joinToString(" ") { it.toLowerCase().capitalize() }
 
-        val itemString: String = tooltip.first().string
-        val textString = "$sizeString $colorString $itemString"
-        tooltip.clear()
-        tooltip.add(Text.of(textString))
+        tooltip.add(Text.of("($sizeString $colorString)"))
     }
 }
