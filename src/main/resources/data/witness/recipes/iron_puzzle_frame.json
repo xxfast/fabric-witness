@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "puzzle_frame",
+  "pattern": [
+    "III",
+    "ITI",
+    "III"
+  ],
+  "key": {
+    "T": {
+      "item": "witness:ancient_puzzle_tablet"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "item": "witness:iron_puzzle_frame"
+  }
+}
