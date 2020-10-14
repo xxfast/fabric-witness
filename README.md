@@ -6,7 +6,9 @@
 
 ## What is it?
 
-A helper mod for The Witness Minecraft [youtube](https://www.youtube.com/watch?v=NtJE8jozI7U&list=PLgH8mtb5RMVNGH4sPxEjHp7FCWXt_txtF) series that adds a variety of blocks to the game to recreate the island from the game The Witness 
+The fabric mod that adds puzzle frames from The Witness to Minecraft
+
+This is also a companion mod for The Witness Minecraft [youtube](https://www.youtube.com/channel/UCrLikF1yl6dqz0N9OaJlAcA) series - and adds a variety of decoration blocks to the game to recreate the island 
 
 ## How do I get it?
 
