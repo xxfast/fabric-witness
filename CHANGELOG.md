@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2020-10-18
+### Added
+- Added puzzle composer recipe 
+
+### Fixed
+- Issue with the background painters of item slots not rendering
+- Improved puzzle panel item rendering in first person, third-person, and on the ground
+- Setting puzzle panels to the puzzle frame from off-hand 
+
 ## [0.10.0] - 2020-10-14
 ### Added
 - Added puzzle panels  
