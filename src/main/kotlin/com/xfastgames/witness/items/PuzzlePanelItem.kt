@@ -22,10 +22,7 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
 
     companion object {
         val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_panel")
-        val ITEM = registerItem(
-            IDENTIFIER,
-            PuzzlePanelItem()
-        )
+        val ITEM: Item = registerItem(IDENTIFIER, PuzzlePanelItem())
     }
 
     override fun onCraft(stack: ItemStack?, world: World?, player: PlayerEntity?) {

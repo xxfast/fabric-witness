@@ -216,12 +216,20 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         val inventory: BlockInventory = entity.inventory
         when {
             // when there's no item in the frame, and player is holding a panel
-            inventory.items[0].isEmpty && player.mainHandStack.item is PuzzlePanelItem -> {
+            inventory.items[0].isEmpty &&
+                    (player.mainHandStack.item is PuzzlePanelItem ||
+                            player.offHandStack.item is PuzzlePanelItem) -> {
                 // Only put one of the panel in the frame
-                val holdingStack: ItemStack = player.inventory.mainHandStack
+                val holdingStack: ItemStack =
+                    if (player.mainHandStack.item is PuzzlePanelItem) player.inventory.mainHandStack
+                    else player.offHandStack
+
                 val frameStack: ItemStack = holdingStack.split(1)
                 // The rest goes back to players hand
-                player.inventory.setStack(player.inventory.selectedSlot, holdingStack)
+                if (player.mainHandStack.item is PuzzlePanelItem)
+                    player.setStackInHand(Hand.MAIN_HAND, holdingStack)
+                else player.setStackInHand(Hand.OFF_HAND, holdingStack)
+
                 inventory.items[0] = frameStack
                 player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_IRON, 1f, 1f)
             }
@@ -240,6 +248,7 @@ class IronPuzzleFrameBlock : BlockWithEntity(
                         inventory.removeStack(0)
                         player.setStackInHand(Hand.OFF_HAND, frameStack)
                     }
+
                     else -> ActionResult.FAIL
                 }
             }

@@ -14,6 +14,7 @@ import net.minecraft.client.util.math.Vector3f
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.util.Arm
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 
@@ -27,15 +28,41 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
 
     override fun render(
         stack: ItemStack,
-        mode: ModelTransformation.Mode?,
+        mode: ModelTransformation.Mode,
         matrices: MatrixStack,
         vertexConsumers: VertexConsumerProvider,
         light: Int,
         overlay: Int
     ) {
-        matrices.translate(1.0, .0, .5)
-        matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
-        renderPanel(stack, matrices, vertexConsumers, light, overlay)
+        when (mode) {
+            ModelTransformation.Mode.FIRST_PERSON_LEFT_HAND -> {
+                matrices.translate(-.5, .0, .0)
+                matrices.push()
+                matrices.scale(3.0f, 3.0f, 3.0f)
+                matrices.translate(.0, -.5, -1.0)
+                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                renderPanel(stack, matrices, vertexConsumers, light, overlay)
+                matrices.pop()
+                renderArmHoldingItem(matrices, vertexConsumers, light, 0.0f, 0.0f, Arm.LEFT)
+            }
+
+            ModelTransformation.Mode.FIRST_PERSON_RIGHT_HAND -> {
+                matrices.translate(.5, .0, .0)
+                matrices.push()
+                matrices.scale(3.0f, 3.0f, 3.0f)
+                matrices.translate(1.5, -.5, -1.0)
+                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                renderPanel(stack, matrices, vertexConsumers, light, overlay)
+                matrices.pop()
+                renderArmHoldingItem(matrices, vertexConsumers, light, 0.0f, 0.0f, Arm.RIGHT)
+            }
+
+            else -> {
+                matrices.translate(1.0, .0, .5)
+                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                renderPanel(stack, matrices, vertexConsumers, light, overlay)
+            }
+        }
     }
 
     fun renderPanel(
