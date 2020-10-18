@@ -23,6 +23,8 @@ import io.github.cottonmc.cotton.gui.client.CottonInventoryScreen
 import io.github.cottonmc.cotton.gui.client.ScreenDrawing
 import io.github.cottonmc.cotton.gui.widget.*
 import io.github.cottonmc.cotton.gui.widget.data.Axis
+import net.fabricmc.api.EnvType
+import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
 import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
 import net.minecraft.entity.player.PlayerEntity
@@ -61,18 +63,14 @@ class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription?, player: Player
         const val PUZZLE_OUTPUT_SLOT_INDEX = 7
 
         override fun onClient() {
-            ScreenRegistry.register<PuzzleComposerScreenDescription, PuzzleComposerScreen>(
-                PUZZLE_COMPOSER_SCREEN_HANDLER
-            ) { gui, inventory, title ->
+            ScreenRegistry.register(PUZZLE_COMPOSER_SCREEN_HANDLER) { gui, inventory, title ->
                 PuzzleComposerScreen(gui, inventory.player, title)
             }
         }
     }
 }
 
-class InputSlotBackgroundPainter(private val itemSlot: WItemSlot, private val texture: Identifier) :
-    BackgroundPainter {
-
+class InputSlotBackgroundPainter(private val itemSlot: WItemSlot, private val texture: Identifier) : BackgroundPainter {
     override fun paintBackground(left: Int, top: Int, panel: WWidget?) {
         BackgroundPainter.SLOT.paintBackground(left, top, panel)
         ScreenDrawing.texturedRect(left, top, itemSlot.width, itemSlot.height, texture, Colors.TRANSPARENT.toRgb())
@@ -113,13 +111,6 @@ class PuzzleComposerScreenDescription(
 
     init {
         setRootPanel(root)
-        context?.run { world, _ ->
-            if (world.isClient) {
-                inputSlot.backgroundPainter = InputSlotBackgroundPainter(inputSlot, placeholderPuzzleTexture)
-                backgroundDyeSlot.backgroundPainter = InputSlotBackgroundPainter(inputSlot, placeholderDyeTexture)
-                lineDyeSlot.backgroundPainter = InputSlotBackgroundPainter(inputSlot, placeholderDyeTexture)
-            }
-        }
         backgroundDyeSlot.setFilter { itemStack -> itemStack.item is DyeItem }
         lineDyeSlot.setFilter { itemStack -> itemStack.item is DyeItem }
         inputSlot.setFilter { itemStack -> itemStack.item is PuzzlePanelItem }
@@ -212,6 +203,7 @@ class PuzzleComposerScreenDescription(
         }
 
         layout()
+        context?.run { world, pos -> if (world.isClient) addPainters() }
     }
 
     private fun layout() {
@@ -232,5 +224,13 @@ class PuzzleComposerScreenDescription(
         y += 14
         root.add(hotBar, 0, y)
         root.validate(this)
+    }
+
+    @Environment(EnvType.CLIENT)
+    override fun addPainters() {
+        super.addPainters()
+        inputSlot.backgroundPainter = InputSlotBackgroundPainter(inputSlot, placeholderPuzzleTexture)
+        backgroundDyeSlot.backgroundPainter = InputSlotBackgroundPainter(inputSlot, placeholderDyeTexture)
+        lineDyeSlot.backgroundPainter = InputSlotBackgroundPainter(inputSlot, placeholderDyeTexture)
     }
 }

@@ -21,7 +21,6 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.WorldAccess
-import java.util.function.Supplier
 
 class PuzzleFrameBlockEntity : BlockEntity(ENTITY_TYPE),
     BlockEntityClientSerializable,
@@ -34,7 +33,7 @@ class PuzzleFrameBlockEntity : BlockEntity(ENTITY_TYPE),
 
         val ENTITY_TYPE: BlockEntityType<PuzzleFrameBlockEntity> = registerBlockEntity(IDENTIFIER) {
             BlockEntityType.Builder
-                .create(Supplier { PuzzleFrameBlockEntity() }, IronPuzzleFrameBlock.BLOCK)
+                .create({ PuzzleFrameBlockEntity() }, IronPuzzleFrameBlock.BLOCK)
                 .build(null)
         }
 
