@@ -20,6 +20,14 @@ Make sure to also load in these dependencies
 2. [fabric-language-kotlin](https://www.curseforge.com/minecraft/mc-mods/fabric-language-kotlin)
 2. [lib-gui](https://github.com/CottonMC/LibGui)
 
+## Releasing
+
+1. Update the mod version in `gradle.properties`
+2. Add a changelog entry in `CHANGELOG.md`
+3. Commit with a message like `Prepare for relase vX.Y.Z`
+4. Tag with `vX.Y.Z`
+5. Push branch, and the tags
+
 ## License
 
 Copyright 2020 © Isuru Rajapakse
