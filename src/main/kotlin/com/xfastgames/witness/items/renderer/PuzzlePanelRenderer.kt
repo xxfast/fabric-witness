@@ -5,14 +5,16 @@ import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
+import net.minecraft.client.MinecraftClient
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.VertexConsumerProvider
-import net.minecraft.client.render.model.json.ModelTransformation
+import net.minecraft.client.render.model.json.ModelTransformation.Mode
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.item.Items
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.Arm
 import net.minecraft.util.DyeColor
@@ -20,6 +22,7 @@ import net.minecraft.util.Identifier
 
 object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
 
+    private val paneStack = ItemStack(Items.BLACK_STAINED_GLASS_PANE, 1)
     private val lineFillTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_line_fill.png")
     private val solutionFillTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_solution_fill.png")
 
@@ -28,14 +31,14 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
 
     override fun render(
         stack: ItemStack,
-        mode: ModelTransformation.Mode,
+        mode: Mode,
         matrices: MatrixStack,
         vertexConsumers: VertexConsumerProvider,
         light: Int,
         overlay: Int
     ) {
         when (mode) {
-            ModelTransformation.Mode.FIRST_PERSON_LEFT_HAND -> {
+            Mode.FIRST_PERSON_LEFT_HAND -> {
                 matrices.translate(-.5, .0, .0)
                 matrices.push()
                 matrices.scale(3.0f, 3.0f, 3.0f)
@@ -46,7 +49,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
                 renderArmHoldingItem(matrices, vertexConsumers, light, 0.0f, 0.0f, Arm.LEFT)
             }
 
-            ModelTransformation.Mode.FIRST_PERSON_RIGHT_HAND -> {
+            Mode.FIRST_PERSON_RIGHT_HAND -> {
                 matrices.translate(.5, .0, .0)
                 matrices.push()
                 matrices.scale(3.0f, 3.0f, 3.0f)
@@ -55,6 +58,19 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
                 renderPanel(stack, matrices, vertexConsumers, light, overlay)
                 matrices.pop()
                 renderArmHoldingItem(matrices, vertexConsumers, light, 0.0f, 0.0f, Arm.RIGHT)
+            }
+
+            Mode.GROUND, Mode.THIRD_PERSON_RIGHT_HAND, Mode.THIRD_PERSON_LEFT_HAND -> {
+                val client: MinecraftClient = MinecraftClient.getInstance()
+                matrices.translate(.5, .45, .5)
+                client.itemRenderer.renderItem(paneStack, Mode.GROUND, light, overlay, matrices, vertexConsumers)
+                matrices.translate(.25, -.125, .02)
+                matrices.scale(.5f, .5f, .5f)
+                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                renderPanel(stack, matrices, vertexConsumers, light, overlay)
+                matrices.translate(1.0, .0, .075)
+                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                renderPanel(stack, matrices, vertexConsumers, light, overlay)
             }
 
             else -> {
