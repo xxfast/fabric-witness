@@ -12,6 +12,9 @@ version = project.mod_version
 group = project.maven_group
 
 minecraft {
+    test {
+        useJUnitPlatform()
+    }
 }
 
 
@@ -39,6 +42,13 @@ dependencies {
 
     // libGui
     modImplementation "io.github.cottonmc:LibGui:${project.libGui}"
+
+    // Libraries
+    implementation "com.google.guava:guava:${project.guava}"
+
+    testRuntime "org.junit.jupiter:junit-jupiter-engine:${project.junit}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${project.junit}"
+    testImplementation "com.google.truth:truth:${project.truth}"
 }
 
 processResources {
