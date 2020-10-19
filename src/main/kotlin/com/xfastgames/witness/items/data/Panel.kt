@@ -16,11 +16,11 @@ data class Panel(
     val line: List<Float>,
     val backgroundColor: DyeColor
 ) {
-    companion object {
-        val DEFAULT = Panel(3)
-    }
 
-    constructor(size: Int) : this(generate(size).tiles, emptyList(), DyeColor.WHITE)
+    companion object {
+        val DEFAULT: Panel = ofSize(3)
+        fun ofSize(size: Int): Panel = generate(size)
+    }
 
     fun put(x: Int, y: Int, copier: Tile.() -> Tile): Panel = copy(
         tiles = tiles.mapIndexed { xIndex, cols ->
@@ -108,6 +108,7 @@ data class Panel(
     val height: Int get() = tiles.maxByOrNull { it.size }!!.size
 }
 
+@Suppress("UnstableApiUsage")
 private fun generate(size: Int): Panel {
     val col: MutableList<List<Tile>> = mutableListOf()
     repeat(size) { x ->
@@ -122,9 +123,14 @@ private fun generate(size: Int): Panel {
         }
         col.add(row.toList())
     }
-    return Panel(col.toList(), emptyList(), DyeColor.WHITE)
+    return Panel(
+        tiles = col.toList(),
+        line = emptyList(),
+        backgroundColor = DyeColor.WHITE
+    )
 }
 
+@Suppress("UnstableApiUsage")
 fun CompoundTag.getPanel(): Panel =
     getCompound(KEY_PANEL).let { tag ->
         Panel(

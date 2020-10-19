@@ -26,7 +26,7 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
     }
 
     override fun onCraft(stack: ItemStack?, world: World?, player: PlayerEntity?) {
-        stack?.tag = CompoundTag().apply { putPanel(Panel(3)) }
+        stack?.tag = CompoundTag().apply { putPanel(Panel.ofSize(3)) }
     }
 
     override fun onClient() {
