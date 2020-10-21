@@ -1,5 +1,6 @@
 package com.xfastgames.witness.items.data
 
+import com.google.common.graph.MutableValueGraph
 import com.google.common.graph.ValueGraph
 import com.google.common.graph.ValueGraphBuilder
 import com.xfastgames.witness.utils.add
@@ -18,6 +19,40 @@ enum class Modifier { EMPTY, NORMAL, BREAK, DOT, START, END }
 
 data class Node(val x: Float, val y: Float, val modifier: Modifier = Modifier.EMPTY)
 typealias Edge = Modifier
+
+@Suppress("UnstableApiUsage")
+fun generateGrid(size: Int): ValueGraph<Node, Edge> {
+    val graph: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected().build()
+
+    val previousRow: MutableList<Node> = mutableListOf()
+    repeat(size) { x ->
+        var previousNode: Node? = null
+        val currentRow: MutableList<Node> = mutableListOf()
+
+        repeat(size) { y ->
+            val (dx, dy) = x.toFloat() to y.toFloat()
+            val currentNode = Node(dx, dy)
+            graph.addNode(currentNode)
+            currentRow.add(currentNode)
+
+            // Link horizontal neighbour
+            previousNode?.let { node -> graph.putEdgeValue(node, currentNode, Modifier.NORMAL) }
+
+            // Link vertical neighbour
+            previousRow.takeIf { it.isNotEmpty() }
+                ?.let { row -> graph.putEdgeValue(row[y], currentNode, Modifier.NORMAL) }
+
+            previousNode = currentNode
+        }
+
+        previousNode = null
+        previousRow.clear()
+        previousRow.addAll(currentRow)
+        currentRow.clear()
+    }
+
+    return graph
+}
 
 fun CompoundTag.getNode() = Node(
     x = getFloat(KEY_NODE_X),
@@ -39,9 +74,13 @@ fun CompoundTag.getGraph(): ValueGraph<Node, Edge> =
             .undirected()
             .build<Node, Edge>()
             .apply {
+                if (tag.isEmpty) return@apply
+
                 val nodes: List<Node> = tag.getList(KEY_NODES, 10)
                     .filterIsInstance<CompoundTag>()
                     .map { it.getNode() }
+
+                if (nodes.isEmpty()) return@apply
 
                 val adjacencyMatrix =
                     tag.getIntArray(KEY_EDGES)

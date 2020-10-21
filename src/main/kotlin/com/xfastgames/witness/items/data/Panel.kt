@@ -1,5 +1,6 @@
 package com.xfastgames.witness.items.data
 
+import com.google.common.graph.ValueGraph
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.FloatTag
 import net.minecraft.nbt.ListTag
@@ -11,15 +12,17 @@ private const val KEY_TILES = "tiles"
 private const val KEY_LINE = "line"
 private const val KEY_BACKGROUND_COLOR = "backgroundColor"
 
+@Suppress("UnstableApiUsage")
 data class Panel(
     val tiles: List<List<Tile>>,
     val line: List<Float>,
-    val backgroundColor: DyeColor
+    val backgroundColor: DyeColor,
+    val grid: ValueGraph<Node, Edge>
 ) {
 
     companion object {
         val DEFAULT: Panel = ofSize(3)
-        fun ofSize(size: Int): Panel = generate(size)
+        fun ofSize(size: Int): Panel = generatePanel(size)
     }
 
     fun put(x: Int, y: Int, copier: Tile.() -> Tile): Panel = copy(
@@ -109,7 +112,7 @@ data class Panel(
 }
 
 @Suppress("UnstableApiUsage")
-private fun generate(size: Int): Panel {
+private fun generatePanel(size: Int): Panel {
     val col: MutableList<List<Tile>> = mutableListOf()
     repeat(size) { x ->
         val row: MutableList<Tile> = mutableListOf()
@@ -123,10 +126,12 @@ private fun generate(size: Int): Panel {
         }
         col.add(row.toList())
     }
+
     return Panel(
         tiles = col.toList(),
         line = emptyList(),
-        backgroundColor = DyeColor.WHITE
+        backgroundColor = DyeColor.WHITE,
+        grid = generateGrid(size)
     )
 }
 
@@ -142,7 +147,8 @@ fun CompoundTag.getPanel(): Panel =
                 .filterIsInstance<FloatTag>()
                 .map { it.float }
                 .toList(),
-            backgroundColor = DyeColor.values()[tag.getInt(KEY_BACKGROUND_COLOR)]
+            backgroundColor = DyeColor.values()[tag.getInt(KEY_BACKGROUND_COLOR)],
+            grid = tag.getGraph()
         )
     }
 
@@ -158,5 +164,6 @@ fun CompoundTag.putPanel(panel: Panel) {
             panel.line.forEach { point -> add(FloatTag.of(point)) }
         })
         putInt(KEY_BACKGROUND_COLOR, panel.backgroundColor.ordinal)
+        putGraph(panel.grid)
     })
 }
