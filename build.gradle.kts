@@ -25,8 +25,8 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api", "fabric-api", Fabric.API.version)
 
     modImplementation(Mods.libgui)
+    modImplementation(Mods.modmenu)
 
-    // Libraries
     implementation(Google.guava)
 
     testRuntimeOnly(JUnit.jupiter_engine)
