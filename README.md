@@ -13,7 +13,7 @@ This is also a companion mod for The Witness Minecraft [youtube](https://www.you
 ## How do I get it?
 
 - Head over to [releases](https://github.com/xxfast/fabric-witness/releases) and download the jar in the assets
-- Load it up with [fabric mob loader](https://fabricmc.net/)
+- Load it up with [fabric mod loader](https://fabricmc.net/)
 
 Make sure to also load in these dependencies
 1. [fabric-api](https://www.curseforge.com/minecraft/mc-mods/fabric-api)
