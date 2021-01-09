@@ -95,9 +95,9 @@ class PuzzleComposerScreenDescription(
     private val inventorySlots: WItemSlot = WItemSlot.of(blockInventory, PUZZLE_INVENTORY_SLOT_INDEX, 2, 2)
     private val outputSlot: WItemSlot = WItemSlot(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX, 1, 1, true)
     private val editor = WPuzzleEditor(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX)
-    private val resizeSlider = WSlider(2, 10, Axis.VERTICAL)
-    private val hotBarLabel = WLabel(playerInventory.displayName)
-    private val hotBar: WItemSlot = WItemSlot.of(playerInventory, 0, 9, 1)
+    private val heightSlider = WSlider(2, 10, Axis.VERTICAL)
+    private val widthSlider = WSlider(2, 10, Axis.HORIZONTAL)
+    private val playerInventoryPanel: WPlayerInvPanel = this.createPlayerInventoryPanel()
 
     private val placeholderDyeTexture = Identifier(Witness.IDENTIFIER, "textures/gui/placeholder_dye.png")
     private val placeholderPuzzleTexture = Identifier(Witness.IDENTIFIER, "textures/gui/placeholder_puzzle.png")
@@ -119,7 +119,7 @@ class PuzzleComposerScreenDescription(
         outputSlot.isModifiable = false
         outputSlot.isTakingAllowed = true
 
-        resizeSlider.setValueChangeListener { value ->
+        heightSlider.setValueChangeListener { value ->
             val itemStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
             val outputTag: CompoundTag = itemStack.tag ?: return@setValueChangeListener
             if (outputTag.isEmpty) return@setValueChangeListener
@@ -129,6 +129,8 @@ class PuzzleComposerScreenDescription(
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, updatedStack)
         }
 
+        widthSlider.setValueChangeListener { value -> }
+
         inputSlot.addChangeListener { _, inventory, index, changedItemStack ->
             // if empty remove the output
             if (changedItemStack.isEmpty) {
@@ -137,8 +139,19 @@ class PuzzleComposerScreenDescription(
             }
 
             if (index != PUZZLE_INPUT_SLOT_INDEX) return@addChangeListener
-            val width: Int = changedItemStack.tag?.getPanel()?.width ?: 0
-            resizeSlider.setValue(width, false)
+            val panel: Panel? = changedItemStack.tag?.getPanel()
+            when (panel) {
+                is Panel.Grid -> {
+                    heightSlider.setValue(panel.height, false)
+                    widthSlider.setValue(panel.width, false)
+                }
+
+                is Panel.Tree -> {
+                    heightSlider.setValue(panel.height, false)
+                }
+
+                is Panel.Freeform -> TODO()
+            }
 
             // Stack is used to distinguish changes from the screen load
             val outputStack: ItemStack = inventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
@@ -151,10 +164,14 @@ class PuzzleComposerScreenDescription(
                     changedItemStack.tag?.getPanel()?.backgroundColor ?: return@addChangeListener
                 else dyeStackItem.color
 
-            val updatedPanel: Panel =
-                changedItemStack.tag?.getPanel()?.copy(backgroundColor = updatedColor) ?: return@addChangeListener
+            val updatedPanel: Panel = changedItemStack.tag?.getPanel() ?: return@addChangeListener
+            val tintedPanel: Panel = when (updatedPanel) {
+                is Panel.Grid -> updatedPanel.copy(backgroundColor = updatedColor)
+                is Panel.Tree -> updatedPanel.copy(backgroundColor = updatedColor)
+                is Panel.Freeform -> updatedPanel.copy(backgroundColor = updatedColor)
+            }
 
-            val updatedStack: ItemStack = changedItemStack.copy().apply { tag?.putPanel(updatedPanel) }
+            val updatedStack: ItemStack = changedItemStack.copy().apply { tag?.putPanel(tintedPanel) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, updatedStack)
         }
 
@@ -169,9 +186,13 @@ class PuzzleComposerScreenDescription(
                 if (!changedItemStack.isEmpty && stackItem is DyeItem) stackItem.color
                 else inputStack.tag?.getPanel()?.backgroundColor ?: DyeColor.WHITE
 
-            val updatedStack: ItemStack =
-                outputStack.copy().apply { tag?.putPanel(panel.copy(backgroundColor = color)) }
+            val tintedPanel: Panel = when (panel) {
+                is Panel.Grid -> panel.copy(backgroundColor = color)
+                is Panel.Tree -> panel.copy(backgroundColor = color)
+                is Panel.Freeform -> panel.copy(backgroundColor = color)
+            }
 
+            val updatedStack: ItemStack = outputStack.copy().apply { tag?.putPanel(tintedPanel) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, updatedStack)
         }
 
@@ -181,7 +202,8 @@ class PuzzleComposerScreenDescription(
 
             if (index != PUZZLE_OUTPUT_SLOT_INDEX) return@addChangeListener
             if (changedItemStack.isNotEmpty) return@addChangeListener
-            resizeSlider.setValue(0, false)
+            heightSlider.setValue(0, false)
+            widthSlider.setValue(0, false)
             updateInventory(PUZZLE_INPUT_SLOT_INDEX, ItemStack.EMPTY)
             // Consume dye if the puzzle color has changed
             val inputBackgroundColor: DyeColor? = inputStack.tag?.getPanel()?.backgroundColor
@@ -196,7 +218,7 @@ class PuzzleComposerScreenDescription(
         editor.setClickListener { panel ->
             val inputStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
             val inputTag: CompoundTag = inputStack.tag ?: return@setClickListener
-            val inputPanel: Panel? = inputTag.getPanel()
+            val inputPanel: Panel = inputTag.getPanel()
             if (panel == inputPanel) return@setClickListener
             val outputStack: ItemStack = inputStack.copy().apply { tag?.putPanel(panel) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, outputStack)
@@ -207,11 +229,13 @@ class PuzzleComposerScreenDescription(
     }
 
     private fun layout() {
-        var y = 16
-        root.add(editor, 38, y)
-        root.add(resizeSlider, 150, y - 2, 5, 110)
+        var y = 12
+        root.add(widthSlider, 37, y, 110, 5)
+        y += 8
+        root.add(editor, 38, y, editor.width, editor.height)
+        root.add(heightSlider, 150, y - 2, 5, 110)
         y += 3
-        root.add(inputSlot, 8, y)
+        root.add(inputSlot, 0, y)
         y += 21
         root.add(backgroundDyeSlot, 0, y)
         root.add(lineDyeSlot, 18, y)
@@ -220,9 +244,7 @@ class PuzzleComposerScreenDescription(
         y += 16 * 2 + 11
         root.add(outputSlot, 8, y)
         y += 16 * 1 + 10
-        root.add(hotBarLabel, 0, y)
-        y += 14
-        root.add(hotBar, 0, y)
+        root.add(playerInventoryPanel, 0, y)
         root.validate(this)
     }
 

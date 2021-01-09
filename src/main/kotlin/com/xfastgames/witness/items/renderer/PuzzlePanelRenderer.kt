@@ -1,7 +1,7 @@
 package com.xfastgames.witness.items.renderer
 
+import com.google.common.graph.ValueGraph
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
@@ -12,13 +12,14 @@ import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.model.json.ModelTransformation.Mode
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
-import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
-import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.Arm
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
+import net.minecraft.util.math.Matrix3f
+import net.minecraft.util.math.Matrix4f
+import kotlin.math.*
 
 object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
 
@@ -81,6 +82,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         }
     }
 
+    @Suppress("UnstableApiUsage")
     fun renderPanel(
         stack: ItemStack,
         matrices: MatrixStack,
@@ -96,45 +98,122 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
 
         // Render Panel background
         val backdropTexture: Identifier = getBackdropTexture(puzzle.backgroundColor)
-        val backdropConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(backdropTexture))
+
+        // TODO Figure out why entity coutout is making the lighting weird when rotated
+        val backdropConsumer: VertexConsumer =
+            vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(backdropTexture, false))
+
         backdropConsumer.square(matrices, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
 
-        // Rotate if handheld
-        if (stack.holder is PlayerEntity) matrices.rotate(Vector3f.POSITIVE_Z, 180f)
-
         // Scale items to fit on frame
-        val xCount: Int = puzzle.tiles.size
-        val yCount: Int = puzzle.tiles.map { it.size }.maxOrNull() ?: 0
+        if (puzzle.graph.nodes().isEmpty()) return matrices.pop()
 
-        val xScale: Float = 1f / xCount
-        val yScale: Float = 1f / yCount
+        val width = puzzle.width
+        val height = puzzle.height
 
-        // Move to frame
-        val xScaledOffset: Double = (xCount.toDouble() / 2) - 0.5
-        val yScaledOffset: Double = (yCount.toDouble() / 2) - 0.5
+        val xDelta: Float = (puzzle.graph.nodes().maxOf { it.x } - puzzle.graph.nodes().minOf { it.x })
+        val yDelta: Float = (puzzle.graph.nodes().maxOf { it.y } - puzzle.graph.nodes().minOf { it.y })
 
-        matrices.translate(
-            (xScale.toDouble() * xCount / 2) - xScale / 2,
-            (yScale.toDouble() * yCount / 2) - yScale / 2,
-            .0
-        )
+        val maxDelta: Float = maxOf(xDelta, yDelta)
 
-        matrices.scale(xScale, yScale, 1f)
+        val xScale: Float = 1f / width
+        val yScale: Float = 1f / height
 
-        // Render tiles
-        puzzle.tiles.forEachIndexed { x, row ->
-            val dX: Double = x * (xScale.toDouble() * xCount) - ((xScale * xCount) * xScaledOffset)
-            matrices.translate(dX, .0, .0)
-            row.forEachIndexed { y, tile ->
-                val dY: Double = y * (yScale.toDouble() * yCount) - ((yScale * yCount) * yScaledOffset)
-                matrices.translate(.0, dY, .0)
-                renderTile(tile, matrices, vertexConsumers, light, overlay)
-                matrices.translate(.0, -dY, .0)
+        // Leave one tile for padding
+        val maxScale: Float = 1f / (maxDelta + 1)
+
+        matrices.scale(maxScale, maxScale, 1f)
+        matrices.translate(.0, .0, -.01)
+
+        // Render grid vertices
+        val fillConsumer1: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(lineFillTexture, false))
+        val graph: ValueGraph<Node, Edge> = puzzle.graph
+        withRenderContext(matrices, fillConsumer1, light, overlay) {
+            graph.nodes().forEach { node ->
+                if (node.modifier == Modifier.START) circle(Vector3f(node.x, node.y, 0f), 4.pc)
+                // TODO: Draw the right arc of the circle instead of the full one to save vertices
+                else circle(Vector3f(node.x, node.y, 0f), 2.pc)
             }
-            matrices.translate(-dX, .0, .0)
+
+            graph.edges().forEach { side ->
+                val edge: Edge = graph.edgeValue(side).value ?: return@forEach
+                val startNode: Node = side.nodeU()
+                val endNode: Node = side.nodeV()
+                val start = Vector3f(startNode.x, startNode.y, 0f)
+                val end = Vector3f(endNode.x, endNode.y, 0f)
+                // TODO: Render the correct line
+                edge(start, end, 4.pc, edge)
+            }
         }
-        matrices.scale(1 + xScale, 1 + yScale, 1f)
+
+        matrices.scale(1 + maxScale, 1 + maxScale, 1f)
         matrices.pop()
+    }
+
+    private fun RenderContext.edge(start: Vector3f, end: Vector3f, thickness: Float, edge: Edge) {
+        fun RenderContext.`break`(
+            start: Vector3f,
+            end: Vector3f
+        ) {
+            val max: Vector3f = maxOf(start, end)
+            val theta: Float = atan2(start.y - end.y, start.x - end.x)
+            val halfThickness: Float = thickness / 2
+            val lengthX: Float = start.x - end.x
+            val lengthY: Float = start.y - end.y
+            val length: Float = sqrt(lengthX.pow(2) + lengthY.pow(2)) + thickness
+            val halfLength: Float = (length / 2)
+
+            val vertices: List<Vector3f> = listOf(
+                max.copy().apply { add(0f, -halfThickness, 0f) },
+                max.copy().apply { add(0f, halfThickness, 0f) },
+                max.copy().apply { add(halfLength - thickness, +halfThickness, 0f) },
+                max.copy().apply { add(halfLength - thickness, -halfThickness, 0f) },
+                max.copy().apply { add(halfLength, -halfThickness, 0f) },
+                max.copy().apply { add(halfLength, +halfThickness, 0f) },
+                max.copy().apply { add(length - thickness, +halfThickness, 0f) },
+                max.copy().apply { add(length - thickness, -halfThickness, 0f) }
+            ).map { corner ->
+                val tempX: Float = corner.x - max.x
+                val tempY: Float = corner.y - max.y
+                val rotatedX: Float = tempX * cos(theta) - tempY * sin(theta)
+                val rotatedY: Float = tempX * sin(theta) + tempY * cos(theta)
+                Vector3f(rotatedX + max.x, rotatedY + max.y, max.z)
+            }
+
+            vertices.forEach { position ->
+                val matrix: MatrixStack.Entry = matrices.peek()
+                val normal: Matrix3f = matrix.normal
+                val model: Matrix4f = matrix.model
+                vertexConsumer.vertex(model, position.x, position.y, position.z)
+                vertexConsumer.color(1f, 1f, 1f, 1f)
+                vertexConsumer.texture(0f, 1f)
+                vertexConsumer.overlay(overlay)
+                vertexConsumer.light(light)
+                vertexConsumer.normal(normal, .5f, .5f, .5f)
+                vertexConsumer.next()
+            }
+        }
+
+        fun RenderContext.start(
+            start: Vector3f,
+            end: Vector3f
+        ) {
+            line(start, end, thickness)
+            val midpoint: Vector3f = (start + end) / 2f
+            circle(midpoint, thickness)
+        }
+
+        when (edge) {
+            Modifier.NONE -> {
+            }
+            Modifier.NORMAL -> line(start, end, thickness)
+            Modifier.BREAK -> `break`(start, end)
+            Modifier.DOT -> {
+            }
+            Modifier.START -> start(start, end)
+            Modifier.END -> {
+            }
+        }
     }
 
     private fun renderTile(
@@ -230,66 +309,6 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
                 else -> square(Vector3f(6.pc, 6.pc, position.z), 4.pc)
             }
         }
-        matrices.pop()
-    }
-
-    fun renderLine(
-        stack: ItemStack,
-        matrices: MatrixStack,
-        vertexConsumers: VertexConsumerProvider,
-        light: Int,
-        overlay: Int
-    ) {
-        matrices.push()
-        val tag: CompoundTag = stack.tag.takeIf { stack.item == PuzzlePanelItem.ITEM } ?: return matrices.pop()
-        val puzzle: Panel = tag.getPanel()
-        if (puzzle.line.isEmpty()) return matrices.pop()
-
-        // Scale items to fit on frame
-        val xCount: Int = puzzle.tiles.size
-        val yCount: Int = puzzle.tiles.map { it.size }.maxOrNull() ?: 0
-
-        val xScale: Float = 1f / xCount
-        val yScale: Float = 1f / yCount
-
-        // Move to frame
-        val xScaledOffset: Double = (xCount.toDouble() / 2) - 0.5
-        val yScaledOffset: Double = (yCount.toDouble() / 2) - 0.5
-        matrices.translate(
-            (xScale.toDouble() * xCount / 2) - xScale / 2,
-            (yScale.toDouble() * yCount / 2) - yScale / 2,
-            .0
-        )
-
-        val consumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(solutionFillTexture))
-        val position = Vector3f(0f, 0f, -0.002f)
-
-        matrices.scale(xScale, yScale, 1f)
-
-        // Render line
-        withRenderContext(matrices, consumer, light, overlay) {
-            val coordinates: List<Pair<Float, Float>> = puzzle.line.chunked(2).map { (x, y) -> x to y }
-            val (originX, originY) = coordinates.first()
-            val dX: Double = originX * (xScale.toDouble() * xCount) - ((xScale * xCount) * xScaledOffset)
-            val dY: Double = originY * (yScale.toDouble() * yCount) - ((yScale * yCount) * yScaledOffset)
-            matrices.translate(dX, dY, .0)
-            circle(Vector3f(8.pc, 8.pc, position.z), 5.pc)
-
-            // TODO: Render only the relevant arch of the circle at vertex
-            coordinates.forEach { (x, y) ->
-                val centered = Vector3f(x, y, position.z).apply { add(8.pc, 8.pc, 0f) }
-                circle(centered, 2.pc)
-            }
-
-            val offsetCoordinate: List<Pair<Float, Float>?> = listOf(null).plus(coordinates)
-            offsetCoordinate.zip(coordinates).forEach { (first, second) ->
-                if (first == null) return@forEach
-                val start: Vector3f = first.let { (x, y) -> Vector3f(x, y, position.z) }.apply { add(8.pc, 8.pc, 0f) }
-                val end: Vector3f = second.let { (x, y) -> Vector3f(x, y, position.z) }.apply { add(8.pc, 8.pc, 0f) }
-                line(start, end, 4.pc)
-            }
-        }
-        matrices.scale(1 + xScale, 1 + yScale, 1f)
         matrices.pop()
     }
 }

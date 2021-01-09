@@ -26,13 +26,14 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
     }
 
     override fun onCraft(stack: ItemStack?, world: World?, player: PlayerEntity?) {
-        stack?.tag = CompoundTag().apply { putPanel(Panel.ofSize(3)) }
+        stack?.tag = CompoundTag().apply { putPanel(Panel.Grid.ofSize(2)) }
     }
 
     override fun onClient() {
         BuiltinItemRendererRegistry.INSTANCE.register(ITEM, PuzzlePanelRenderer)
     }
 
+    // TODO: Use localised strings here
     override fun appendTooltip(
         stack: ItemStack,
         world: World?,
@@ -40,13 +41,19 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
         context: TooltipContext?
     ) {
         val puzzle: Panel = stack.tag?.getPanel() ?: return
-        // TODO: Use localised strings here
-        val sizeString = "${puzzle.width} x ${puzzle.height}"
+
+        val typeString: String = puzzle.type.name.capitalize()
+
+        val sizeString = when (puzzle) {
+            is Panel.Grid -> "${puzzle.width} x ${puzzle.height}"
+            is Panel.Tree -> "${puzzle.height} Tall"
+            is Panel.Freeform -> TODO()
+        }
 
         val colorString: String = puzzle.backgroundColor.name
             .split("_")
             .joinToString(" ") { it.toLowerCase().capitalize() }
 
-        tooltip.add(Text.of("($sizeString $colorString)"))
+        tooltip.add(Text.of("($sizeString $colorString $typeString)"))
     }
 }

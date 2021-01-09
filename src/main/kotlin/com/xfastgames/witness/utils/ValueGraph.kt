@@ -12,6 +12,13 @@ val <N, E> ValueGraph<N, E>.adjacencyMatrix: List<List<E?>>
     }
 
 @Suppress("UnstableApiUsage")
+inline fun <N, reified E> ValueGraph<N, E>.edgeValues(): List<E> =
+    this.edges().map { nodePair -> this.edgeValue(nodePair).orElse(null) }.filterIsInstance<E>()
+
+/***
+ * Adds a [nodeList] to a existing graph with the given [adjacencyMatrix]
+ */
+@Suppress("UnstableApiUsage")
 fun <N, E> MutableValueGraph<N, E>.add(nodeList: List<N>, adjacencyMatrix: List<List<E?>>): MutableValueGraph<N, E> =
     this.apply {
         adjacencyMatrix.forEachIndexed { thisIndex, nodes ->

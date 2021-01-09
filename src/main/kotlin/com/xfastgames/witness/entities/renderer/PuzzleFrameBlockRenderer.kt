@@ -47,9 +47,6 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
         // Move slightly out of center to avoid z collision
         matrices.translate(.0, .0, -.034)
 
-        // Rotate the puzzle panel right way up
-//        matrices.rotate(Vector3f.POSITIVE_Z, 180f)
-
         // Move to corner
         matrices.translate(-.5, -.5, -.05)
 

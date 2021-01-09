@@ -1,10 +1,11 @@
 package com.xfastgames.witness.screens.widgets
 
-import com.xfastgames.witness.items.data.Line
-import com.xfastgames.witness.items.data.Panel
-import com.xfastgames.witness.items.data.Tile
-import com.xfastgames.witness.items.data.getPanel
+import com.google.common.graph.EndpointPair
+import com.google.common.graph.Graphs
+import com.google.common.graph.MutableValueGraph
+import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
+import com.xfastgames.witness.utils.intersects
 import com.xfastgames.witness.utils.nextIn
 import com.xfastgames.witness.utils.rotate
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
@@ -19,7 +20,6 @@ import net.minecraft.client.util.math.Vector3f
 import net.minecraft.inventory.Inventory
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
-import kotlin.math.truncate
 
 class WPuzzleEditor(
     private val inventory: Inventory,
@@ -38,6 +38,10 @@ class WPuzzleEditor(
 
     override fun getWidth(): Int = 18 * 6
     override fun getHeight(): Int = 18 * 6
+
+    init {
+        setSize(getWidth(), getHeight())
+    }
 
     fun setClickListener(clickListener: OnClickListener) {
         onClickListener = clickListener
@@ -58,7 +62,7 @@ class WPuzzleEditor(
         matrices.scale(puzzleScale, -puzzleScale, puzzleScale)
         matrices.rotate(Vector3f.POSITIVE_Z, 180f)
         // Translate relative to panel placement
-        matrices.translate(-1.2, -.895, .0)
+        matrices.translate(-1.275, -.895, .0)
 
         puzzlePanelRenderer.renderPanel(
             puzzleStack,
@@ -75,83 +79,75 @@ class WPuzzleEditor(
         matrices.pop()
     }
 
+    @Suppress("UnstableApiUsage")
     override fun onClick(x: Int, y: Int, button: Int) {
         val inputStack: ItemStack = inventory.getStack(outputSlotIndex)
         if (inputStack.isEmpty) return
         val tag: CompoundTag = inputStack.tag ?: return
         val inputPuzzle: Panel = tag.getPanel()
-        val size: Int = inputPuzzle.tiles.size
-        val relativeX: Float = x / width.toFloat()
-        val relativeY: Float = y / height.toFloat()
-        val puzzleDX: Float = (relativeX / 6f) * size
-        val puzzleDY: Float = (relativeY / 6f) * size
-        val tileDX: Float = puzzleDX - truncate(puzzleDX)
-        val tileDY: Float = puzzleDY - truncate(puzzleDY)
-        val puzzleX: Int = (size - 1) - puzzleDX.toInt()
-        val puzzleY: Int = (size - 1) - puzzleDY.toInt()
-        val lineWidth: Float = 1 / 6f
-        val lineRange: ClosedFloatingPointRange<Float> = (0.5f - lineWidth)..(0.5f + lineWidth)
-        val isCenter: Boolean = tileDX in lineRange && tileDY in lineRange
-        val isTop: Boolean = !isCenter && tileDY > 0.5f && tileDX in lineRange
-        val isLeft: Boolean = !isCenter && tileDX > 0.5f && tileDY in lineRange
-        val isRight: Boolean = !isCenter && tileDX < 0.5f && tileDY in lineRange
-        val isBottom: Boolean = !isCenter && tileDY < 0.5f && tileDX in lineRange
 
-        val isXBorder: Boolean = (puzzleX == 0 && isLeft) || (puzzleX == size - 1 && isRight)
-        val isYBorder: Boolean = (puzzleY == 0 && isTop) || (puzzleY == size - 1 && isBottom)
+        val xPosition = 1 - (x.toFloat() / width)
+        val yPosition = 1 - (y.toFloat() / height)
 
-        // Tile update logic
-        var updatedPuzzle: Panel = inputPuzzle.put(puzzleX, puzzleY) {
+        val puzzleRelativeX: Float = xPosition * inputPuzzle.width
+        val puzzleRelativeY: Float = yPosition * inputPuzzle.height
+        val clickPadding = 0.2f
 
-            val start: Boolean = if (isCenter) !isStart else isStart
+        val mouseXRange: ClosedFloatingPointRange<Float> =
+            (puzzleRelativeX - clickPadding)..(puzzleRelativeX + clickPadding)
 
-            // End is only allowed on the edges of the puzzle
-            val top: Line? = when {
-                isYBorder && isTop -> top.nextIn(Line.END, null)
-                isTop -> top.nextIn(Line.FILLED, Line.SHORTENED, null)
-                else -> top
-            }
+        val mouseYRange: ClosedFloatingPointRange<Float> =
+            (puzzleRelativeY - clickPadding)..(puzzleRelativeY + clickPadding)
 
-            val left: Line? = when {
-                isXBorder && isLeft -> left.nextIn(Line.END, null)
-                isLeft -> left.nextIn(Line.FILLED, Line.SHORTENED, null)
-                else -> left
-            }
-
-            val bottom: Line? = when {
-                isYBorder && isBottom -> bottom.nextIn(Line.END, null)
-                isBottom -> bottom.nextIn(Line.FILLED, Line.SHORTENED, null)
-                else -> bottom
-            }
-
-            val right: Line? = when {
-                isXBorder && isRight -> right.nextIn(Line.END, null)
-                isRight -> right.nextIn(Line.FILLED, Line.SHORTENED, null)
-                else -> right
-            }
-
-            return@put Tile(start, top, left, bottom, right)
+        val node: Node? = inputPuzzle.graph.nodes().find { node ->
+            node.x in mouseXRange && node.y in mouseYRange
         }
 
-        // Update neighbours
-        updatedPuzzle = when {
-            isTop -> updatedPuzzle.put(puzzleX, puzzleY - 1) {
-                this.apply { bottom = updatedPuzzle.tiles[puzzleX][puzzleY].top }
+        val edgeNodePair: EndpointPair<Node>? = inputPuzzle.graph.edges()
+            .find { nodePair ->
+                val u: Node = nodePair.nodeU()
+                val v: Node = nodePair.nodeV()
+                val edgeXRange: ClosedFloatingPointRange<Float> = u.x..v.x
+                val edgeYRange: ClosedFloatingPointRange<Float> = u.y..v.y
+                val xIntersects: Boolean = mouseXRange intersects edgeXRange
+                val yIntersects: Boolean = mouseYRange intersects edgeYRange
+                val result: Boolean = xIntersects && yIntersects
+                result
             }
 
-            isLeft -> updatedPuzzle.put(puzzleX - 1, puzzleY) {
-                this.apply { right = updatedPuzzle.tiles[puzzleX][puzzleY].left }
-            }
+        val edge: Edge? = edgeNodePair?.let { inputPuzzle.graph.edgeValue(it).orElse(null) }
 
-            isBottom -> updatedPuzzle.put(puzzleX, puzzleY + 1) {
-                this.apply { top = updatedPuzzle.tiles[puzzleX][puzzleY].bottom }
-            }
+//        println("MOUSE $puzzleRelativeX, $puzzleRelativeY $node $edgeNodePair")
 
-            isRight -> updatedPuzzle.put(puzzleX + 1, puzzleY) {
-                this.apply { left = updatedPuzzle.tiles[puzzleX][puzzleY].right }
-            }
+        val updatedNode: Node? =
+            node?.copy(modifier = if (node.modifier == Modifier.START) Modifier.NONE else Modifier.START)
 
-            else -> updatedPuzzle
+        val updatedGraph: MutableValueGraph<Node, Edge> = Graphs.copyOf(inputPuzzle.graph)
+
+        updatedNode?.let {
+            val neighbours: List<Node> = inputPuzzle.graph.adjacentNodes(node).toList()
+            val neighbourhood: MutableMap<Node, Edge> = mutableMapOf()
+            neighbours.forEach { neighbour ->
+                neighbourhood[neighbour] = inputPuzzle.graph.edgeValue(neighbour, node).get()
+            }
+            updatedGraph.removeNode(node)
+            updatedGraph.addNode(updatedNode)
+            neighbourhood.forEach { (neighbour, edge) ->
+                updatedGraph.putEdgeValue(neighbour, updatedNode, edge)
+            }
+        }
+
+        val updatedEdge: Edge? = edge?.nextIn(Modifier.NORMAL, Modifier.START, Modifier.BREAK)
+        if (updatedNode == null && updatedEdge != null) {
+            updatedGraph.removeEdge(edgeNodePair.nodeU(), edgeNodePair.nodeV())
+            updatedGraph.putEdgeValue(edgeNodePair, updatedEdge)
+        }
+
+        // TODO: Do this nicely 😅💩
+        val updatedPuzzle: Panel = when (inputPuzzle) {
+            is Panel.Grid -> inputPuzzle.copy(graph = updatedGraph)
+            is Panel.Tree -> inputPuzzle.copy(graph = updatedGraph)
+            is Panel.Freeform -> inputPuzzle.copy(graph = updatedGraph)
         }
 
         if (updatedPuzzle == inputPuzzle) return

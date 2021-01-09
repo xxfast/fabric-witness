@@ -145,9 +145,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         }
 
         val optimizedLine: List<Float> = emptyList()
-
-        val updatedPanel = puzzle.copy(line = updatedLine)
-        tag.putPanel(updatedPanel)
+        tag.putPanel(puzzle)
 
     }
 
@@ -214,14 +212,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             Direction.SOUTH -> voxelCoordinate.x to voxelCoordinate.y
             else -> return false
         }
-
-        val xCount: Int = puzzle.tiles.size
-        val yCount: Int = puzzle.tiles.map { it.size }.maxOrNull() ?: 0
-
-        val startX: Double = (panelX / scale) * xCount - 1
-        val startY: Double = (panelY / scale) * yCount - 1
-        val updatedPanel: Panel = puzzle.copy(line = listOf(startX.toFloat(), startY.toFloat()))
-        tag.putPanel(updatedPanel)
         return false
     }
 
