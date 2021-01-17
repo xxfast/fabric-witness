@@ -108,16 +108,10 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         // Scale items to fit on frame
         if (puzzle.graph.nodes().isEmpty()) return matrices.pop()
 
-        val width = puzzle.width
-        val height = puzzle.height
-
         val xDelta: Float = (puzzle.graph.nodes().maxOf { it.x } - puzzle.graph.nodes().minOf { it.x })
         val yDelta: Float = (puzzle.graph.nodes().maxOf { it.y } - puzzle.graph.nodes().minOf { it.y })
 
         val maxDelta: Float = maxOf(xDelta, yDelta)
-
-        val xScale: Float = 1f / width
-        val yScale: Float = 1f / height
 
         // Leave one tile for padding
         val maxScale: Float = 1f / (maxDelta + 1)
@@ -219,101 +213,5 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
             Modifier.HIDDEN -> {
             }
         }
-    }
-
-    private fun renderTile(
-        tile: Tile,
-        matrices: MatrixStack,
-        vertexConsumers: VertexConsumerProvider,
-        light: Int,
-        overlay: Int
-    ) {
-        matrices.push()
-
-        val position = Vector3f(0f, 0f, -0.001f)
-
-        // Render tile pieces
-        val fillConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(lineFillTexture))
-
-        // Render tile lines
-        withRenderContext(matrices, fillConsumer, light, overlay) {
-            tile.lines.forEach { (direction, side) ->
-                when (direction) {
-                    Direction.TOP -> when (side) {
-                        Line.FILLED -> rectangle(Vector3f(6.pc, 0.pc, position.z), 4.pc, 6.pc)
-                        Line.SHORTENED -> rectangle(Vector3f(6.pc, 2.pc, position.z), 4.pc, 4.pc)
-                        Line.END -> {
-                            circle(Vector3f(8.pc, 4.pc, position.z), 2.pc, arc = 90..270)
-                            rectangle(Vector3f(6.pc, 4.pc, position.z), 4.pc, 2.pc)
-                        }
-                    }
-
-                    Direction.RIGHT -> when (side) {
-                        Line.FILLED -> rectangle(Vector3f(10.pc, 6.pc, position.z), 6.pc, 4.pc)
-                        Line.SHORTENED -> rectangle(Vector3f(10.pc, 6.pc, position.z), 4.pc, 4.pc)
-                        Line.END -> {
-                            circle(Vector3f(12.pc, 8.pc, position.z), 2.pc, 0..180)
-                            rectangle(Vector3f(10.pc, 6.pc, position.z), 2.pc, 4.pc)
-                        }
-                    }
-
-                    Direction.BOTTOM -> when (side) {
-                        Line.FILLED -> rectangle(Vector3f(6.pc, 10.pc, position.z), 4.pc, 6.pc)
-                        Line.SHORTENED -> rectangle(Vector3f(6.pc, 10.pc, position.z), 4.pc, 4.pc)
-                        Line.END -> {
-                            circle(Vector3f(8.pc, 12.pc, position.z), 2.pc, arc = -90..90)
-                            rectangle(Vector3f(6.pc, 10.pc, position.z), 4.pc, 2.pc)
-                        }
-                    }
-
-                    Direction.LEFT -> when (side) {
-                        Line.FILLED -> rectangle(Vector3f(0.pc, 6.pc, position.z), 6.pc, 4.pc)
-                        Line.SHORTENED -> rectangle(Vector3f(2.pc, 6.pc, position.z), 4.pc, 4.pc)
-                        Line.END -> {
-                            circle(Vector3f(4.pc, 8.pc, position.z), 2.pc, 180..360)
-                            rectangle(Vector3f(4.pc, 6.pc, position.z), 2.pc, 4.pc)
-                        }
-                    }
-                }
-            }
-
-            // Render tile centers or the vertex
-            if (tile.isStart) circle(Vector3f(8.pc, 8.pc, position.z), 5.pc)
-            else when {
-                tile.center.containsOnly(Direction.TOP, Direction.LEFT) -> {
-                    square(Vector3f(6.pc, 6.pc, position.z), 2.pc)
-                    square(Vector3f(8.pc, 6.pc, position.z), 2.pc)
-                    square(Vector3f(6.pc, 8.pc, position.z), 2.pc)
-                    circle(Vector3f(8.pc, 8.pc, position.z), 2.pc, 0..90)
-                }
-
-                tile.center.containsOnly(Direction.TOP, Direction.RIGHT) -> {
-                    square(Vector3f(6.pc, 6.pc, position.z), 2.pc)
-                    square(Vector3f(8.pc, 6.pc, position.z), 2.pc)
-                    square(Vector3f(8.pc, 8.pc, position.z), 2.pc)
-                    circle(Vector3f(8.pc, 8.pc, position.z), 2.pc, 270..360)
-                }
-
-                tile.center.containsOnly(Direction.BOTTOM, Direction.LEFT) -> {
-                    square(Vector3f(6.pc, 6.pc, position.z), 2.pc)
-                    square(Vector3f(8.pc, 8.pc, position.z), 2.pc)
-                    square(Vector3f(6.pc, 8.pc, position.z), 2.pc)
-                    circle(Vector3f(8.pc, 8.pc, position.z), 2.pc, 90..180)
-                }
-
-                tile.center.containsOnly(Direction.BOTTOM, Direction.RIGHT) -> {
-                    square(Vector3f(8.pc, 6.pc, position.z), 2.pc)
-                    square(Vector3f(6.pc, 8.pc, position.z), 2.pc)
-                    square(Vector3f(8.pc, 8.pc, position.z), 2.pc)
-                    circle(Vector3f(8.pc, 8.pc, position.z), 2.pc, 180..270)
-                }
-
-                tile.center.isEmpty() -> {
-                }
-
-                else -> square(Vector3f(6.pc, 6.pc, position.z), 4.pc)
-            }
-        }
-        matrices.pop()
     }
 }
