@@ -137,7 +137,7 @@ class WPuzzleEditor(
             }
         }
 
-        val updatedEdge: Edge? = edge?.nextIn(Modifier.NORMAL, Modifier.START, Modifier.BREAK)
+        val updatedEdge: Edge? = edge?.nextIn(Modifier.NORMAL, Modifier.START, Modifier.BREAK, Modifier.HIDDEN)
         if (updatedNode == null && updatedEdge != null) {
             updatedGraph.removeEdge(edgeNodePair.nodeU(), edgeNodePair.nodeV())
             updatedGraph.putEdgeValue(edgeNodePair, updatedEdge)

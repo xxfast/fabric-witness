@@ -14,7 +14,7 @@ private const val KEY_NODE_X = "x"
 private const val KEY_NODE_Y = "y"
 private const val KEY_NODE_MODIFIER = "modifier"
 
-enum class Modifier { NONE, NORMAL, BREAK, DOT, START, END }
+enum class Modifier { NONE, NORMAL, BREAK, DOT, START, END, HIDDEN }
 
 data class Node(val x: Float, val y: Float, val modifier: Modifier = Modifier.NONE)
 

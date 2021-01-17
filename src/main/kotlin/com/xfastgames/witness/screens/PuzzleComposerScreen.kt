@@ -89,6 +89,8 @@ class PuzzleComposerScreenDescription(
     null
 ) {
     private val root: WPlainPanel = WPlainPanel().apply { setSize(150, 150) }
+    private val undoButton: WButton = WButton(Text.of("↶"))
+    private val redoButton: WButton = WButton(Text.of("↷"))
     private val inputSlot = WItemSlot(blockInventory, PUZZLE_INPUT_SLOT_INDEX, 1, 1, false)
     private val backgroundDyeSlot: WItemSlot = WItemSlot.of(blockInventory, PUZZLE_BACKGROUND_DYE_SLOT_INDEX, 1, 1)
     private val lineDyeSlot: WItemSlot = WItemSlot.of(blockInventory, PUZZLE_LINE_DYE_SLOT_INDEX, 1, 1)
@@ -215,6 +217,8 @@ class PuzzleComposerScreenDescription(
             }
         }
 
+        undoButton.isEnabled = false
+
         editor.setClickListener { panel ->
             val inputStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
             val inputTag: CompoundTag = inputStack.tag ?: return@setClickListener
@@ -223,9 +227,18 @@ class PuzzleComposerScreenDescription(
             val outputStack: ItemStack = inputStack.copy().apply { tag?.putPanel(panel) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, outputStack)
         }
-
+        layoutToolbar()
         layout()
         context?.run { world, pos -> if (world.isClient) addPainters() }
+    }
+
+    private fun layoutToolbar() {
+        var x = 160
+        var y = 10
+        root.add(undoButton, x, y, 20, 20)
+        x += 22
+        root.add(redoButton, x, y, 20, 20)
+        y += 20
     }
 
     private fun layout() {

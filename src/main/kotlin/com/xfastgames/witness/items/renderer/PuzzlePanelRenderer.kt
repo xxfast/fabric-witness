@@ -130,9 +130,12 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         val graph: ValueGraph<Node, Edge> = puzzle.graph
         withRenderContext(matrices, fillConsumer1, light, overlay) {
             graph.nodes().forEach { node ->
+                val isThereAnyVisibleEdges: Boolean = graph.incidentEdges(node).any { endpointPair ->
+                    graph.edgeValue(endpointPair).value !in listOf(Edge.NONE, Edge.HIDDEN)
+                }
+
                 if (node.modifier == Modifier.START) circle(Vector3f(node.x, node.y, 0f), 4.pc)
-                // TODO: Draw the right arc of the circle instead of the full one to save vertices
-                else circle(Vector3f(node.x, node.y, 0f), 2.pc)
+                else if (isThereAnyVisibleEdges) circle(Vector3f(node.x, node.y, 0f), 2.pc)
             }
 
             graph.edges().forEach { side ->
@@ -212,6 +215,8 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
             }
             Modifier.START -> start(start, end)
             Modifier.END -> {
+            }
+            Modifier.HIDDEN -> {
             }
         }
     }
