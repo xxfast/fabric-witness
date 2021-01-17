@@ -10,6 +10,8 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
+const val KEY_GRAPH = "testGraph"
+
 enum class Person { Bob, Alice, Rob, Maria, Mark }
 
 @Suppress("UnstableApiUsage")
@@ -23,9 +25,9 @@ class ValueGraphTests {
 
     @Test
     fun `Test put and read grid`() {
-        val tag: CompoundTag = CompoundTag().apply { putGraph(testGraph) }
+        val tag: CompoundTag = CompoundTag().apply { putEdgeGraph(KEY_GRAPH, testGraph) }
         println(tag)
-        val actual: ValueGraph<Node, Edge> = tag.getGraph()
+        val actual: ValueGraph<Node, Edge> = tag.getEdgeGraph(KEY_GRAPH)
         assertThat(actual).isEqualTo(testGraph)
     }
 

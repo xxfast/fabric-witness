@@ -3,6 +3,7 @@ package com.xfastgames.witness.screens
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
+import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.getPanel
@@ -125,9 +126,9 @@ class PuzzleComposerScreenDescription(
             val itemStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
             val outputTag: CompoundTag = itemStack.tag ?: return@setValueChangeListener
             if (outputTag.isEmpty) return@setValueChangeListener
-            val puzzle: Panel = outputTag.getPanel()
-            val updatedPuzzle: Panel = puzzle.resize(value)
-            val updatedStack: ItemStack = itemStack.copy().apply { tag?.putPanel(updatedPuzzle) }
+            val puzzle: Panel? = outputTag.getPanel(KEY_PANEL)
+            val updatedPuzzle: Panel? = puzzle?.resize(value)
+            val updatedStack: ItemStack = itemStack.copy().apply { updatedPuzzle?.let { tag?.putPanel(KEY_PANEL, it) } }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, updatedStack)
         }
 
@@ -141,7 +142,7 @@ class PuzzleComposerScreenDescription(
             }
 
             if (index != PUZZLE_INPUT_SLOT_INDEX) return@addChangeListener
-            val panel: Panel? = changedItemStack.tag?.getPanel()
+            val panel: Panel? = changedItemStack.tag?.getPanel(KEY_PANEL)
             when (panel) {
                 is Panel.Grid -> {
                     heightSlider.setValue(panel.height, false)
@@ -163,17 +164,17 @@ class PuzzleComposerScreenDescription(
             val dyeStackItem: Item = dyeItemStack.item
             val updatedColor: DyeColor =
                 if (dyeItemStack.isEmpty || dyeStackItem !is DyeItem)
-                    changedItemStack.tag?.getPanel()?.backgroundColor ?: return@addChangeListener
+                    changedItemStack.tag?.getPanel(KEY_PANEL)?.backgroundColor ?: return@addChangeListener
                 else dyeStackItem.color
 
-            val updatedPanel: Panel = changedItemStack.tag?.getPanel() ?: return@addChangeListener
+            val updatedPanel: Panel = changedItemStack.tag?.getPanel(KEY_PANEL) ?: return@addChangeListener
             val tintedPanel: Panel = when (updatedPanel) {
                 is Panel.Grid -> updatedPanel.copy(backgroundColor = updatedColor)
                 is Panel.Tree -> updatedPanel.copy(backgroundColor = updatedColor)
                 is Panel.Freeform -> updatedPanel.copy(backgroundColor = updatedColor)
             }
 
-            val updatedStack: ItemStack = changedItemStack.copy().apply { tag?.putPanel(tintedPanel) }
+            val updatedStack: ItemStack = changedItemStack.copy().apply { tag?.putPanel(KEY_PANEL, tintedPanel) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, updatedStack)
         }
 
@@ -182,11 +183,11 @@ class PuzzleComposerScreenDescription(
             if (inputStack.isEmpty) return@addChangeListener
             val outputStack: ItemStack = inventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
             val stackItem: Item = changedItemStack.item
-            val panel: Panel = outputStack.tag?.getPanel() ?: return@addChangeListener
+            val panel: Panel = outputStack.tag?.getPanel(KEY_PANEL) ?: return@addChangeListener
 
             val color: DyeColor =
                 if (!changedItemStack.isEmpty && stackItem is DyeItem) stackItem.color
-                else inputStack.tag?.getPanel()?.backgroundColor ?: DyeColor.WHITE
+                else inputStack.tag?.getPanel(KEY_PANEL)?.backgroundColor ?: DyeColor.WHITE
 
             val tintedPanel: Panel = when (panel) {
                 is Panel.Grid -> panel.copy(backgroundColor = color)
@@ -194,7 +195,7 @@ class PuzzleComposerScreenDescription(
                 is Panel.Freeform -> panel.copy(backgroundColor = color)
             }
 
-            val updatedStack: ItemStack = outputStack.copy().apply { tag?.putPanel(tintedPanel) }
+            val updatedStack: ItemStack = outputStack.copy().apply { tag?.putPanel(KEY_PANEL, tintedPanel) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, updatedStack)
         }
 
@@ -208,8 +209,8 @@ class PuzzleComposerScreenDescription(
             widthSlider.setValue(0, false)
             updateInventory(PUZZLE_INPUT_SLOT_INDEX, ItemStack.EMPTY)
             // Consume dye if the puzzle color has changed
-            val inputBackgroundColor: DyeColor? = inputStack.tag?.getPanel()?.backgroundColor
-            val outputBackgroundColor: DyeColor? = changedItemStack.tag?.getPanel()?.backgroundColor
+            val inputBackgroundColor: DyeColor? = inputStack.tag?.getPanel(KEY_PANEL)?.backgroundColor
+            val outputBackgroundColor: DyeColor? = changedItemStack.tag?.getPanel(KEY_PANEL)?.backgroundColor
             // TODO: This is currently broken
             if (inputBackgroundColor != outputBackgroundColor) {
                 val updatedDyeStack: ItemStack = dyeStack.copy().apply { decrement(changedItemStack.count) }
@@ -222,9 +223,9 @@ class PuzzleComposerScreenDescription(
         editor.setClickListener { panel ->
             val inputStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
             val inputTag: CompoundTag = inputStack.tag ?: return@setClickListener
-            val inputPanel: Panel = inputTag.getPanel()
+            val inputPanel: Panel? = inputTag.getPanel(KEY_PANEL)
             if (panel == inputPanel) return@setClickListener
-            val outputStack: ItemStack = inputStack.copy().apply { tag?.putPanel(panel) }
+            val outputStack: ItemStack = inputStack.copy().apply { tag?.putPanel(KEY_PANEL, panel) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, outputStack)
         }
         layoutToolbar()

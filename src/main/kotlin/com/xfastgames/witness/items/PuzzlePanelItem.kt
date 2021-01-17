@@ -18,6 +18,8 @@ import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.world.World
 
+const val KEY_PANEL = "panel"
+
 class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
 
     companion object {
@@ -26,7 +28,8 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
     }
 
     override fun onCraft(stack: ItemStack?, world: World?, player: PlayerEntity?) {
-        stack?.tag = CompoundTag().apply { putPanel(Panel.Grid.ofSize(4)) }
+        stack?.tag = CompoundTag().apply { putPanel(KEY_PANEL, Panel.Grid.ofSize(4)) }
+        println(stack?.tag)
     }
 
     override fun onClient() {
@@ -40,7 +43,7 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
         tooltip: MutableList<Text>,
         context: TooltipContext?
     ) {
-        val puzzle: Panel = stack.tag?.getPanel() ?: return
+        val puzzle: Panel = stack.tag?.getPanel(KEY_PANEL) ?: return
 
         val typeString: String = puzzle.type.name.capitalize()
 

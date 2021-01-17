@@ -3,6 +3,7 @@ package com.xfastgames.witness.screens.widgets
 import com.google.common.graph.EndpointPair
 import com.google.common.graph.Graphs
 import com.google.common.graph.MutableValueGraph
+import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.intersects
@@ -19,7 +20,8 @@ import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
 import net.minecraft.inventory.Inventory
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.CompoundTag
+
+private const val CLICK_PADDING = 0.2f
 
 class WPuzzleEditor(
     private val inventory: Inventory,
@@ -64,8 +66,12 @@ class WPuzzleEditor(
         // Translate relative to panel placement
         matrices.translate(-1.275, -.895, .0)
 
-        puzzlePanelRenderer.renderPanel(
-            puzzleStack,
+        val puzzle: Panel = puzzleStack.tag?.getPanel(KEY_PANEL) ?: Panel.DEFAULT
+
+        puzzlePanelRenderer.renderGraph(
+            puzzle.graph,
+            puzzle.width,
+            puzzle.height,
             matrices,
             immediateConsumer,
             15728880,
@@ -83,21 +89,19 @@ class WPuzzleEditor(
     override fun onClick(x: Int, y: Int, button: Int) {
         val inputStack: ItemStack = inventory.getStack(outputSlotIndex)
         if (inputStack.isEmpty) return
-        val tag: CompoundTag = inputStack.tag ?: return
-        val inputPuzzle: Panel = tag.getPanel()
+        val inputPuzzle: Panel = inputStack.tag?.getPanel(KEY_PANEL) ?: return
 
         val xPosition = 1 - (x.toFloat() / width)
         val yPosition = 1 - (y.toFloat() / height)
 
         val puzzleRelativeX: Float = xPosition * inputPuzzle.width
         val puzzleRelativeY: Float = yPosition * inputPuzzle.height
-        val clickPadding = 0.2f
 
         val mouseXRange: ClosedFloatingPointRange<Float> =
-            (puzzleRelativeX - clickPadding)..(puzzleRelativeX + clickPadding)
+            (puzzleRelativeX - CLICK_PADDING)..(puzzleRelativeX + CLICK_PADDING)
 
         val mouseYRange: ClosedFloatingPointRange<Float> =
-            (puzzleRelativeY - clickPadding)..(puzzleRelativeY + clickPadding)
+            (puzzleRelativeY - CLICK_PADDING)..(puzzleRelativeY + CLICK_PADDING)
 
         val node: Node? = inputPuzzle.graph.nodes().find { node ->
             node.x in mouseXRange && node.y in mouseYRange
@@ -116,8 +120,6 @@ class WPuzzleEditor(
             }
 
         val edge: Edge? = edgeNodePair?.let { inputPuzzle.graph.edgeValue(it).orElse(null) }
-
-//        println("MOUSE $puzzleRelativeX, $puzzleRelativeY $node $edgeNodePair")
 
         val updatedNode: Node? =
             node?.copy(modifier = if (node.modifier == Modifier.START) Modifier.NONE else Modifier.START)

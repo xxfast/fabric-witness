@@ -2,6 +2,7 @@ package com.xfastgames.witness.items.renderer
 
 import com.google.common.graph.ValueGraph
 import com.xfastgames.witness.Witness
+import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
@@ -82,7 +83,6 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         }
     }
 
-    @Suppress("UnstableApiUsage")
     fun renderPanel(
         stack: ItemStack,
         matrices: MatrixStack,
@@ -90,39 +90,52 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         light: Int,
         overlay: Int
     ) {
+        val puzzle: Panel = stack.tag?.getPanel(KEY_PANEL) ?: Panel.DEFAULT
+        renderBackground(puzzle.backgroundColor, matrices, vertexConsumers, light, overlay)
+        renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, vertexConsumers, light, overlay)
+        renderLine(puzzle.line, puzzle.width, puzzle.height, matrices, vertexConsumers, light, overlay)
+    }
+
+    @Suppress("UnstableApiUsage")
+    fun renderBackground(
+        dyeColor: DyeColor,
+        matrices: MatrixStack,
+        vertexConsumers: VertexConsumerProvider,
+        light: Int,
+        overlay: Int
+    ) {
         matrices.push()
-
-        // Retrieve panel to render
-        // If there's no tag
-        val puzzle: Panel = stack.tag?.getPanel() ?: Panel.DEFAULT
-
-        // Render Panel background
-        val backdropTexture: Identifier = getBackdropTexture(puzzle.backgroundColor)
+        val backdropTexture: Identifier = getBackdropTexture(dyeColor)
 
         // TODO Figure out why entity coutout is making the lighting weird when rotated
         val backdropConsumer: VertexConsumer =
             vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(backdropTexture, false))
 
         backdropConsumer.square(matrices, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
+        return matrices.pop()
+    }
 
-        // Scale items to fit on frame
-        if (puzzle.graph.nodes().isEmpty()) return matrices.pop()
-
-        val xDelta: Float = (puzzle.graph.nodes().maxOf { it.x } - puzzle.graph.nodes().minOf { it.x })
-        val yDelta: Float = (puzzle.graph.nodes().maxOf { it.y } - puzzle.graph.nodes().minOf { it.y })
-
-        val maxDelta: Float = maxOf(xDelta, yDelta)
-
-        // Leave one tile for padding
-        val maxScale: Float = 1f / (maxDelta + 1)
+    @Suppress("UnstableApiUsage")
+    fun renderGraph(
+        graph: ValueGraph<Node, Edge>,
+        width: Int,
+        height: Int,
+        matrices: MatrixStack,
+        vertexConsumers: VertexConsumerProvider,
+        light: Int,
+        overlay: Int
+    ) {
+        matrices.push()
+        if (graph.nodes().isEmpty()) return matrices.pop()
+        val maxDimension: Int = maxOf(width, height)
+        val maxScale: Float = 1f / maxDimension
 
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.01)
 
         // Render grid vertices
-        val fillConsumer1: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(lineFillTexture, false))
-        val graph: ValueGraph<Node, Edge> = puzzle.graph
-        withRenderContext(matrices, fillConsumer1, light, overlay) {
+        val fillConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(lineFillTexture, false))
+        withRenderContext(matrices, fillConsumer, light, overlay) {
             graph.nodes().forEach { node ->
                 val isThereAnyVisibleEdges: Boolean = graph.incidentEdges(node).any { endpointPair ->
                     graph.edgeValue(endpointPair).value !in listOf(Edge.NONE, Edge.HIDDEN)
@@ -138,13 +151,54 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
                 val endNode: Node = side.nodeV()
                 val start = Vector3f(startNode.x, startNode.y, 0f)
                 val end = Vector3f(endNode.x, endNode.y, 0f)
-                // TODO: Render the correct line
                 edge(start, end, 4.pc, edge)
             }
         }
 
         matrices.scale(1 + maxScale, 1 + maxScale, 1f)
         matrices.pop()
+    }
+
+    @Suppress("UnstableApiUsage")
+    fun renderLine(
+        line: ValueGraph<Node, Float>,
+        width: Int,
+        height: Int,
+        matrices: MatrixStack,
+        vertexConsumers: VertexConsumerProvider,
+        light: Int,
+        overlay: Int
+    ) {
+        matrices.push()
+        if (line.nodes().isEmpty()) return matrices.pop()
+        val maxDimension: Int = maxOf(width, height)
+        val maxScale: Float = 1f / maxDimension
+
+        matrices.scale(maxScale, maxScale, 1f)
+        matrices.translate(.0, .0, -.015)
+
+        // Render line fill
+        val fillConsumer: VertexConsumer =
+            vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(solutionFillTexture, false))
+        withRenderContext(matrices, fillConsumer, light, overlay) {
+            line.nodes().forEach { node ->
+                if (node.modifier == Modifier.START) circle(Vector3f(node.x, node.y, 0f), 4.pc)
+                else circle(Vector3f(node.x, node.y, 0f), 2.pc)
+            }
+
+            line.edges().forEach { side ->
+                val fillPercentage: Float = line.edgeValue(side).value ?: return@forEach
+                val startNode: Node = side.nodeU()
+                val endNode: Node = side.nodeV()
+                val start = Vector3f(startNode.x, startNode.y, 0f)
+                val end = Vector3f(endNode.x, endNode.y, 0f)
+                edge(start, end, 4.pc, Modifier.NORMAL)
+            }
+        }
+
+        matrices.scale(1 + maxScale, 1 + maxScale, 1f)
+
+        return matrices.pop()
     }
 
     private fun RenderContext.edge(start: Vector3f, end: Vector3f, thickness: Float, edge: Edge) {
