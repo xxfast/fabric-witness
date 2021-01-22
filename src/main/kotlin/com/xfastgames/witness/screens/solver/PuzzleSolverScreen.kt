@@ -1,15 +1,16 @@
-package com.xfastgames.witness.screens
+package com.xfastgames.witness.screens.solver
 
+import com.google.common.graph.MutableValueGraph
+import com.google.common.graph.ValueGraph
+import com.google.common.graph.ValueGraphBuilder
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.PuzzlePanelItem
-import com.xfastgames.witness.items.data.Node
-import com.xfastgames.witness.items.data.Panel
-import com.xfastgames.witness.items.data.getPanel
-import com.xfastgames.witness.items.data.putPanel
+import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.utils.*
+import kotlinx.coroutines.FlowPreview
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.minecraft.block.Block
@@ -44,8 +45,11 @@ import net.minecraft.world.RaycastContext
 
 private const val BORDER_WIDTH = 14
 private const val CLICK_PADDING = 0.5f
+private const val MAX_CURSOR_SPEED = 0.15f
 
 @Environment(EnvType.CLIENT)
+@OptIn(FlowPreview::class)
+@Suppress("UnstableApiUsage")
 class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
     object Sounds {
@@ -58,6 +62,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     private val cursorShadowSize = Interpolator(BORDER_WIDTH * 4, BORDER_WIDTH / 2) { it.value -= 2 }
     private val mouseBuffer: MutableList<Pair<Double, Double>> = mutableListOf()
     private var targetBlockEntity: PuzzleFrameBlockEntity? = null
+
+    private val domain = PuzzleSolverDomain()
 
     override fun init(client: MinecraftClient?, width: Int, height: Int) {
         super.init(client, width, height)
@@ -78,8 +84,10 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         fill(matrices, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
         fill(matrices, 0, 0, BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
         fill(matrices, width - BORDER_WIDTH, 0, width, height, 1f, 1f, 1f, borderAlpha)
-        circle(matrices, mouseX, mouseY, cursorShadowSize, 1f, 1f, 1f, .25f)
-        circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 1f, 1f, 1f, .9f)
+        if (!domain.isSolving) {
+            circle(matrices, mouseX, mouseY, cursorShadowSize, 1f, 1f, 1f, .25f)
+            circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 1f, 1f, 1f, .9f)
+        }
     }
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
@@ -92,10 +100,11 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         return super.keyPressed(keyCode, scanCode, modifiers)
     }
 
-    // TODO: Override the fun once the feature is ready to be shipped
-    private fun onMouseMoved(mouseX: Double, mouseY: Double) {
+    override fun mouseMoved(mouseX: Double, mouseY: Double) {
+        if (!domain.isSolving) return
+
         mouseBuffer.add(mouseX to mouseY)
-        if (mouseBuffer.size > 5) mouseBuffer.removeAt(0)
+        if (mouseBuffer.size > 2) mouseBuffer.removeAt(0)
 
         val mouseDeltas = mouseBuffer
             .zipSelf()
@@ -106,6 +115,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             }
 
         if (mouseDeltas.isEmpty()) return
+
         val (dx: Double, dy: Double) = mouseDeltas.reduce { previous, current ->
             val (d1x, d1y) = previous
             val (d2x, d2y) = current
@@ -120,9 +130,27 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val puzzle: Panel? = tag.getPanel(KEY_PANEL)
         if (puzzleStack.item !is PuzzlePanelItem) return
         if (puzzle == null) return
+
+        // Only respond if there is a start
+        val start: Node? = puzzle.line.nodes().firstOrNull { it.modifier == Modifier.START }
+        if (start == null) return
+
+        val relativeDX: Float =
+            (-dx.toFloat() / puzzle.width / 2).coerceAtLeast(-MAX_CURSOR_SPEED).coerceAtMost(MAX_CURSOR_SPEED)
+        val relativeDY: Float =
+            (-dy.toFloat() / puzzle.height / 2).coerceAtLeast(-MAX_CURSOR_SPEED).coerceAtMost(MAX_CURSOR_SPEED)
+
+        val updatedX: Float = (relativeDX + start.x).coerceAtLeast(0f).coerceAtMost(puzzle.width.toFloat())
+        val updatedY: Float = (relativeDY + start.y).coerceAtLeast(0f).coerceAtMost(puzzle.height.toFloat())
+        val movedStart: Node = start.copy(x = updatedX, y = updatedY)
+
+        val updatedLine: MutableValueGraph<Node, Float> = ValueGraphBuilder.from(puzzle.line).build()
+        updatedLine.removeNode(start)
+        updatedLine.addNode(movedStart)
+
+        updateLine(blockEntity, puzzleStack, puzzle, updatedLine)
     }
 
-    @Suppress("UnstableApiUsage")
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val client: MinecraftClient = requireNotNull(client)
         val player: ClientPlayerEntity = requireNotNull(client.player)
@@ -150,9 +178,9 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         // Only respond if the entity has an panel
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
-        val puzzle: Panel? = puzzleStack.tag?.getPanel(KEY_PANEL) ?: return missClick(player)
+        val puzzlePanel: Panel? = puzzleStack.tag?.getPanel(KEY_PANEL) ?: return missClick(player)
         if (puzzleStack.item !is PuzzlePanelItem) return missClick(player)
-        if (puzzle == null) return missClick(player)
+        if (puzzlePanel == null) return missClick(player)
 
         // Only respond to block hit results for puzzle frames
         val blockState: BlockState = world.getBlockState(blockPos)
@@ -162,7 +190,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         // Only respond if the hit is one the face of the puzzle frame
         val facing: Direction = blockState[Properties.HORIZONTAL_FACING]
         if (hit.side != facing.opposite) return missClick(player)
-
 
         // Transform to frame size
         val hitPos: Vec3d = hit.pos
@@ -177,8 +204,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             else -> return false
         }
 
-        val scaledClickX: Double = puzzle.width * clickX
-        val scaledClickY: Double = puzzle.height * clickY
+        val scaledClickX: Double = puzzlePanel.width * clickX
+        val scaledClickY: Double = puzzlePanel.height * clickY
 
         val clickXRange: ClosedFloatingPointRange<Double> =
             (scaledClickX - CLICK_PADDING)..(scaledClickX + CLICK_PADDING)
@@ -186,19 +213,14 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val clickYRange: ClosedFloatingPointRange<Double> =
             (scaledClickY - CLICK_PADDING)..(scaledClickY + CLICK_PADDING)
 
-        val clickedNode: Node? = puzzle.graph.nodes()
+        val clickedNode: Node? = puzzlePanel.graph.nodes()
             .find { node -> node.x in clickXRange && node.y in clickYRange }
-
-        println("HIT POS: $scaledClickX, $scaledClickY -> $clickedNode")
+            .takeIf { it?.modifier == Modifier.START }
 
         clickedNode?.let {
-            val updatedPanel: Panel = when (puzzle) {
-                is Panel.Grid -> puzzle.copy(line = mutableGraph<Node, Float>().apply { addNode(clickedNode) })
-                is Panel.Tree -> puzzle.copy(line = mutableGraph<Node, Float>().apply { addNode(clickedNode) })
-                is Panel.Freeform -> puzzle.copy(line = mutableGraph<Node, Float>().apply { addNode(clickedNode) })
-            }
-            val updatedStack: ItemStack = puzzleStack.copy().apply { tag?.putPanel(KEY_PANEL, updatedPanel) }
-            blockEntity.inventory.setStack(0, updatedStack)
+            val line: ValueGraph<Node, Float>? = domain.startTracingLine(puzzlePanel, clickedNode)
+            if (line == null) return missClick(player)
+            updateLine(blockEntity, puzzleStack, puzzlePanel, line)
         }
 
         if (clickedNode != null) player.playSound(IronPuzzleFrameBlock.Sounds.START_TRACING, 1f, 1f)
@@ -210,6 +232,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     override fun onClose() {
         client?.options?.hudHidden = false
         client?.player?.playSound(Sounds.FOCUS_MODE_EXIT, 0.5f, 1f)
+        domain.stopTrace()
         super.onClose()
     }
 
@@ -305,6 +328,24 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             }
         }
         return target
+    }
+
+    private fun updateLine(
+        blockEntity: PuzzleFrameBlockEntity,
+        stack: ItemStack,
+        puzzlePanel: Panel,
+        line: ValueGraph<Node, Float>
+    ) {
+        val updatedPanel: Panel = when (puzzlePanel) {
+            is Panel.Grid -> puzzlePanel.copy(line = line)
+            is Panel.Tree -> puzzlePanel.copy(line = line)
+            is Panel.Freeform -> puzzlePanel.copy(line = line)
+        }
+
+        val updatedStack: ItemStack = stack.copy().apply { tag?.putPanel(KEY_PANEL, updatedPanel) }
+
+        // TODO: Synchronise inventory
+        blockEntity.inventory.setStack(0, updatedStack)
     }
 
     private fun missClick(player: ClientPlayerEntity): Boolean {

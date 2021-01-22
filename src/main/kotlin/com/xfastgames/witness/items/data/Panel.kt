@@ -4,7 +4,7 @@ import com.google.common.graph.MutableValueGraph
 import com.google.common.graph.ValueGraph
 import com.google.common.graph.ValueGraphBuilder
 import com.xfastgames.witness.items.data.Panel.Companion.Type
-import com.xfastgames.witness.utils.mutableGraph
+import com.xfastgames.witness.utils.mutableValueGraph
 import com.xfastgames.witness.utils.pow
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.DyeColor
@@ -73,7 +73,7 @@ sealed class Panel(val type: Type) {
 
             private fun generatePanel(width: Int, height: Int): Grid {
                 val graph: ValueGraph<Node, Edge> = generateGrid(width, height)
-                val line: MutableValueGraph<Node, Float> = mutableGraph<Node, Float>().apply {
+                val line: MutableValueGraph<Node, Float> = mutableValueGraph<Node, Float>().apply {
                     val startNode: Node? = graph.nodes().firstOrNull()
                     startNode?.let { addNode(startNode) }
                 }
@@ -115,7 +115,7 @@ sealed class Panel(val type: Type) {
 
         companion object {
             fun ofSize(height: Int): Tree = Tree(
-                line = mutableGraph(),
+                line = mutableValueGraph(),
                 backgroundColor = DyeColor.WHITE,
                 graph = generateTree(height),
                 width = height,

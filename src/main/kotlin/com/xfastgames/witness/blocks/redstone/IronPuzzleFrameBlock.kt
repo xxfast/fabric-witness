@@ -3,7 +3,7 @@ package com.xfastgames.witness.blocks.redstone
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
-import com.xfastgames.witness.screens.PuzzleSolverScreen
+import com.xfastgames.witness.screens.solver.PuzzleSolverScreen
 import com.xfastgames.witness.utils.*
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*

@@ -33,6 +33,6 @@ fun <N, E> MutableValueGraph<N, E>.add(nodeList: List<N>, adjacencyMatrix: List<
     }
 
 @Suppress("UnstableApiUsage")
-fun <N, E> mutableGraph(): MutableValueGraph<N, E> = ValueGraphBuilder
+fun <N, E> mutableValueGraph(): MutableValueGraph<N, E> = ValueGraphBuilder
     .undirected()
     .build()
