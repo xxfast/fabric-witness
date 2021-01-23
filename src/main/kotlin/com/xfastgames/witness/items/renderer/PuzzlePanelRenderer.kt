@@ -138,12 +138,15 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         val fillConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(lineFillTexture, false))
         withRenderContext(matrices, fillConsumer, light, overlay) {
             graph.nodes().forEach { node ->
-                val isThereAnyVisibleEdges: Boolean = graph.incidentEdges(node).any { endpointPair ->
+                val numberOfEdgesVisible: Int = graph.incidentEdges(node).count { endpointPair ->
                     graph.edgeValue(endpointPair).value !in listOf(Edge.NONE, Edge.HIDDEN)
                 }
 
-                if (node.modifier == Modifier.START) circle(Vector3f(node.x, node.y, 0f), 4.pc)
-                else if (isThereAnyVisibleEdges) circle(Vector3f(node.x, node.y, 0f), 2.pc)
+                when {
+                    node.modifier == Modifier.START -> circle(Vector3f(node.x, node.y, 0f), 4.pc)
+                    numberOfEdgesVisible > 1 -> circle(Vector3f(node.x, node.y, 0f), 2.pc)
+                    numberOfEdgesVisible == 1 -> square(Vector3f(node.x - 2.pc, node.y - 2.pc, 0f), 4.pc)
+                }
             }
 
             graph.edges().forEach { side ->

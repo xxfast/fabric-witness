@@ -73,7 +73,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
     private val borderAlpha = Interpolator(.0f, .8f) { it.value += .05f }
     private val cursorShadowSize = Interpolator(BORDER_WIDTH * 4, BORDER_WIDTH / 2) { it.value -= 2 }
-    private val mouseBuffer: MutableList<Pair<Double, Double>> = mutableListOf()
     private var targetBlockEntity: PuzzleFrameBlockEntity? = null
 
     private val domain = PuzzleSolverDomain()
@@ -81,7 +80,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     override fun init(client: MinecraftClient?, width: Int, height: Int) {
         super.init(client, width, height)
         val mouse: Mouse = requireNotNull(client?.mouse)
-        mouse.hide()
+        // TODO: Hide the mouse
+        // mouse.hide()
         client?.player?.playSound(Sounds.FOCUS_MODE_ENTER, 0.5f, 1f)
         client?.options?.hudHidden = true
     }
@@ -97,10 +97,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         fill(matrices, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
         fill(matrices, 0, 0, BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
         fill(matrices, width - BORDER_WIDTH, 0, width, height, 1f, 1f, 1f, borderAlpha)
-        if (!domain.isSolving) {
-            circle(matrices, mouseX, mouseY, cursorShadowSize, 1f, 1f, 1f, .25f)
-            circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 1f, 1f, 1f, .9f)
-        }
+        circle(matrices, mouseX, mouseY, cursorShadowSize, 1f, 1f, 1f, .25f)
+        circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 1f, 1f, 1f, .9f)
     }
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
@@ -115,25 +113,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         if (!domain.isSolving) return
-
-        mouseBuffer.add(mouseX to mouseY)
-        if (mouseBuffer.size > 2) mouseBuffer.removeAt(0)
-
-        val mouseDeltas = mouseBuffer
-            .zipSelf()
-            .map { (previous, current) ->
-                val (d1x, d1y) = previous
-                val (d2x, d2y) = current
-                (d2x - d1x) to (d2y - d1y)
-            }
-
-        if (mouseDeltas.isEmpty()) return
-
-        val (dx: Double, dy: Double) = mouseDeltas.reduce { previous, current ->
-            val (d1x, d1y) = previous
-            val (d2x, d2y) = current
-            (d2x + d1x) / 2 to (d2y + d1y) / 2
-        }
 
         val blockEntity: PuzzleFrameBlockEntity = targetBlockEntity ?: return
 
@@ -152,23 +131,27 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val end: Node = puzzle.line.nodes().firstOrNull { it.modifier == Modifier.END }
             ?: start.copy(modifier = Modifier.END)
 
-        val relativeDX: Float =
-            (-dx.toFloat() / puzzle.width / 2).coerceAtLeast(-MAX_CURSOR_SPEED).coerceAtMost(MAX_CURSOR_SPEED)
-        val relativeDY: Float =
-            (-dy.toFloat() / puzzle.height / 2).coerceAtLeast(-MAX_CURSOR_SPEED).coerceAtMost(MAX_CURSOR_SPEED)
+        val world: ClientWorld = requireNotNull(client?.world)
 
-        val updatedX: Float = (relativeDX + end.x).coerceAtLeast(0f).coerceAtMost(puzzle.width.toFloat())
-        val updatedY: Float = (relativeDY + end.y).coerceAtLeast(0f).coerceAtMost(puzzle.height.toFloat())
-        val movedEnd: Node = end.copy(x = updatedX, y = updatedY)
+        val hitResult: PuzzlePanelHitResult = rayCastAtPanel(world, mouseX, mouseY) ?: return
+        val puzzlePanel: Panel = hitResult.puzzlePanel
+        val (clickX, clickY) = hitResult.position
+
+        // TODO: Need to accommodate panel border to this calculation somehow
+        val scaledClickX: Double = puzzlePanel.width * clickX
+        val scaledClickY: Double = puzzlePanel.height * clickY
+
+        val movedEnd: Node = end.copy(x = scaledClickX.toFloat(), y = scaledClickY.toFloat())
 
         val updatedLine: MutableGraph<Node> = mutableGraph()
         updatedLine.removeNode(end)
         updatedLine.addNode(movedEnd)
         updatedLine.putEdge(start, movedEnd)
 
-        updateLine(blockEntity, puzzleStack, puzzle, updatedLine)
+        updateLine(blockEntity, puzzle, updatedLine)
     }
 
+    // TODO: Refactor this mess to a domain with a finite state
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val client: MinecraftClient = requireNotNull(client)
         val player: ClientPlayerEntity = requireNotNull(client.player)
@@ -180,46 +163,12 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             return true
         }
 
-        val hit: HitResult? = rayCast(mouseX, mouseY)
+        val hitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
 
-        // Only respond to block hit results
-        if (hit == null) return missClick(player)
-        if (hit.type != HitResult.Type.BLOCK) return missClick(player)
-        if (hit !is BlockHitResult) return missClick(player)
-
-        val blockPos: BlockPos = hit.blockPos
-
-        // Only respond if the block has an entity
-        val blockEntity: BlockEntity = world.getBlockEntity(blockPos) ?: return missClick(player)
-        if (blockEntity !is PuzzleFrameBlockEntity) return missClick(player)
-        targetBlockEntity = blockEntity
-
-        // Only respond if the entity has an panel
-        val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
-        val puzzlePanel: Panel = puzzleStack.tag?.getPanel(KEY_PANEL) ?: return missClick(player)
-        if (puzzleStack.item !is PuzzlePanelItem) return missClick(player)
-
-        // Only respond to block hit results for puzzle frames
-        val blockState: BlockState = world.getBlockState(blockPos)
-        val block: Block = blockState.block
-        if (block !is IronPuzzleFrameBlock) return missClick(player)
-
-        // Only respond if the hit is one the face of the puzzle frame
-        val facing: Direction = blockState[Properties.HORIZONTAL_FACING]
-        if (hit.side != facing.opposite) return missClick(player)
-
-        // Transform to frame size
-        val hitPos: Vec3d = hit.pos
-        val voxelCoordinate = Vec3d(hitPos.x - blockPos.x, hitPos.y - blockPos.y, hitPos.z - blockPos.z)
-
-        // TODO: Figure out why I cant do this transformation with rotation
-        val (clickX, clickY) = when (facing) {
-            Direction.EAST -> 1 - voxelCoordinate.z to voxelCoordinate.y
-            Direction.WEST -> voxelCoordinate.z to voxelCoordinate.y
-            Direction.NORTH -> 1 - voxelCoordinate.x to voxelCoordinate.y
-            Direction.SOUTH -> voxelCoordinate.x to voxelCoordinate.y
-            else -> return false
-        }
+        if (hitResult == null) return missClick(player)
+        val puzzlePanel: Panel = hitResult.puzzlePanel
+        val (clickX, clickY) = hitResult.position
+        val blockEntity: PuzzleFrameBlockEntity = hitResult.blockEntity
 
         val scaledClickX: Double = puzzlePanel.width * clickX
         val scaledClickY: Double = puzzlePanel.height * clickY
@@ -237,7 +186,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         clickedNode?.let {
             val line: Graph<Node>? = domain.startTracingLine(puzzlePanel, clickedNode)
             if (line == null) return missClick(player)
-            updateLine(blockEntity, puzzleStack, puzzlePanel, line)
+            updateLine(blockEntity, puzzlePanel, line)
         }
 
         if (clickedNode != null) {
@@ -253,10 +202,16 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         client?.player?.playSound(Sounds.FOCUS_MODE_EXIT, 0.5f, 1f)
         domain.stopTrace()
         FOCUS_MODE_DOING_INSTANCE.stop()
+        client?.mouse?.unlockCursor()
         super.onClose()
     }
 
-    private fun rayCast(mouseX: Double, mouseY: Double, tickDelta: Float = 0.0f): HitResult? {
+    private fun rayCastAtPanel(
+        world: ClientWorld,
+        mouseX: Double,
+        mouseY: Double,
+        tickDelta: Float = 0.0f
+    ): PuzzlePanelHitResult? {
         val client: MinecraftClient = requireNotNull(client)
         val width: Int = client.window.scaledWidth
         val height: Int = client.window.scaledHeight
@@ -286,13 +241,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         orignialCameraAxis.rotate(horizontalRotationAxis.getDegreesQuaternion(horizontalRotation))
         val direction = Vec3d(orignialCameraAxis)
 
-        return rayCastInDirection(client, tickDelta, direction)
-    }
-
-    /**
-     * Refactor this
-     */
-    private fun rayCastInDirection(client: MinecraftClient, tickDelta: Float, direction: Vec3d): HitResult? {
         val entity: Entity? = client.getCameraEntity()
         if (entity == null || client.world == null) return null
         val interactionManager: ClientPlayerInteractionManager = requireNotNull(client.interactionManager)
@@ -334,25 +282,66 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val entityHitResult: EntityHitResult? =
             ProjectileUtil.raycast(entity, cameraPos, vec3d3, box, rayTracePredicate, extendedReach)
 
-        if (entityHitResult == null) return target
-
-        val entity2: Entity = entityHitResult.entity
-        val vec3d4 = entityHitResult.pos
-        val g = cameraPos.squaredDistanceTo(vec3d4)
-        if (tooFar && g > 9.0) {
-            return null
-        } else if (g < extendedReach || target == null) {
-            target = entityHitResult
-            if (entity2 is LivingEntity || entity2 is ItemFrameEntity) {
-                client.targetedEntity = entity2
+        // TODO: Maybe some bs that i dont actually need
+        if (entityHitResult != null) {
+            val entity2: Entity = entityHitResult.entity
+            val vec3d4 = entityHitResult.pos
+            val g = cameraPos.squaredDistanceTo(vec3d4)
+            if (tooFar && g > 9.0) {
+                return null
+            } else if (g < extendedReach || target == null) {
+                target = entityHitResult
+                if (entity2 is LivingEntity || entity2 is ItemFrameEntity) {
+                    client.targetedEntity = entity2
+                }
             }
         }
-        return target
+
+        val hit: HitResult? = target
+        // Only respond to block hit results
+        if (hit == null) return null
+        if (hit.type != HitResult.Type.BLOCK) return null
+        if (hit !is BlockHitResult) return null
+
+        val blockPos: BlockPos = hit.blockPos
+
+        // Only respond if the block has an entity
+        val blockEntity: BlockEntity = world.getBlockEntity(blockPos) ?: return null
+        if (blockEntity !is PuzzleFrameBlockEntity) return null
+        targetBlockEntity = blockEntity
+
+        // Only respond if the entity has an panel
+        val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
+        val puzzlePanel: Panel = puzzleStack.tag?.getPanel(KEY_PANEL) ?: return null
+        if (puzzleStack.item !is PuzzlePanelItem) return null
+
+        // Only respond to block hit results for puzzle frames
+        val blockState: BlockState = world.getBlockState(blockPos)
+        val block: Block = blockState.block
+        if (block !is IronPuzzleFrameBlock) return null
+
+        // Only respond if the hit is one the face of the puzzle frame
+        val facing: Direction = blockState[Properties.HORIZONTAL_FACING]
+        if (hit.side != facing.opposite) return null
+
+        // Transform to frame size
+        val hitPos: Vec3d = hit.pos
+        val voxelCoordinate = Vec3d(hitPos.x - blockPos.x, hitPos.y - blockPos.y, hitPos.z - blockPos.z)
+
+        // TODO: Figure out why I cant do this transformation with rotation
+        val hitPosition: Pair<Double, Double> = when (facing) {
+            Direction.EAST -> 1 - voxelCoordinate.z to voxelCoordinate.y
+            Direction.WEST -> voxelCoordinate.z to voxelCoordinate.y
+            Direction.NORTH -> 1 - voxelCoordinate.x to voxelCoordinate.y
+            Direction.SOUTH -> voxelCoordinate.x to voxelCoordinate.y
+            else -> return null
+        }
+
+        return PuzzlePanelHitResult(hitPosition, puzzlePanel, blockEntity)
     }
 
     private fun updateLine(
         blockEntity: PuzzleFrameBlockEntity,
-        stack: ItemStack,
         puzzlePanel: Panel,
         line: Graph<Node>
     ) {
@@ -361,6 +350,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             is Panel.Tree -> puzzlePanel.copy(line = line)
             is Panel.Freeform -> puzzlePanel.copy(line = line)
         }
+
+        val stack: ItemStack = blockEntity.inventory.getStack(0)
 
         val updatedStack: ItemStack = stack.copy().apply { tag?.putPanel(KEY_PANEL, updatedPanel) }
 
