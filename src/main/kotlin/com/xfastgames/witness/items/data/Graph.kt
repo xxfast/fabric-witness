@@ -1,19 +1,19 @@
 package com.xfastgames.witness.items.data
 
+import com.google.common.graph.Graph
+import com.google.common.graph.GraphBuilder
 import com.google.common.graph.ValueGraph
 import com.google.common.graph.ValueGraphBuilder
-import com.xfastgames.witness.utils.add
-import com.xfastgames.witness.utils.adjacencyMatrix
-import net.minecraft.nbt.CompoundTag
-import net.minecraft.nbt.FloatTag
-import net.minecraft.nbt.ListTag
+import com.xfastgames.witness.utils.guava.add
+import com.xfastgames.witness.utils.guava.adjacencyMatrix
+import net.minecraft.nbt.*
 
 private const val KEY_EDGES = "edges"
 private const val KEY_NODES = "nodes"
 private const val KEY_FILL = "fill"
 
 @Suppress("UnstableApiUsage")
-fun CompoundTag.getEdgeGraph(key: String): ValueGraph<Node, Edge> =
+fun CompoundTag.getValueGraph(key: String): ValueGraph<Node, Edge> =
     getCompound(key).let { tag ->
         ValueGraphBuilder
             .undirected()
@@ -38,7 +38,7 @@ fun CompoundTag.getEdgeGraph(key: String): ValueGraph<Node, Edge> =
     }
 
 @Suppress("UnstableApiUsage")
-fun CompoundTag.putEdgeGraph(key: String, graph: ValueGraph<Node, Edge>) {
+fun CompoundTag.putValueGraph(key: String, graph: ValueGraph<Node, Edge>) {
     put(key, CompoundTag().apply {
         val nodes: Set<Node> = graph.nodes()
         put(KEY_NODES, ListTag().apply {
@@ -56,11 +56,11 @@ fun CompoundTag.putEdgeGraph(key: String, graph: ValueGraph<Node, Edge>) {
 }
 
 @Suppress("UnstableApiUsage")
-fun CompoundTag.getFloatGraph(key: String): ValueGraph<Node, Float> =
+fun CompoundTag.getGraph(key: String): Graph<Node> =
     getCompound(key).let { tag ->
-        ValueGraphBuilder
+        GraphBuilder
             .undirected()
-            .build<Node, Float>()
+            .build<Node>()
             .apply {
                 if (tag.isEmpty) return@apply
 
@@ -70,11 +70,9 @@ fun CompoundTag.getFloatGraph(key: String): ValueGraph<Node, Float> =
 
                 if (nodes.isEmpty()) return@apply
 
-                val adjacencyMatrix: List<List<Float?>> =
-                    tag.getList(KEY_FILL, 10)
-                        .filterIsInstance<FloatTag>()
-                        .map { tag -> tag.float }
-                        .map { value -> if (value == 0f) null else value }
+                val adjacencyMatrix: List<List<Boolean>> =
+                    tag.getIntArray(KEY_FILL)
+                        .map { value -> value != 0 }
                         .chunked(nodes.size)
 
                 add(nodes, adjacencyMatrix)
@@ -82,7 +80,7 @@ fun CompoundTag.getFloatGraph(key: String): ValueGraph<Node, Float> =
     }
 
 @Suppress("UnstableApiUsage")
-fun CompoundTag.putFloatGraph(key: String, graph: ValueGraph<Node, Float>) {
+fun CompoundTag.putGraph(key: String, graph: Graph<Node>) {
     put(key, CompoundTag().apply {
         val nodes: Set<Node> = graph.nodes()
         put(KEY_NODES, ListTag().apply {
@@ -90,11 +88,7 @@ fun CompoundTag.putFloatGraph(key: String, graph: ValueGraph<Node, Float>) {
                 add(CompoundTag().apply { putNode(node) })
             }
         })
-        put(KEY_FILL, ListTag().apply {
-            graph.adjacencyMatrix.flatten().forEachIndexed { index, value ->
-                value?.let { this[index] = FloatTag.of(value) }
-            }
-        })
+        put(KEY_FILL, IntArrayTag(graph.adjacencyMatrix.flatten().map { value -> if (value) 1 else 0 }))
     })
 }
 

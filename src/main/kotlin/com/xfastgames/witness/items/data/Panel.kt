@@ -1,10 +1,9 @@
 package com.xfastgames.witness.items.data
 
-import com.google.common.graph.MutableValueGraph
-import com.google.common.graph.ValueGraph
-import com.google.common.graph.ValueGraphBuilder
+import com.google.common.graph.*
 import com.xfastgames.witness.items.data.Panel.Companion.Type
-import com.xfastgames.witness.utils.mutableValueGraph
+import com.xfastgames.witness.utils.guava.emptyGraph
+import com.xfastgames.witness.utils.guava.mutableGraph
 import com.xfastgames.witness.utils.pow
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.DyeColor
@@ -18,7 +17,7 @@ private const val KEY_PANEL_TYPE = "type"
 
 @Suppress("UnstableApiUsage")
 sealed class Panel(val type: Type) {
-    abstract val line: ValueGraph<Node, Float>
+    abstract val line: Graph<Node>
     abstract val graph: ValueGraph<Node, Edge>
     abstract val backgroundColor: DyeColor
     abstract val width: Int
@@ -27,7 +26,7 @@ sealed class Panel(val type: Type) {
     abstract fun resize(length: Int): Panel
 
     data class Grid(
-        override val line: ValueGraph<Node, Float>,
+        override val line: Graph<Node>,
         override val graph: ValueGraph<Node, Edge>,
         override val backgroundColor: DyeColor,
         override val width: Int,
@@ -73,10 +72,7 @@ sealed class Panel(val type: Type) {
 
             private fun generatePanel(width: Int, height: Int): Grid {
                 val graph: ValueGraph<Node, Edge> = generateGrid(width, height)
-                val line: MutableValueGraph<Node, Float> = mutableValueGraph<Node, Float>().apply {
-                    val startNode: Node? = graph.nodes().firstOrNull()
-                    startNode?.let { addNode(startNode) }
-                }
+                val line: Graph<Node> = emptyGraph()
 
                 return Grid(
                     line = line,
@@ -106,7 +102,7 @@ sealed class Panel(val type: Type) {
     }
 
     data class Tree(
-        override val line: ValueGraph<Node, Float>,
+        override val line: Graph<Node>,
         override val graph: ValueGraph<Node, Edge>,
         override val backgroundColor: DyeColor,
         override val width: Int,
@@ -115,7 +111,7 @@ sealed class Panel(val type: Type) {
 
         companion object {
             fun ofSize(height: Int): Tree = Tree(
-                line = mutableValueGraph(),
+                line = mutableGraph(),
                 backgroundColor = DyeColor.WHITE,
                 graph = generateTree(height),
                 width = height,
@@ -152,7 +148,7 @@ sealed class Panel(val type: Type) {
     }
 
     data class Freeform(
-        override val line: ValueGraph<Node, Float>,
+        override val line: Graph<Node>,
         override val graph: ValueGraph<Node, Edge>,
         override val backgroundColor: DyeColor,
         override val width: Int,
@@ -173,10 +169,10 @@ fun CompoundTag.getPanel(key: String): Panel? {
     if (!contains(key)) return null
     return getCompound(key).let { tag ->
         val type: Type = Type.values()[tag.getInt(KEY_PANEL_TYPE)]
-        val line: ValueGraph<Node, Float> = tag.getFloatGraph(KEY_LINE)
+        val line: Graph<Node> = tag.getGraph(KEY_LINE)
 
         val backgroundColor: DyeColor = DyeColor.values()[tag.getInt(KEY_BACKGROUND_COLOR)]
-        val grid: ValueGraph<Node, Edge> = tag.getEdgeGraph(KEY_GRAPH)
+        val grid: ValueGraph<Node, Edge> = tag.getValueGraph(KEY_GRAPH)
 
         when (type) {
             Type.Grid -> Panel.Grid(line, grid, backgroundColor, tag.getInt(KEY_WIDTH), tag.getInt(KEY_HEIGHT))
@@ -189,9 +185,9 @@ fun CompoundTag.getPanel(key: String): Panel? {
 fun CompoundTag.putPanel(key: String, panel: Panel) {
     put(key, CompoundTag().apply {
         putInt(KEY_PANEL_TYPE, panel.type.ordinal)
-        putFloatGraph(KEY_LINE, panel.line)
+        putGraph(KEY_LINE, panel.line)
         putInt(KEY_BACKGROUND_COLOR, panel.backgroundColor.ordinal)
-        putEdgeGraph(KEY_GRAPH, panel.graph)
+        putValueGraph(KEY_GRAPH, panel.graph)
         when (panel) {
             is Panel.Grid, is Panel.Freeform -> {
                 putInt(KEY_WIDTH, panel.width)

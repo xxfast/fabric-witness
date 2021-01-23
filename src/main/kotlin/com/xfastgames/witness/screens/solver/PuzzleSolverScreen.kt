@@ -1,15 +1,17 @@
 package com.xfastgames.witness.screens.solver
 
-import com.google.common.graph.MutableValueGraph
-import com.google.common.graph.ValueGraph
-import com.google.common.graph.ValueGraphBuilder
+import com.google.common.graph.Graph
+import com.google.common.graph.MutableGraph
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
+import com.xfastgames.witness.screens.solver.PuzzleSolverScreen.Sounds.Instances.FOCUS_MODE_DOING_INSTANCE
+import com.xfastgames.witness.sounds.LoopingSoundInstance
 import com.xfastgames.witness.utils.*
+import com.xfastgames.witness.utils.guava.mutableGraph
 import kotlinx.coroutines.FlowPreview
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
@@ -31,6 +33,7 @@ import net.minecraft.entity.decoration.ItemFrameEntity
 import net.minecraft.entity.projectile.ProjectileUtil
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Identifier
@@ -56,6 +59,16 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val POINTLESS_CLICK: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "pointless_click"))
         val FOCUS_MODE_ENTER: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_enter"))
         val FOCUS_MODE_EXIT: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_exit"))
+        val FOCUS_MODE_DOING: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_doing"))
+        val FOCUS_MODE_BEING: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_being"))
+        val FOCUS_MODE_CONSIDERING_EXIT: SoundEvent =
+            registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_considering_exit"))
+        val FOCUS_MODE_WONDERING: SoundEvent =
+            registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_wondering"))
+
+        object Instances {
+            val FOCUS_MODE_DOING_INSTANCE = LoopingSoundInstance(FOCUS_MODE_DOING, SoundCategory.AMBIENT)
+        }
     }
 
     private val borderAlpha = Interpolator(.0f, .8f) { it.value += .05f }
@@ -135,18 +148,23 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val start: Node? = puzzle.line.nodes().firstOrNull { it.modifier == Modifier.START }
         if (start == null) return
 
+        // Get the line, or if none, create it
+        val end: Node = puzzle.line.nodes().firstOrNull { it.modifier == Modifier.END }
+            ?: start.copy(modifier = Modifier.END)
+
         val relativeDX: Float =
             (-dx.toFloat() / puzzle.width / 2).coerceAtLeast(-MAX_CURSOR_SPEED).coerceAtMost(MAX_CURSOR_SPEED)
         val relativeDY: Float =
             (-dy.toFloat() / puzzle.height / 2).coerceAtLeast(-MAX_CURSOR_SPEED).coerceAtMost(MAX_CURSOR_SPEED)
 
-        val updatedX: Float = (relativeDX + start.x).coerceAtLeast(0f).coerceAtMost(puzzle.width.toFloat())
-        val updatedY: Float = (relativeDY + start.y).coerceAtLeast(0f).coerceAtMost(puzzle.height.toFloat())
-        val movedStart: Node = start.copy(x = updatedX, y = updatedY)
+        val updatedX: Float = (relativeDX + end.x).coerceAtLeast(0f).coerceAtMost(puzzle.width.toFloat())
+        val updatedY: Float = (relativeDY + end.y).coerceAtLeast(0f).coerceAtMost(puzzle.height.toFloat())
+        val movedEnd: Node = end.copy(x = updatedX, y = updatedY)
 
-        val updatedLine: MutableValueGraph<Node, Float> = ValueGraphBuilder.from(puzzle.line).build()
-        updatedLine.removeNode(start)
-        updatedLine.addNode(movedStart)
+        val updatedLine: MutableGraph<Node> = mutableGraph()
+        updatedLine.removeNode(end)
+        updatedLine.addNode(movedEnd)
+        updatedLine.putEdge(start, movedEnd)
 
         updateLine(blockEntity, puzzleStack, puzzle, updatedLine)
     }
@@ -178,9 +196,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         // Only respond if the entity has an panel
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
-        val puzzlePanel: Panel? = puzzleStack.tag?.getPanel(KEY_PANEL) ?: return missClick(player)
+        val puzzlePanel: Panel = puzzleStack.tag?.getPanel(KEY_PANEL) ?: return missClick(player)
         if (puzzleStack.item !is PuzzlePanelItem) return missClick(player)
-        if (puzzlePanel == null) return missClick(player)
 
         // Only respond to block hit results for puzzle frames
         val blockState: BlockState = world.getBlockState(blockPos)
@@ -218,13 +235,15 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             .takeIf { it?.modifier == Modifier.START }
 
         clickedNode?.let {
-            val line: ValueGraph<Node, Float>? = domain.startTracingLine(puzzlePanel, clickedNode)
+            val line: Graph<Node>? = domain.startTracingLine(puzzlePanel, clickedNode)
             if (line == null) return missClick(player)
             updateLine(blockEntity, puzzleStack, puzzlePanel, line)
         }
 
-        if (clickedNode != null) player.playSound(IronPuzzleFrameBlock.Sounds.START_TRACING, 1f, 1f)
-        else missClick(player)
+        if (clickedNode != null) {
+            player.playSound(IronPuzzleFrameBlock.Sounds.START_TRACING, 1f, 1f)
+            client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
+        } else missClick(player)
 
         return false
     }
@@ -233,6 +252,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         client?.options?.hudHidden = false
         client?.player?.playSound(Sounds.FOCUS_MODE_EXIT, 0.5f, 1f)
         domain.stopTrace()
+        FOCUS_MODE_DOING_INSTANCE.stop()
         super.onClose()
     }
 
@@ -334,7 +354,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         blockEntity: PuzzleFrameBlockEntity,
         stack: ItemStack,
         puzzlePanel: Panel,
-        line: ValueGraph<Node, Float>
+        line: Graph<Node>
     ) {
         val updatedPanel: Panel = when (puzzlePanel) {
             is Panel.Grid -> puzzlePanel.copy(line = line)

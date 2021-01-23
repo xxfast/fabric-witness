@@ -1,10 +1,10 @@
 package com.xfastgames.witness.screens.solver
 
-import com.google.common.graph.MutableValueGraph
-import com.google.common.graph.ValueGraph
+import com.google.common.graph.Graph
+import com.google.common.graph.MutableGraph
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
-import com.xfastgames.witness.utils.mutableValueGraph
+import com.xfastgames.witness.utils.guava.mutableGraph
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,10 +19,10 @@ class PuzzleSolverDomain {
 
     val state: StateFlow<PuzzleSolverData> = stateFlow
 
-    fun startTracingLine(panel: Panel, start: Node): ValueGraph<Node, Float>? {
+    fun startTracingLine(panel: Panel, start: Node): Graph<Node>? {
         stateFlow.value = PuzzleSolverData.InSolution
         if (!panel.graph.nodes().contains(start)) return null
-        val graph: MutableValueGraph<Node, Float> = mutableValueGraph()
+        val graph: MutableGraph<Node> = mutableGraph()
         graph.addNode(start)
         return graph
     }

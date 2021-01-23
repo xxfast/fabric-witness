@@ -1,5 +1,6 @@
 package com.xfastgames.witness.items.renderer
 
+import com.google.common.graph.Graph
 import com.google.common.graph.ValueGraph
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.KEY_PANEL
@@ -161,7 +162,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
 
     @Suppress("UnstableApiUsage")
     fun renderLine(
-        line: ValueGraph<Node, Float>,
+        line: Graph<Node>,
         width: Int,
         height: Int,
         matrices: MatrixStack,
@@ -187,7 +188,6 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
             }
 
             line.edges().forEach { side ->
-                val fillPercentage: Float = line.edgeValue(side).value ?: return@forEach
                 val startNode: Node = side.nodeU()
                 val endNode: Node = side.nodeV()
                 val start = Vector3f(startNode.x, startNode.y, 0f)

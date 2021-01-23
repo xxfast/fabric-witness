@@ -5,6 +5,8 @@ import com.google.common.graph.ValueGraph
 import com.google.common.graph.ValueGraphBuilder
 import com.google.common.truth.Truth.assertThat
 import com.xfastgames.witness.items.data.*
+import com.xfastgames.witness.utils.guava.add
+import com.xfastgames.witness.utils.guava.adjacencyMatrix
 import net.minecraft.nbt.CompoundTag
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -25,9 +27,9 @@ class ValueGraphTests {
 
     @Test
     fun `Test put and read grid`() {
-        val tag: CompoundTag = CompoundTag().apply { putEdgeGraph(KEY_GRAPH, testGraph) }
+        val tag: CompoundTag = CompoundTag().apply { putValueGraph(KEY_GRAPH, testGraph) }
         println(tag)
-        val actual: ValueGraph<Node, Edge> = tag.getEdgeGraph(KEY_GRAPH)
+        val actual: ValueGraph<Node, Edge> = tag.getValueGraph(KEY_GRAPH)
         assertThat(actual).isEqualTo(testGraph)
     }
 
