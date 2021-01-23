@@ -6,6 +6,7 @@ import com.xfastgames.witness.screens.solver.PuzzleSolverDomain
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 @FlowPreview
@@ -15,6 +16,7 @@ class PuzzleSolverDomainTests {
     private val testDomain = PuzzleSolverDomain()
     private val testPanel: Panel = Panel.DEFAULT
 
+    @Disabled
     @Test
     fun startTrace() = runBlocking {
         assert(testDomain.state.value is PuzzleSolverData.InSolution)
