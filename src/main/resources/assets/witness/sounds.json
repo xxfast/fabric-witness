@@ -1,12 +1,17 @@
 {
-  "panel_start_tracing": {
+  "focus_mode_being": {
     "sounds": [
-      "witness:panel_start_tracing"
+      "witness:focus_mode_being"
     ]
   },
-  "pointless_click": {
+  "focus_mode_considering_exit": {
     "sounds": [
-      "witness:pointless_click"
+      "witness:focus_mode_considering_exit"
+    ]
+  },
+  "focus_mode_doing": {
+    "sounds": [
+      "witness:focus_mode_doing"
     ]
   },
   "focus_mode_enter": {
@@ -17,6 +22,21 @@
   "focus_mode_exit": {
     "sounds": [
       "witness:focus_mode_exit"
+    ]
+  },
+  "focus_mode_wondering": {
+    "sounds": [
+      "witness:focus_mode_wondering"
+    ]
+  },
+  "panel_start_tracing": {
+    "sounds": [
+      "witness:panel_start_tracing"
+    ]
+  },
+  "pointless_click": {
+    "sounds": [
+      "witness:pointless_click"
     ]
   }
 }
