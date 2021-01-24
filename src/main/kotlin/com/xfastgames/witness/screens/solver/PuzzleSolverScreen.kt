@@ -5,6 +5,7 @@ import com.google.common.graph.MutableGraph
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
+import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Companion.PUZZLE_FRAME_SCALE
 import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
@@ -47,8 +48,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.world.RaycastContext
 
 private const val BORDER_WIDTH = 14
-private const val CLICK_PADDING = 0.5f
-private const val MAX_CURSOR_SPEED = 0.15f
+private const val CLICK_PADDING = 0.4f
 
 @Environment(EnvType.CLIENT)
 @OptIn(FlowPreview::class)
@@ -73,15 +73,14 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
     private val borderAlpha = Interpolator(.0f, .8f) { it.value += .05f }
     private val cursorShadowSize = Interpolator(BORDER_WIDTH * 4, BORDER_WIDTH / 2) { it.value -= 2 }
-    private var targetBlockEntity: PuzzleFrameBlockEntity? = null
+    private var startedBlockEntity: PuzzleFrameBlockEntity? = null
 
     private val domain = PuzzleSolverDomain()
 
     override fun init(client: MinecraftClient?, width: Int, height: Int) {
         super.init(client, width, height)
         val mouse: Mouse = requireNotNull(client?.mouse)
-        // TODO: Hide the mouse
-        // mouse.hide()
+        mouse.hide()
         client?.player?.playSound(Sounds.FOCUS_MODE_ENTER, 0.5f, 1f)
         client?.options?.hudHidden = true
     }
@@ -97,8 +96,12 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         fill(matrices, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
         fill(matrices, 0, 0, BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
         fill(matrices, width - BORDER_WIDTH, 0, width, height, 1f, 1f, 1f, borderAlpha)
-        circle(matrices, mouseX, mouseY, cursorShadowSize, 1f, 1f, 1f, .25f)
-        circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 1f, 1f, 1f, .9f)
+
+        // TODO: In the witness the cursor is still rendered
+        if (!domain.isSolving) {
+            circle(matrices, mouseX, mouseY, cursorShadowSize, 1f, 1f, 1f, .25f)
+            circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 1f, 1f, 1f, .9f)
+        }
     }
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
@@ -114,7 +117,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         if (!domain.isSolving) return
 
-        val blockEntity: PuzzleFrameBlockEntity = targetBlockEntity ?: return
+        val blockEntity: PuzzleFrameBlockEntity = startedBlockEntity ?: return
 
         // Only respond if the entity has an panel
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
@@ -134,14 +137,24 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val world: ClientWorld = requireNotNull(client?.world)
 
         val hitResult: PuzzlePanelHitResult = rayCastAtPanel(world, mouseX, mouseY) ?: return
+        if (hitResult.blockEntity != startedBlockEntity) return
+
         val puzzlePanel: Panel = hitResult.puzzlePanel
         val (clickX, clickY) = hitResult.position
 
-        // TODO: Need to accommodate panel border to this calculation somehow
-        val scaledClickX: Double = puzzlePanel.width * clickX
-        val scaledClickY: Double = puzzlePanel.height * clickY
+        // TODO: Sweet spot width seems to be between 3 and 4 sizes, anything bigger or smaller seems to be slightly off
+        val scaledClickX: Double = ((puzzlePanel.width) * clickX) / PUZZLE_FRAME_SCALE
+        val scaledClickY: Double = ((puzzlePanel.height) * clickY) / PUZZLE_FRAME_SCALE
 
-        val movedEnd: Node = end.copy(x = scaledClickX.toFloat(), y = scaledClickY.toFloat())
+        val clampedClickX: Float = (scaledClickX.toFloat() - (PUZZLE_FRAME_SCALE / 2))
+            .coerceAtLeast(0f)
+            .coerceAtMost(puzzlePanel.width.toFloat())
+
+        val clampedClickY: Float = (scaledClickY.toFloat() - (PUZZLE_FRAME_SCALE / 2))
+            .coerceAtLeast(0f)
+            .coerceAtMost(puzzlePanel.height.toFloat())
+
+        val movedEnd: Node = end.copy(x = clampedClickX, y = clampedClickY)
 
         val updatedLine: MutableGraph<Node> = mutableGraph()
         updatedLine.removeNode(end)
@@ -191,7 +204,9 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         if (clickedNode != null) {
             player.playSound(IronPuzzleFrameBlock.Sounds.START_TRACING, 1f, 1f)
+            FOCUS_MODE_DOING_INSTANCE.stop()
             client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
+            startedBlockEntity = blockEntity
         } else missClick(player)
 
         return false
@@ -308,7 +323,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         // Only respond if the block has an entity
         val blockEntity: BlockEntity = world.getBlockEntity(blockPos) ?: return null
         if (blockEntity !is PuzzleFrameBlockEntity) return null
-        targetBlockEntity = blockEntity
 
         // Only respond if the entity has an panel
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
