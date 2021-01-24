@@ -176,10 +176,16 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         pos: BlockPos?,
         context: ShapeContext?
     ): VoxelShape {
-        val baseShape: VoxelShape =
-            VoxelShapes.cuboid(.0, .0, .375, 1.0, 1.0, .625)
+        val shape: VoxelShape = VoxelShapes.union(
+            VoxelShapes.cuboid(1.pc.d, 1.pc.d, 6.pc.d, 15.pc.d, 15.pc.d, 9.pc.d),
+            VoxelShapes.cuboid(0.pc.d, 1.pc.d, 8.pc.d, 1.pc.d, 16.pc.d, 10.pc.d),
+            VoxelShapes.cuboid(0.pc.d, 0.pc.d, 8.pc.d, 16.pc.d, 1.pc.d, 10.pc.d),
+            VoxelShapes.cuboid(0.pc.d, 15.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
+            VoxelShapes.cuboid(15.pc.d, 1.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
+        )
+
         val direction: Direction = requireNotNull(state?.get(HORIZONTAL_FACING))
-        return baseShape.rotateShape(to = direction)
+        return shape.rotateShape(to = direction)
     }
 
     override fun onBreak(world: World, pos: BlockPos, state: BlockState, player: PlayerEntity) {
