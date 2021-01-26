@@ -7,11 +7,11 @@ import com.xfastgames.witness.items.data.putPanel
 import net.minecraft.nbt.CompoundTag
 import org.junit.jupiter.api.Test
 
-private const val TEST_KEY_GRAPH = "graph"
+private const val TEST_KEY_GRAPH = "panel"
 class PanelTests {
     @Test
     fun `Test grid panel serialisation and deserialization`() {
-        val gridPanel: Panel.Grid = Panel.Grid.ofSize(2)
+        val gridPanel: Panel.Grid = Panel.Grid.ofSize(4)
         val tag: CompoundTag = CompoundTag().apply { putPanel(TEST_KEY_GRAPH, gridPanel) }
         println(tag)
         val actual: Panel? = tag.getPanel(TEST_KEY_GRAPH)
