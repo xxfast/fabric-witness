@@ -30,6 +30,7 @@
     "fabric": "*",
     "fabric-language-kotlin": "*",
     "libgui": "*",
+    "nbtcrafting": "*",
     "minecraft": "1.16.x"
   },
   "suggests": {

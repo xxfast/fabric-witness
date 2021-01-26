@@ -7,6 +7,7 @@ plugins {
 repositories {
     maven(url = "http://maven.fabricmc.net/") { name = "Fabric" }
     maven(url = "https://server.bbkr.space/artifactory/libs-release") { name = "CottonMC" }
+    maven(url = "https://maven.siphalor.de") { name = "Siphalor's Maven" }
 }
 
 minecraft {
@@ -26,6 +27,7 @@ dependencies {
 
     modImplementation(Mods.libgui)
     modImplementation(Mods.modmenu)
+    modImplementation(Mods.nbtcrafting)
 
     implementation(Google.guava)
 

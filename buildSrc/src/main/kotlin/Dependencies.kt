@@ -7,6 +7,7 @@ object Jetbrains {
 object Mods {
     const val modmenu = "io.github.prospector:modmenu:1.14.6+build.31"
     const val libgui = "io.github.cottonmc:LibGui:3.1.0+${Minecraft.version}"
+    const val nbtcrafting = "de.siphalor:nbtcrafting-1.16:2+"
 }
 
 object Google {
