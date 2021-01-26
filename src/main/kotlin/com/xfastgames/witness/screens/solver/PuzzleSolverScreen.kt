@@ -130,9 +130,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val start: Node? = puzzle.line.nodes().firstOrNull { it.modifier == Modifier.START }
         if (start == null) return
 
-        // Get the line, or if none, create it
-        val end: Node = puzzle.line.nodes().firstOrNull { it.modifier == Modifier.END }
-            ?: start.copy(modifier = Modifier.END)
+        val previousLine: Graph<Node> = puzzle.line
 
         val world: ClientWorld = requireNotNull(client?.world)
 
@@ -154,12 +152,30 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             .coerceAtLeast(0f)
             .coerceAtMost(puzzlePanel.height.toFloat())
 
-        val movedEnd: Node = end.copy(x = clampedClickX, y = clampedClickY)
+        // Get the end, or if none, create it
+        val previousEnd: Node? = previousLine.nodes().firstOrNull { it.modifier == Modifier.END }
 
-        val updatedLine: MutableGraph<Node> = mutableGraph()
-        updatedLine.removeNode(end)
-        updatedLine.addNode(movedEnd)
-        updatedLine.putEdge(start, movedEnd)
+        // TODO: This needs more work
+        val end: Node = previousEnd
+            ?.copy(x = clampedClickX, y = clampedClickY)
+            ?: Node(x = clampedClickX, y = clampedClickY, modifier = Modifier.END)
+
+        val nearestNodeToTheEnd: Node? = puzzle.graph.nodes()
+            .firstOrNull { node ->
+                node.x in (end.x - CLICK_PADDING)..(end.x + CLICK_PADDING) &&
+                        node.y in (end.y - CLICK_PADDING)..(end.y + CLICK_PADDING)
+            }
+            .takeIf { node -> node !in previousLine.nodes() }
+
+        val updatedLine: MutableGraph<Node> = mutableGraph(previousLine)
+
+        if (previousEnd != null) updatedLine.removeNode(previousEnd)
+        updatedLine.addNode(end)
+
+        if (nearestNodeToTheEnd != null) {
+            updatedLine.putEdge(nearestNodeToTheEnd, end)
+            updatedLine.putEdge(nearestNodeToTheEnd, start)
+        } else updatedLine.putEdge(start, end)
 
         updateLine(blockEntity, puzzle, updatedLine)
     }
