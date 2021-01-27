@@ -41,13 +41,18 @@ sealed class Panel(val type: Type) {
             fun generateGrid(width: Int, height: Int): ValueGraph<Node, Edge> {
                 val graph: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected().build()
 
+                var xOffset = 0.5f
+                if (width < height) xOffset += 0.5f * (height - width)
+                var yOffset = 0.5f
+                if (height < width) yOffset += 0.5f * (width - height)
+
                 val previousRow: MutableList<Node> = mutableListOf()
                 repeat(width) { x ->
                     var previousNode: Node? = null
                     val currentRow: MutableList<Node> = mutableListOf()
 
                     repeat(height) { y ->
-                        val (dx, dy) = x.toFloat() + 0.5f to y.toFloat() + 0.5f
+                        val (dx, dy) = x.toFloat() + xOffset to y.toFloat() + yOffset
                         val currentNode = Node(dx, dy)
                         graph.addNode(currentNode)
                         currentRow.add(currentNode)

@@ -10,12 +10,30 @@
       "item": "witness:ancient_puzzle_tablet"
     },
     "P": {
-      "item": "witness:puzzle_panel"
+      "item": "witness:puzzle_panel",
+      "data": {
+        "require": {
+          "panel": {
+            "width": 3,
+            "height": 3
+          }
+        }
+      }
     }
   },
   "result": {
     "item": "witness:puzzle_panel",
     "data": {
+      "$": {
+        "value": "i0",
+        "paths": {
+          "/panel\\.line/": "keep",
+          "/panel\\.graph/": "keep",
+          "/panel\\.width/": "keep",
+          "/panel\\.type/": "keep",
+          "/panel\\.height/": "keep"
+        }
+      },
       "panel": {
         "backgroundColor": 0,
         "line": {

@@ -140,9 +140,11 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val puzzlePanel: Panel = hitResult.puzzlePanel
         val (clickX, clickY) = hitResult.position
 
+        val scale: Int = maxOf(puzzlePanel.width, puzzlePanel.height)
+
         // TODO: Sweet spot width seems to be between 3 and 4 sizes, anything bigger or smaller seems to be slightly off
-        val scaledClickX: Double = ((puzzlePanel.width) * clickX) / PUZZLE_FRAME_SCALE
-        val scaledClickY: Double = ((puzzlePanel.height) * clickY) / PUZZLE_FRAME_SCALE
+        val scaledClickX: Double = (scale * clickX) / PUZZLE_FRAME_SCALE
+        val scaledClickY: Double = (scale * clickY) / PUZZLE_FRAME_SCALE
 
         val clampedClickX: Float = (scaledClickX.toFloat() - (PUZZLE_FRAME_SCALE / 2))
             .coerceAtLeast(0f)
@@ -199,8 +201,10 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val (clickX, clickY) = hitResult.position
         val blockEntity: PuzzleFrameBlockEntity = hitResult.blockEntity
 
-        val scaledClickX: Double = puzzlePanel.width * clickX
-        val scaledClickY: Double = puzzlePanel.height * clickY
+        val scale: Int = maxOf(puzzlePanel.width, puzzlePanel.height)
+
+        val scaledClickX: Double = scale * clickX
+        val scaledClickY: Double = scale * clickY
 
         val clickXRange: ClosedFloatingPointRange<Double> =
             (scaledClickX - CLICK_PADDING)..(scaledClickX + CLICK_PADDING)

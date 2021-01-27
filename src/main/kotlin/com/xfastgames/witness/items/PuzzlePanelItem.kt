@@ -40,8 +40,8 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
         val typeString: String = puzzle.type.name.capitalize()
 
         val sizeString = when (puzzle) {
-            is Panel.Grid -> "${puzzle.width} x ${puzzle.height}"
-            is Panel.Tree -> "${puzzle.height} Tall"
+            is Panel.Grid -> "${puzzle.width - 1} x ${puzzle.height - 1}"
+            is Panel.Tree -> "${puzzle.height - 1} Tall"
             is Panel.Freeform -> TODO()
         }
 

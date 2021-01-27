@@ -94,8 +94,9 @@ class WPuzzleEditor(
         val xPosition = 1 - (x.toFloat() / width)
         val yPosition = 1 - (y.toFloat() / height)
 
-        val puzzleRelativeX: Float = xPosition * inputPuzzle.width
-        val puzzleRelativeY: Float = yPosition * inputPuzzle.height
+        val scale: Int = maxOf(inputPuzzle.width,  inputPuzzle.height)
+        val puzzleRelativeX: Float = xPosition * scale
+        val puzzleRelativeY: Float = yPosition * scale
 
         val mouseXRange: ClosedFloatingPointRange<Float> =
             (puzzleRelativeX - CLICK_PADDING)..(puzzleRelativeX + CLICK_PADDING)
