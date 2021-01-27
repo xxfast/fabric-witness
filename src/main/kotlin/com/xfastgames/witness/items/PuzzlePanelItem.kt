@@ -8,6 +8,7 @@ import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerItem
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
 import net.minecraft.client.item.TooltipContext
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.item.ItemStack
@@ -26,6 +27,13 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
 
     override fun onClient() {
         BuiltinItemRendererRegistry.INSTANCE.register(ITEM, PuzzlePanelRenderer)
+    }
+
+    override fun onCraft(stack: ItemStack?, world: World?, player: PlayerEntity?) {
+//        stack?.tag = null
+//        val tag = CompoundTag().apply { putPanel(KEY_PANEL, Panel.Grid.ofSize(4, 2)) }
+//        println(tag)
+//        stack?.tag = tag
     }
 
     // TODO: Use localised strings here
