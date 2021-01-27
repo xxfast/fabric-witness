@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "group": "puzzle_panel_colored",
+  "ingredients": [
+    {
+      "item": "witness:puzzle_panel"
+    },
+    {
+      "item": "minecraft:white_dye"
+    }
+  ],
+  "result": {
+    "item": "witness:puzzle_panel",
+    "data": {
+      "$": {
+        "value": "i0",
+        "paths": {
+          "/panel\\.backgroundColor/": "keep"
+        }
+      },
+      "panel": {
+        "backgroundColor": 0
+      }
+    }
+  }
+}
