@@ -3,7 +3,7 @@ package com.xfastgames.witness.entities
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
 import com.xfastgames.witness.entities.renderer.PuzzleComposerBlockRenderer
-import com.xfastgames.witness.screens.PuzzleComposerScreenDescription
+import com.xfastgames.witness.screens.composer.PuzzleComposerScreenDescription
 import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerBlockEntity
@@ -47,7 +47,7 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
         // client-side editor needs to send a packet to server to synchronise the client inventory with server's
         val SYNCHRONIZE_C2S_ID = Identifier(Witness.IDENTIFIER, "synchronise_puzzle_slot")
 
-        const val INVENTORY_SIZE = 8
+        const val INVENTORY_SIZE = 10
 
         val ENTITY_TYPE: BlockEntityType<PuzzleComposerBlockEntity> = registerBlockEntity(IDENTIFIER) {
             BlockEntityType.Builder

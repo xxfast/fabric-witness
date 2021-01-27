@@ -1,4 +1,4 @@
-package com.xfastgames.witness.screens
+package com.xfastgames.witness.screens.composer
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
@@ -8,10 +8,10 @@ import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.getPanel
 import com.xfastgames.witness.items.data.putPanel
-import com.xfastgames.witness.screens.PuzzleComposerScreen.Companion.PUZZLE_BACKGROUND_DYE_SLOT_INDEX
-import com.xfastgames.witness.screens.PuzzleComposerScreen.Companion.PUZZLE_INPUT_SLOT_INDEX
-import com.xfastgames.witness.screens.PuzzleComposerScreen.Companion.PUZZLE_INVENTORY_SLOT_INDEX
-import com.xfastgames.witness.screens.PuzzleComposerScreen.Companion.PUZZLE_OUTPUT_SLOT_INDEX
+import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_BACKGROUND_DYE_SLOT_INDEX
+import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_INPUT_SLOT_INDEX
+import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_INVENTORY_SLOT_INDEX
+import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_OUTPUT_SLOT_INDEX
 import com.xfastgames.witness.screens.widgets.WPuzzleEditor
 import com.xfastgames.witness.utils.BlockInventory
 import com.xfastgames.witness.utils.Clientside
@@ -57,7 +57,6 @@ class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription?, player: Player
 
         const val PUZZLE_INPUT_SLOT_INDEX = 0
         const val PUZZLE_BACKGROUND_DYE_SLOT_INDEX = 1
-        const val PUZZLE_LINE_DYE_SLOT_INDEX = 2
         const val PUZZLE_INVENTORY_SLOT_INDEX = 3
         const val PUZZLE_OUTPUT_SLOT_INDEX = 7
 
@@ -89,7 +88,7 @@ class PuzzleComposerScreenDescription(
 ) {
     private val root: WPlainPanel = WPlainPanel().apply { setSize(150, 150) }
     private val inputSlot = WItemSlot(blockInventory, PUZZLE_INPUT_SLOT_INDEX, 1, 1, true)
-    private val inventorySlots: WItemSlot = WItemSlot.of(blockInventory, PUZZLE_INVENTORY_SLOT_INDEX, 2, 2)
+    private val inventorySlots: WItemSlot = WItemSlot.of(blockInventory, PUZZLE_INVENTORY_SLOT_INDEX, 2, 3)
     private val outputSlot: WItemSlot = WItemSlot(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX, 1, 1, true)
     private val editor = WPuzzleEditor(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX)
     private val playerInventoryPanel: WPlayerInvPanel = this.createPlayerInventoryPanel()
@@ -177,10 +176,9 @@ class PuzzleComposerScreenDescription(
         root.add(editor, 46, y, editor.width, editor.height)
         y += 3
         root.add(inputSlot, 8, y)
-        y += 21
-        y += 16 + 4
+        y += 24
         root.add(inventorySlots, 0, y)
-        y += 16 * 2 + 11
+        y += 16 * 3 + 12
         root.add(outputSlot, 8, y)
         y += 16 * 1 + 10
         root.add(playerInventoryPanel, 0, y)
