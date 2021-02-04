@@ -1,22 +1,24 @@
 package com.xfastgames.witness.screens.composer
 
+import com.google.common.graph.Graphs
+import com.google.common.graph.MutableValueGraph
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.PuzzlePanelItem
-import com.xfastgames.witness.items.data.Panel
-import com.xfastgames.witness.items.data.getPanel
-import com.xfastgames.witness.items.data.putPanel
+import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_BACKGROUND_DYE_SLOT_INDEX
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_INPUT_SLOT_INDEX
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_INVENTORY_SLOT_INDEX
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_OUTPUT_SLOT_INDEX
 import com.xfastgames.witness.screens.widgets.WPuzzleEditor
-import com.xfastgames.witness.utils.BlockInventory
-import com.xfastgames.witness.utils.Clientside
-import com.xfastgames.witness.utils.Colors
-import com.xfastgames.witness.utils.isNotEmpty
+import com.xfastgames.witness.screens.widgets.WRadioGroup
+import com.xfastgames.witness.screens.widgets.WRadioImageButton
+import com.xfastgames.witness.screens.widgets.icons.BreakIcon
+import com.xfastgames.witness.screens.widgets.icons.EndIcon
+import com.xfastgames.witness.screens.widgets.icons.StartIcon
+import com.xfastgames.witness.utils.*
 import io.github.cottonmc.cotton.gui.SyncedGuiDescription
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
 import io.github.cottonmc.cotton.gui.client.CottonInventoryScreen
@@ -75,6 +77,7 @@ class InputSlotBackgroundPainter(private val itemSlot: WItemSlot, private val te
     }
 }
 
+@Suppress("UnstableApiUsage")
 class PuzzleComposerScreenDescription(
     syncId: Int,
     playerInventory: PlayerInventory,
@@ -90,6 +93,15 @@ class PuzzleComposerScreenDescription(
     private val inputSlot = WItemSlot(blockInventory, PUZZLE_INPUT_SLOT_INDEX, 1, 1, true)
     private val inventorySlots: WItemSlot = WItemSlot.of(blockInventory, PUZZLE_INVENTORY_SLOT_INDEX, 2, 3)
     private val outputSlot: WItemSlot = WItemSlot(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX, 1, 1, true)
+
+    private val toggleGroup = WRadioGroup()
+    private val startButton = WRadioImageButton(icon = StartIcon, group = toggleGroup)
+    private val endButton = WRadioImageButton(icon = EndIcon, group = toggleGroup)
+    private val breakButton = WRadioImageButton(icon = BreakIcon, group = toggleGroup)
+    private val hexagonDotButton = WRadioImageButton(group = toggleGroup)
+    private val freeSlotButton1 = WRadioImageButton(group = toggleGroup)
+    private val freeSlotButton2 = WRadioImageButton(group = toggleGroup)
+
     private val editor = WPuzzleEditor(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX)
     private val playerInventoryPanel: WPlayerInvPanel = this.createPlayerInventoryPanel()
 
@@ -158,14 +170,76 @@ class PuzzleComposerScreenDescription(
             }
         }
 
-        editor.setClickListener { panel ->
-            val inputStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
+        editor.setClickListener { node, edge, edgeNodePair ->
+            // if no edge or node is clicked, ignore
+            if (edge == null && node == null && edgeNodePair == null) return@setClickListener
+
+            val outputPuzzle: Panel =
+                blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
+                    .tag?.getPanel(KEY_PANEL) ?: return@setClickListener
+
+            val selectedToggle: WRadioImageButton? = toggleGroup.selected
+
+            val updatedNodeModifier: Modifier = when {
+                selectedToggle == startButton && node != null ->
+                    node.modifier.nextIn(Modifier.START, Modifier.NORMAL)
+
+                node?.modifier != null -> node.modifier
+                else -> Modifier.NONE
+            }
+
+            val updatedNode: Node? = node?.copy(modifier = updatedNodeModifier)
+
+            val updatedGraph: MutableValueGraph<Node, Edge> = Graphs.copyOf(outputPuzzle.graph)
+
+            updatedNode?.let {
+                val neighbours: List<Node> = outputPuzzle.graph.adjacentNodes(node).toList()
+                val neighbourhood: MutableMap<Node, Edge> = mutableMapOf()
+                neighbours.forEach { neighbour ->
+                    neighbourhood[neighbour] = outputPuzzle.graph.edgeValue(neighbour, node).get()
+                }
+                updatedGraph.removeNode(node)
+                updatedGraph.addNode(updatedNode)
+                neighbourhood.forEach { (neighbour, edge) ->
+                    updatedGraph.putEdgeValue(neighbour, updatedNode, edge)
+                }
+            }
+
+            val updatedEdge: Modifier? = when {
+                selectedToggle == startButton && edge != null ->
+                    edge.nextIn(Modifier.START, Modifier.NORMAL)
+
+                selectedToggle == breakButton && edge != null ->
+                    edge.nextIn(Modifier.BREAK, Modifier.NORMAL)
+
+                edge != null -> edge
+                else -> null
+            }
+
+            if (updatedNode == null && updatedEdge != null && edgeNodePair != null) {
+                updatedGraph.removeEdge(edgeNodePair.nodeU(), edgeNodePair.nodeV())
+                updatedGraph.putEdgeValue(edgeNodePair, updatedEdge)
+            }
+
+            // TODO: Do this nicely 😅💩
+            val updatedPuzzle: Panel = when (outputPuzzle) {
+                is Panel.Grid -> outputPuzzle.copy(graph = updatedGraph)
+                is Panel.Tree -> outputPuzzle.copy(graph = updatedGraph)
+                is Panel.Freeform -> outputPuzzle.copy(graph = updatedGraph)
+            }
+
+            // If nothing is changed, ignore
+            if (updatedPuzzle == outputPuzzle) return@setClickListener
+
+            val inputStack: ItemStack = blockInventory.getStack(PUZZLE_INPUT_SLOT_INDEX)
             val inputTag: CompoundTag = inputStack.tag ?: return@setClickListener
             val inputPanel: Panel? = inputTag.getPanel(KEY_PANEL)
-            if (panel == inputPanel) return@setClickListener
-            val outputStack: ItemStack = inputStack.copy().apply { tag?.putPanel(KEY_PANEL, panel) }
+            if (updatedPuzzle == inputPanel) return@setClickListener
+
+            val outputStack: ItemStack = inputStack.copy().apply { tag?.putPanel(KEY_PANEL, updatedPuzzle) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, outputStack)
         }
+
         layout()
         context?.run { world, pos -> if (world.isClient) addPainters() }
     }
@@ -177,10 +251,17 @@ class PuzzleComposerScreenDescription(
         y += 3
         root.add(inputSlot, 8, y)
         y += 24
-        root.add(inventorySlots, 0, y)
-        y += 16 * 3 + 12
+        root.add(startButton, 0, y)
+        root.add(endButton, 17, y)
+        y += 16
+        root.add(breakButton, 0, y)
+        root.add(hexagonDotButton, 17, y)
+        y += 16
+        root.add(freeSlotButton1, 0, y)
+        root.add(freeSlotButton2, 17, y)
+        y += 22
         root.add(outputSlot, 8, y)
-        y += 16 * 1 + 10
+        y += outputSlot.height + 16
         root.add(playerInventoryPanel, 0, y)
         root.validate(this)
     }

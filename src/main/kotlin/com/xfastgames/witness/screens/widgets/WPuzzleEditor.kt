@@ -1,13 +1,13 @@
 package com.xfastgames.witness.screens.widgets
 
 import com.google.common.graph.EndpointPair
-import com.google.common.graph.Graphs
-import com.google.common.graph.MutableValueGraph
 import com.xfastgames.witness.items.KEY_PANEL
-import com.xfastgames.witness.items.data.*
+import com.xfastgames.witness.items.data.Edge
+import com.xfastgames.witness.items.data.Node
+import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.getPanel
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.intersects
-import com.xfastgames.witness.utils.nextIn
 import com.xfastgames.witness.utils.rotate
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
 import io.github.cottonmc.cotton.gui.widget.WWidget
@@ -28,8 +28,9 @@ class WPuzzleEditor(
     private val outputSlotIndex: Int
 ) : WWidget() {
 
+    @Suppress("UnstableApiUsage")
     fun interface OnClickListener {
-        fun onClick(updatedPuzzle: Panel)
+        fun onClick(node: Node?, edge: Edge?, edgeNodePair: EndpointPair<Node>?)
     }
 
     private val client: MinecraftClient by lazy { MinecraftClient.getInstance() }
@@ -122,38 +123,6 @@ class WPuzzleEditor(
 
         val edge: Edge? = edgeNodePair?.let { inputPuzzle.graph.edgeValue(it).orElse(null) }
 
-        val updatedNode: Node? =
-            node?.copy(modifier = if (node.modifier == Modifier.START) Modifier.NONE else Modifier.START)
-
-        val updatedGraph: MutableValueGraph<Node, Edge> = Graphs.copyOf(inputPuzzle.graph)
-
-        updatedNode?.let {
-            val neighbours: List<Node> = inputPuzzle.graph.adjacentNodes(node).toList()
-            val neighbourhood: MutableMap<Node, Edge> = mutableMapOf()
-            neighbours.forEach { neighbour ->
-                neighbourhood[neighbour] = inputPuzzle.graph.edgeValue(neighbour, node).get()
-            }
-            updatedGraph.removeNode(node)
-            updatedGraph.addNode(updatedNode)
-            neighbourhood.forEach { (neighbour, edge) ->
-                updatedGraph.putEdgeValue(neighbour, updatedNode, edge)
-            }
-        }
-
-        val updatedEdge: Edge? = edge?.nextIn(Modifier.NORMAL, Modifier.START, Modifier.BREAK, Modifier.HIDDEN)
-        if (updatedNode == null && updatedEdge != null) {
-            updatedGraph.removeEdge(edgeNodePair.nodeU(), edgeNodePair.nodeV())
-            updatedGraph.putEdgeValue(edgeNodePair, updatedEdge)
-        }
-
-        // TODO: Do this nicely 😅💩
-        val updatedPuzzle: Panel = when (inputPuzzle) {
-            is Panel.Grid -> inputPuzzle.copy(graph = updatedGraph)
-            is Panel.Tree -> inputPuzzle.copy(graph = updatedGraph)
-            is Panel.Freeform -> inputPuzzle.copy(graph = updatedGraph)
-        }
-
-        if (updatedPuzzle == inputPuzzle) return
-        onClickListener?.onClick(updatedPuzzle)
+        onClickListener?.onClick(node, edge, edgeNodePair)
     }
 }

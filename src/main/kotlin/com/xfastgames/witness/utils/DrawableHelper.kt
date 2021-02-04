@@ -1,7 +1,6 @@
 package com.xfastgames.witness.utils
 
 import com.mojang.blaze3d.systems.RenderSystem
-import net.minecraft.client.gui.DrawableHelper
 import net.minecraft.client.render.BufferBuilder
 import net.minecraft.client.render.BufferRenderer
 import net.minecraft.client.render.Tessellator
@@ -11,7 +10,7 @@ import net.minecraft.util.math.Matrix4f
 import kotlin.math.cos
 import kotlin.math.sin
 
-fun DrawableHelper.fill(
+fun fill(
     matrices: MatrixStack,
     x1: Int,
     y1: Int,
@@ -38,7 +37,7 @@ fun DrawableHelper.fill(
     RenderSystem.disableBlend()
 }
 
-fun DrawableHelper.circle(
+fun circle(
     matrices: MatrixStack, centerX: Int, centerY: Int, radius: Int,
     r: Float, g: Float, b: Float, a: Float,
     arc: IntRange = 0..360,
