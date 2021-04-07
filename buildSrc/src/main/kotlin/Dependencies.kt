@@ -6,7 +6,7 @@ object Jetbrains {
 
 object Mods {
     const val modmenu = "io.github.prospector:modmenu:1.14.6+build.31"
-    const val libgui = "io.github.cottonmc:LibGui:3.1.0+${Minecraft.version}"
+    const val libgui = "io.github.cottonmc:LibGui:3.3.5+${Minecraft.version}"
     const val nbtcrafting = "de.siphalor:nbtcrafting-1.16:2+"
 }
 
@@ -29,23 +29,23 @@ object Fabric {
 
     object Loader {
         /** https://maven.fabricmc.net/net/fabricmc/fabric-loader/ */
-        const val version = "0.10.3+build.211"
+        const val version = "0.11.3"
     }
 
     object API {
-        const val version = "0.24.1+build.412-1.16"
+        const val version = "0.32.5+1.16"
     }
 
     object Loom {
-        const val version = "0.5-SNAPSHOT"
+        const val version = "0.6-SNAPSHOT"
     }
 
     object YarnMappings {
-        const val version = "${Minecraft.version}+build.47"
+        const val version = "${Minecraft.version}+build.6"
         const val classifier = "v2"
     }
 }
 
 object Minecraft {
-    const val version = "1.16.3"
+    const val version = "1.16.5"
 }
