@@ -1,5 +1,6 @@
 package com.xfastgames.witness.items.renderer
 
+import com.google.common.graph.EndpointPair
 import com.google.common.graph.Graph
 import com.google.common.graph.ValueGraph
 import com.xfastgames.witness.Witness
@@ -23,6 +24,7 @@ import net.minecraft.util.math.Matrix3f
 import net.minecraft.util.math.Matrix4f
 import kotlin.math.*
 
+@Suppress("UnstableApiUsage")
 object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
 
     private val paneStack = ItemStack(Items.BLACK_STAINED_GLASS_PANE, 1)
@@ -116,7 +118,27 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         return matrices.pop()
     }
 
-    @Suppress("UnstableApiUsage")
+    private fun numberOfEdgesVisible(graph: ValueGraph<Node, Edge>, node: Node): Int =
+        graph.incidentEdges(node).count { endpointPair ->
+            graph.edgeValue(endpointPair).value !in listOf(Edge.NONE, Edge.HIDDEN)
+        }
+
+    private fun RenderContext.renderNode(graph: ValueGraph<Node, Edge>, node: Node): Unit = when {
+        node.modifier == Modifier.START -> circle(Vector3f(node.x, node.y, 0f), 4.pc)
+        numberOfEdgesVisible(graph, node) > 1 -> circle(Vector3f(node.x, node.y, 0f), 2.pc)
+        numberOfEdgesVisible(graph, node) == 1 -> square(Vector3f(node.x - 2.pc, node.y - 2.pc, 0f), 4.pc)
+        else -> Unit
+    }
+
+    private fun RenderContext.renderEdge(graph: ValueGraph<Node, Edge>, side: EndpointPair<Node>) {
+        val edge: Edge = graph.edgeValue(side).value ?: return
+        val startNode: Node = side.nodeU()
+        val endNode: Node = side.nodeV()
+        val start = Vector3f(startNode.x, startNode.y, 0f)
+        val end = Vector3f(endNode.x, endNode.y, 0f)
+        edge(start, end, 4.pc, edge)
+    }
+
     fun renderGraph(
         graph: ValueGraph<Node, Edge>,
         width: Int,
@@ -126,36 +148,47 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         light: Int,
         overlay: Int
     ) {
-        matrices.push()
-        if (graph.nodes().isEmpty()) return matrices.pop()
+        if (graph.nodes().isEmpty()) return
         val maxDimension: Int = maxOf(width, height)
         val maxScale: Float = 1f / maxDimension
 
+        matrices.push()
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.01)
 
-        // Render grid vertices
         val fillConsumer: VertexConsumer = vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(lineFillTexture, false))
         withRenderContext(matrices, fillConsumer, light, overlay) {
-            graph.nodes().forEach { node ->
-                val numberOfEdgesVisible: Int = graph.incidentEdges(node).count { endpointPair ->
-                    graph.edgeValue(endpointPair).value !in listOf(Edge.NONE, Edge.HIDDEN)
-                }
+            graph.nodes().forEach { node -> renderNode(graph, node) }
+            graph.edges().forEach { side -> renderEdge(graph, side) }
+        }
 
-                when {
-                    node.modifier == Modifier.START -> circle(Vector3f(node.x, node.y, 0f), 4.pc)
-                    numberOfEdgesVisible > 1 -> circle(Vector3f(node.x, node.y, 0f), 2.pc)
-                    numberOfEdgesVisible == 1 -> square(Vector3f(node.x - 2.pc, node.y - 2.pc, 0f), 4.pc)
-                }
-            }
+        matrices.scale(1 + maxScale, 1 + maxScale, 1f)
+        matrices.pop()
+    }
 
-            graph.edges().forEach { side ->
-                val edge: Edge = graph.edgeValue(side).value ?: return@forEach
-                val startNode: Node = side.nodeU()
-                val endNode: Node = side.nodeV()
-                val start = Vector3f(startNode.x, startNode.y, 0f)
-                val end = Vector3f(endNode.x, endNode.y, 0f)
-                edge(start, end, 4.pc, edge)
+    fun renderHighlighted(
+        graph: ValueGraph<Node, Edge>,
+        highlightedNode: Node? = null,
+        highlightedEdge: EndpointPair<Node>? = null,
+        width: Int,
+        height: Int,
+        matrices: MatrixStack,
+        vertexConsumer: VertexConsumer,
+        light: Int,
+        overlay: Int
+    ) {
+        if (graph.nodes().isEmpty()) return
+        val maxDimension: Int = maxOf(width, height)
+        val maxScale: Float = 1f / maxDimension
+
+        matrices.push()
+        matrices.scale(maxScale, maxScale, 1f)
+        matrices.translate(.0, .0, -.01)
+
+        if (highlightedNode != null || highlightedEdge != null) {
+            withRenderContext(matrices, vertexConsumer, light, overlay) {
+                highlightedNode?.let { node -> renderNode(graph, node) }
+                highlightedEdge?.let { side -> renderEdge(graph, side) }
             }
         }
 
@@ -179,7 +212,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         val maxScale: Float = 1f / maxDimension
 
         matrices.scale(maxScale, maxScale, 1f)
-        matrices.translate(.0, .0, -.015)
+        matrices.translate(.0, .0, -.011)
 
         // Render line fill
         val fillConsumer: VertexConsumer =

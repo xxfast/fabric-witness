@@ -6,7 +6,8 @@
     "ExampleMixin"
   ],
   "client": [
-    "renderer.MixinHeldItemRenderer"
+    "renderer.MixinHeldItemRenderer",
+    "utils.MouseAccessorMixin"
   ],
   "injectors": {
     "defaultRequire": 1

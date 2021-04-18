@@ -19,3 +19,6 @@ fun <T> Collection<T>.zipSelf(): List<Pair<T, T>> {
 fun <T> Collection<T>.paired(): List<Pair<T, T>> =
     this.chunked(2)
         .map { items -> items.first() to items.last() }
+
+fun <T : Comparable<T>> Collection<T>.closest(value: T): T? =
+    this.minByOrNull { item -> value.compareTo(item) }

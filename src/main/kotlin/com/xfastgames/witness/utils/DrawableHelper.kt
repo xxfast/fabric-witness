@@ -76,3 +76,47 @@ fun circle(
     RenderSystem.disableBlend()
 }
 
+fun hexagon(
+    matrices: MatrixStack, centerX: Int, centerY: Int, size: Int,
+    r: Float, g: Float, b: Float, a: Float,
+) {
+    val matrix: Matrix4f = matrices.peek().model
+    val bufferBuilder: BufferBuilder = Tessellator.getInstance().buffer
+    RenderSystem.enableBlend()
+    RenderSystem.disableTexture()
+    RenderSystem.defaultBlendFunc()
+    bufferBuilder.begin(7, VertexFormats.POSITION_COLOR)
+
+    val x: Float = centerX.toFloat()
+    val y: Float = centerY.toFloat()
+    val halfSize: Float = size / 2f
+
+    val x2 = x + size
+    val y2 = y + size
+
+    bufferBuilder.vertex(matrix, x, y2, 0.0f).color(r, g, b, a).next()
+    bufferBuilder.vertex(matrix, x2, y2, 0.0f).color(r, g, b, a).next()
+    bufferBuilder.vertex(matrix, x2, y, 0.0f).color(r, g, b, a).next()
+    bufferBuilder.vertex(matrix, x, y, 0.0f).color(r, g, b, a).next()
+
+    // WTF this not working
+//    bufferBuilder.vertex(matrix, x - size, y, 0.0f).color(r, g, b, a).next()
+//    bufferBuilder.vertex(matrix, x - halfSize, y - size, 0.0f).color(r, g, b, a).next()
+//    bufferBuilder.vertex(matrix, x + halfSize, y - size, 0.0f).color(r, g, b, a).next()
+//    bufferBuilder.vertex(matrix, x, y, 0.0f).color(r, g, b, a).next()
+//
+//    bufferBuilder.vertex(matrix, x, y, 0.0f).color(r, g, b, a).next()
+//    bufferBuilder.vertex(matrix, x + halfSize, y - size, 0.0f).color(r, g, b, a).next()
+//    bufferBuilder.vertex(matrix, x + size, y, 0.0f).color(r, g, b, a).next()
+//    bufferBuilder.vertex(matrix, x + halfSize, y + size, 0.0f).color(r, g, b, a).next()
+//
+//
+//    bufferBuilder.vertex(matrix, x, y, 0.0f).color(r, g, b, a).next()
+//    bufferBuilder.vertex(matrix, x + halfSize, y + size, 0.0f).color(r, g, b, a).next()
+//    bufferBuilder.vertex(matrix, x - halfSize, y + size, 0.0f).color(r, g, b, a).next()
+//    bufferBuilder.vertex(matrix, x - size, y, 0.0f).color(r, g, b, a).next()
+    bufferBuilder.end()
+    BufferRenderer.draw(bufferBuilder)
+    RenderSystem.enableTexture()
+    RenderSystem.disableBlend()
+}

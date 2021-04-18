@@ -1,7 +1,9 @@
 package com.xfastgames.witness.screens.solver
 
+import com.google.common.graph.EndpointPair
 import com.google.common.graph.Graph
 import com.google.common.graph.MutableGraph
+import com.google.common.graph.Traverser
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
@@ -9,6 +11,7 @@ import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Compani
 import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
+import com.xfastgames.witness.mixin.utils.MouseAccessorMixin
 import com.xfastgames.witness.screens.solver.PuzzleSolverScreen.Sounds.Instances.FOCUS_MODE_DOING_INSTANCE
 import com.xfastgames.witness.sounds.LoopingSoundInstance
 import com.xfastgames.witness.utils.*
@@ -46,6 +49,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.RaycastContext
+import org.lwjgl.glfw.GLFW
 
 private const val BORDER_WIDTH = 14
 private const val CLICK_PADDING = 0.4f
@@ -76,10 +80,12 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     private var startedBlockEntity: PuzzleFrameBlockEntity? = null
 
     private val domain = PuzzleSolverDomain()
+    private val clientInstance: MinecraftClient by lazy { requireNotNull(client) }
+    private val mouse: Mouse by lazy { clientInstance.mouse }
+    private val mouseAccessor: MouseAccessorMixin by lazy { requireNotNull(clientInstance.mouse as? MouseAccessorMixin) }
 
     override fun init(client: MinecraftClient?, width: Int, height: Int) {
         super.init(client, width, height)
-        val mouse: Mouse = requireNotNull(client?.mouse)
         mouse.hide()
         client?.player?.playSound(Sounds.FOCUS_MODE_ENTER, 0.5f, 1f)
         client?.options?.hudHidden = true
@@ -113,6 +119,12 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         }
         return super.keyPressed(keyCode, scanCode, modifiers)
     }
+
+    override fun tick() {
+    }
+
+    private var lastKnownValidX: Double = 0.0
+    private var lastKnownValidY: Double = 0.0
 
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         if (!domain.isSolving) return
@@ -148,42 +160,113 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val clampedClickX: Float = (scaledClickX.toFloat() - (PUZZLE_FRAME_SCALE / 2))
             .coerceAtLeast(0f)
-            .coerceAtMost(puzzlePanel.width.toFloat())
+            .coerceAtMost(scale.toFloat())
 
         val clampedClickY: Float = (scaledClickY.toFloat() - (PUZZLE_FRAME_SCALE / 2))
             .coerceAtLeast(0f)
-            .coerceAtMost(puzzlePanel.height.toFloat())
+            .coerceAtMost(scale.toFloat())
 
-        // Get the end, or if none, create it
+        // Get the end
         val previousEnd: Node? = previousLine.nodes().firstOrNull { it.modifier == Modifier.END }
 
-        // TODO: This needs more work
+        // If there's no end, this means this is the first end that needs to be added
         val end: Node = previousEnd
-            ?.copy(x = clampedClickX, y = clampedClickY)
-            ?: Node(x = clampedClickX, y = clampedClickY, modifier = Modifier.END)
+            ?: previousLine.nodes().first { it.modifier == Modifier.START }
+                .copy(modifier = Modifier.END)
 
-        val nearestNodeToTheEnd: Node? = puzzle.graph.nodes()
-            .firstOrNull { node ->
-                node.x in (end.x - CLICK_PADDING)..(end.x + CLICK_PADDING) &&
-                        node.y in (end.y - CLICK_PADDING)..(end.y + CLICK_PADDING)
-            }
-            .takeIf { node -> node !in previousLine.nodes() }
+        val maxDimension: Int = maxOf(width, height)
+        val maxScale: Float = 1f / maxDimension
+
+        val thickness = 1.pc
+        val overNode: Node? = puzzle.graph.nodes().find { node ->
+            clampedClickX in (node.x - thickness)..(node.x + thickness) &&
+                    clampedClickY in (node.y - thickness)..(node.y + thickness)
+        }
+
+        val mouseXRange: ClosedFloatingPointRange<Float> =
+            (clampedClickX - thickness)..(clampedClickX + thickness)
+
+        val mouseYRange: ClosedFloatingPointRange<Float> =
+            (clampedClickY - thickness)..(clampedClickY + thickness)
+
+        var xEdgeIntersection: ClosedFloatingPointRange<Float>? = null
+        var yEdgeIntersection: ClosedFloatingPointRange<Float>? = null
+
+        val overEdge: EndpointPair<Node>? = puzzle.graph.edges().firstOrNull { endpointPair ->
+            val edge: Edge? = puzzle.graph.edgeValue(endpointPair).value
+            if (edge in listOf(Modifier.NONE, Modifier.HIDDEN)) return@firstOrNull false
+            val u: Node = endpointPair.nodeU()
+            val v: Node = endpointPair.nodeV()
+            val edgeXRange: ClosedFloatingPointRange<Float> = u.x..v.x
+            val edgeYRange: ClosedFloatingPointRange<Float> = u.y..v.y
+            xEdgeIntersection = (mouseXRange intersection edgeXRange)
+            yEdgeIntersection = (mouseYRange intersection edgeYRange)
+            xEdgeIntersection != null && yEdgeIntersection != null
+        }
+
+        val xIntersection: Float? = xEdgeIntersection?.mid
+        val yIntersection: Float? = yEdgeIntersection?.mid
+
+        val line: List<Node> = Traverser.forGraph(previousLine).breadthFirst(start).toList()
+        val lastNode: Node? = line.lastOrNull { it.modifier != Modifier.END }
+        val nodeBeforeLastNode: Node? = lastNode?.let { line.getOrNull(line.indexOf(lastNode) - 1) }
+
+        // TODO: Buggy! Can cause next edge to connect just because they share a node
+        val edgeCanBeReachedFromLastNode: Boolean =
+            overEdge?.nodeU() == lastNode || overEdge?.nodeV() == lastNode
+
+        val validatedEnd: Node =
+            if (xIntersection != null && yIntersection != null && edgeCanBeReachedFromLastNode)
+                end.copy(x = xIntersection, y = yIntersection)
+            else end
 
         val updatedLine: MutableGraph<Node> = mutableGraph(previousLine)
+        updatedLine.removeNode(end)
+        updatedLine.addNode(validatedEnd)
 
-        if (previousEnd != null) updatedLine.removeNode(previousEnd)
-        updatedLine.addNode(end)
+        // TODO: Remove debug logic
+        val debugNode: Node? = updatedLine.nodes().find { node -> node.modifier == Modifier.DOT }
+        debugNode?.let { updatedLine.removeNode(it) }
+        updatedLine.addNode(Node(clampedClickX, clampedClickY, Modifier.DOT))
 
-        if (nearestNodeToTheEnd != null) {
-            updatedLine.putEdge(nearestNodeToTheEnd, end)
-            updatedLine.putEdge(nearestNodeToTheEnd, start)
-        } else updatedLine.putEdge(start, end)
+        val overNodeCanBeReached: Boolean = overNode != null && lastNode != null &&
+                puzzle.graph.hasEdgeConnecting(overNode, lastNode)
+
+        when {
+            overNode != null && lastNode != null && overNode !in line && overNodeCanBeReached -> {
+                updatedLine.addNode(overNode)
+                updatedLine.putEdge(overNode, validatedEnd)
+                updatedLine.putEdge(overNode, lastNode)
+            }
+
+            overNode != null && lastNode != null && overNode == lastNode && nodeBeforeLastNode != null -> {
+                updatedLine.removeNode(lastNode)
+                updatedLine.putEdge(nodeBeforeLastNode, validatedEnd)
+            }
+
+            lastNode != null -> {
+                updatedLine.putEdge(lastNode, validatedEnd)
+            }
+        }
+
+        if (overNode == null && overEdge == null) {
+            val windowX: Double = (lastKnownValidX / this.width) * clientInstance.window.width
+            val windowY: Double = (lastKnownValidY / this.height) * clientInstance.window.height
+            mouse.setPosition(x = windowX, y = windowY, state = GLFW.GLFW_CURSOR_HIDDEN)
+        } else {
+            lastKnownValidX = mouseX
+            lastKnownValidY = mouseY
+        }
 
         updateLine(blockEntity, puzzle, updatedLine)
     }
 
     // TODO: Refactor this mess to a domain with a finite state
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
+        println("Mouse Click X: $mouseX")
+        println("Mouse X: ${mouse.x}")
+        println("Screen Width: ${this.width}")
+        println("Window Width: ${clientInstance.window.width}")
         val client: MinecraftClient = requireNotNull(client)
         val player: ClientPlayerEntity = requireNotNull(client.player)
         val world: ClientWorld = requireNotNull(client.world)
@@ -227,6 +310,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             FOCUS_MODE_DOING_INSTANCE.stop()
             client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
             startedBlockEntity = blockEntity
+            lastKnownValidX = mouseX
+            lastKnownValidY = mouseY
         } else missClick(player)
 
         return false

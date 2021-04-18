@@ -32,7 +32,10 @@ fun <N> mutableGraph(): MutableGraph<N> = GraphBuilder
     .undirected()
     .build()
 
-fun <N> mutableGraph(from: Graph<N>): MutableGraph<N> = GraphBuilder.from(from)
-    .build()
+fun <N> mutableGraph(from: Graph<N>): MutableGraph<N> {
+    val graph: MutableGraph<N> = GraphBuilder.from(from).build()
+    graph.add(from.nodes().toList(), from.adjacencyMatrix)
+    return graph
+}
 
 fun <N> emptyGraph(): Graph<N> = mutableGraph()

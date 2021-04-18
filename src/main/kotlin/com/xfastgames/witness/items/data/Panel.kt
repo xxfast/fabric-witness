@@ -165,6 +165,30 @@ sealed class Panel(val type: Type) {
     companion object {
         val DEFAULT: Panel by lazy { Grid.ofSize(3) }
 
+        val TEST: Panel by lazy {
+            val graph: MutableValueGraph<Node, Edge> = ValueGraphBuilder
+                .undirected()
+                .build()
+
+            val bottomRight = Node(0.5f, 0.5f, Modifier.START)
+            val center = Node(1.5f, 1.5f, Modifier.NORMAL)
+            val topLeft = Node(2.5f, 2.5f, Modifier.NORMAL)
+            graph.addNode(bottomRight)
+            graph.addNode(center)
+            graph.addNode(topLeft)
+
+            graph.putEdgeValue(bottomRight, center, Modifier.NORMAL)
+            graph.putEdgeValue(center, topLeft, Modifier.NORMAL)
+
+            Freeform(
+                line = emptyGraph(),
+                graph = graph,
+                backgroundColor = DyeColor.CYAN,
+                width = 3,
+                height = 3
+            )
+        }
+
         enum class Type { Grid, Tree, Freeform }
     }
 }
