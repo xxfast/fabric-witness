@@ -49,7 +49,8 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.RaycastContext
-import org.lwjgl.glfw.GLFW
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 private const val BORDER_WIDTH = 14
 private const val CLICK_PADDING = 0.4f
@@ -144,28 +145,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val previousLine: Graph<Node> = puzzle.line
 
-        val world: ClientWorld = requireNotNull(client?.world)
-
-        val hitResult: PuzzlePanelHitResult = rayCastAtPanel(world, mouseX, mouseY) ?: return
-        if (hitResult.blockEntity != startedBlockEntity) return
-
-        val puzzlePanel: Panel = hitResult.puzzlePanel
-        val (clickX, clickY) = hitResult.position
-
-        val scale: Int = maxOf(puzzlePanel.width, puzzlePanel.height)
-
-        // TODO: Sweet spot width seems to be between 3 and 4 sizes, anything bigger or smaller seems to be slightly off
-        val scaledClickX: Double = (scale * clickX) / PUZZLE_FRAME_SCALE
-        val scaledClickY: Double = (scale * clickY) / PUZZLE_FRAME_SCALE
-
-        val clampedClickX: Float = (scaledClickX.toFloat() - (PUZZLE_FRAME_SCALE / 2))
-            .coerceAtLeast(0f)
-            .coerceAtMost(scale.toFloat())
-
-        val clampedClickY: Float = (scaledClickY.toFloat() - (PUZZLE_FRAME_SCALE / 2))
-            .coerceAtLeast(0f)
-            .coerceAtMost(scale.toFloat())
-
         // Get the end
         val previousEnd: Node? = previousLine.nodes().firstOrNull { it.modifier == Modifier.END }
 
@@ -176,6 +155,13 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val maxDimension: Int = maxOf(width, height)
         val maxScale: Float = 1f / maxDimension
+        val world: ClientWorld = requireNotNull(client?.world)
+        val panelHitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
+
+        if (panelHitResult == null) return
+        if (panelHitResult.blockEntity != startedBlockEntity) return
+
+        val (clampedClickX, clampedClickY) = panelHitResult.position
 
         val thickness = 1.pc
         val overNode: Node? = puzzle.graph.nodes().find { node ->
@@ -189,19 +175,28 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val mouseYRange: ClosedFloatingPointRange<Float> =
             (clampedClickY - thickness)..(clampedClickY + thickness)
 
+        fun distance(u: Node, v: Node): Float =
+            sqrt((v.x - u.x).pow(2) + (v.y - u.y).pow(2))
+
         var xEdgeIntersection: ClosedFloatingPointRange<Float>? = null
         var yEdgeIntersection: ClosedFloatingPointRange<Float>? = null
+        val mouseNode = Node(clampedClickX, clampedClickY, Modifier.DOT)
 
         val overEdge: EndpointPair<Node>? = puzzle.graph.edges().firstOrNull { endpointPair ->
             val edge: Edge? = puzzle.graph.edgeValue(endpointPair).value
             if (edge in listOf(Modifier.NONE, Modifier.HIDDEN)) return@firstOrNull false
             val u: Node = endpointPair.nodeU()
             val v: Node = endpointPair.nodeV()
-            val edgeXRange: ClosedFloatingPointRange<Float> = u.x..v.x
-            val edgeYRange: ClosedFloatingPointRange<Float> = u.y..v.y
-            xEdgeIntersection = (mouseXRange intersection edgeXRange)
-            yEdgeIntersection = (mouseYRange intersection edgeYRange)
-            xEdgeIntersection != null && yEdgeIntersection != null
+            val sumDistance: Float = distance(u, mouseNode) + distance(mouseNode, v)
+            val distance: Float = distance(u, v)
+            if (sumDistance - distance < 0.001f) {
+                val edgeXRange: ClosedFloatingPointRange<Float> = u.x..v.x
+                val edgeYRange: ClosedFloatingPointRange<Float> = u.y..v.y
+                xEdgeIntersection = (mouseXRange intersection edgeXRange)
+                yEdgeIntersection = (mouseYRange intersection edgeYRange)
+                return@firstOrNull true
+            }
+            return@firstOrNull false
         }
 
         val xIntersection: Float? = xEdgeIntersection?.mid
@@ -227,7 +222,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         // TODO: Remove debug logic
         val debugNode: Node? = updatedLine.nodes().find { node -> node.modifier == Modifier.DOT }
         debugNode?.let { updatedLine.removeNode(it) }
-        updatedLine.addNode(Node(clampedClickX, clampedClickY, Modifier.DOT))
+        updatedLine.addNode(mouseNode)
 
         val overNodeCanBeReached: Boolean = overNode != null && lastNode != null &&
                 puzzle.graph.hasEdgeConnecting(overNode, lastNode)
@@ -250,9 +245,10 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         }
 
         if (overNode == null && overEdge == null) {
+            // Slightly move the mouse position to
             val windowX: Double = (lastKnownValidX / this.width) * clientInstance.window.width
             val windowY: Double = (lastKnownValidY / this.height) * clientInstance.window.height
-            mouse.setPosition(x = windowX, y = windowY, state = GLFW.GLFW_CURSOR_HIDDEN)
+//            mouse.setPosition(x = windowX, y = windowY)
         } else {
             lastKnownValidX = mouseX
             lastKnownValidY = mouseY
@@ -277,35 +273,26 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             return true
         }
 
-        val hitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
+        val panelHitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
+        if (panelHitResult == null) return missClick(player)
 
-        if (hitResult == null) return missClick(player)
-        val puzzlePanel: Panel = hitResult.puzzlePanel
-        val (clickX, clickY) = hitResult.position
-        val blockEntity: PuzzleFrameBlockEntity = hitResult.blockEntity
+        val puzzlePanel: Panel = panelHitResult.puzzlePanel
+        val (clickX, clickY) = panelHitResult.position
+        val blockEntity: PuzzleFrameBlockEntity = panelHitResult.blockEntity
 
-        val scale: Int = maxOf(puzzlePanel.width, puzzlePanel.height)
+        val thickness = 0.25f
+        val overNode: Node? = puzzlePanel.graph.nodes().find { node ->
+            clickX in (node.x - thickness)..(node.x + thickness) &&
+                    clickY in (node.y - thickness)..(node.y + thickness)
+        }
 
-        val scaledClickX: Double = scale * clickX
-        val scaledClickY: Double = scale * clickY
-
-        val clickXRange: ClosedFloatingPointRange<Double> =
-            (scaledClickX - CLICK_PADDING)..(scaledClickX + CLICK_PADDING)
-
-        val clickYRange: ClosedFloatingPointRange<Double> =
-            (scaledClickY - CLICK_PADDING)..(scaledClickY + CLICK_PADDING)
-
-        val clickedNode: Node? = puzzlePanel.graph.nodes()
-            .find { node -> node.x in clickXRange && node.y in clickYRange }
-            .takeIf { it?.modifier == Modifier.START }
-
-        clickedNode?.let {
-            val line: Graph<Node>? = domain.startTracingLine(puzzlePanel, clickedNode)
+        overNode?.let {
+            val line: Graph<Node>? = domain.startTracingLine(puzzlePanel, overNode)
             if (line == null) return missClick(player)
             updateLine(blockEntity, puzzlePanel, line)
         }
 
-        if (clickedNode != null) {
+        if (overNode != null) {
             player.playSound(IronPuzzleFrameBlock.Sounds.START_TRACING, 1f, 1f)
             FOCUS_MODE_DOING_INSTANCE.stop()
             client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
@@ -448,7 +435,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val voxelCoordinate = Vec3d(hitPos.x - blockPos.x, hitPos.y - blockPos.y, hitPos.z - blockPos.z)
 
         // TODO: Figure out why I cant do this transformation with rotation
-        val hitPosition: Pair<Double, Double> = when (facing) {
+        val blockHitPosition: Pair<Double, Double> = when (facing) {
             Direction.EAST -> 1 - voxelCoordinate.z to voxelCoordinate.y
             Direction.WEST -> voxelCoordinate.z to voxelCoordinate.y
             Direction.NORTH -> 1 - voxelCoordinate.x to voxelCoordinate.y
@@ -456,7 +443,25 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             else -> return null
         }
 
-        return PuzzlePanelHitResult(hitPosition, puzzlePanel, blockEntity)
+        val (blockHitX, blockHitY) = blockHitPosition
+
+        val scale: Int = maxOf(puzzlePanel.width, puzzlePanel.height)
+
+        // TODO: Sweet spot width seems to be between 3 and 4 sizes, anything bigger or smaller seems to be slightly off
+        val scaledClickX: Double = (scale * blockHitX) / PUZZLE_FRAME_SCALE
+        val scaledClickY: Double = (scale * blockHitY) / PUZZLE_FRAME_SCALE
+
+        val clampedClickX: Float = (scaledClickX.toFloat() - (PUZZLE_FRAME_SCALE / 2))
+            .coerceAtLeast(0f)
+            .coerceAtMost(scale.toFloat())
+
+        val clampedClickY: Float = (scaledClickY.toFloat() - (PUZZLE_FRAME_SCALE / 2))
+            .coerceAtLeast(0f)
+            .coerceAtMost(scale.toFloat())
+
+        val position: Pair<Float, Float> = clampedClickX to clampedClickY
+
+        return PuzzlePanelHitResult(position, puzzlePanel, blockEntity)
     }
 
     private fun updateLine(

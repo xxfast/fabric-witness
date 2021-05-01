@@ -21,7 +21,7 @@ sealed class PuzzleSolverData {
 }
 
 data class PuzzlePanelHitResult(
-    val position: Pair<Double, Double>,
+    val position: Pair<Float, Float>,
     val puzzlePanel: Panel,
     val blockEntity: PuzzleFrameBlockEntity,
 )
