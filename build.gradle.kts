@@ -5,6 +5,7 @@ plugins {
 }
 
 repositories {
+    mavenCentral()
     maven(url = "http://maven.fabricmc.net/") { name = "Fabric" }
     maven(url = "https://server.bbkr.space/artifactory/libs-release") { name = "CottonMC" }
     maven(url = "https://maven.siphalor.de") { name = "Siphalor's Maven" }
