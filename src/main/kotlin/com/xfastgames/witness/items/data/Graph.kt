@@ -1,18 +1,17 @@
+@file:Suppress("UnstableApiUsage")
+
 package com.xfastgames.witness.items.data
 
-import com.google.common.graph.Graph
-import com.google.common.graph.GraphBuilder
-import com.google.common.graph.ValueGraph
-import com.google.common.graph.ValueGraphBuilder
+import com.google.common.graph.*
 import com.xfastgames.witness.utils.guava.add
 import com.xfastgames.witness.utils.guava.adjacencyMatrix
 import net.minecraft.nbt.*
+import kotlin.math.pow
 
 private const val KEY_EDGES = "edges"
 private const val KEY_NODES = "nodes"
 private const val KEY_FILL = "fill"
 
-@Suppress("UnstableApiUsage")
 fun CompoundTag.getValueGraph(key: String): ValueGraph<Node, Edge> =
     getCompound(key).let { tag ->
         ValueGraphBuilder
@@ -37,7 +36,6 @@ fun CompoundTag.getValueGraph(key: String): ValueGraph<Node, Edge> =
             }
     }
 
-@Suppress("UnstableApiUsage")
 fun CompoundTag.putValueGraph(key: String, graph: ValueGraph<Node, Edge>) {
     put(key, CompoundTag().apply {
         val nodes: Set<Node> = graph.nodes()
@@ -79,7 +77,6 @@ fun CompoundTag.getGraph(key: String): Graph<Node> =
             }
     }
 
-@Suppress("UnstableApiUsage")
 fun CompoundTag.putGraph(key: String, graph: Graph<Node>) {
     put(key, CompoundTag().apply {
         val nodes: Set<Node> = graph.nodes()
@@ -90,5 +87,42 @@ fun CompoundTag.putGraph(key: String, graph: Graph<Node>) {
         })
         put(KEY_FILL, IntArrayTag(graph.adjacencyMatrix.flatten().map { value -> if (value) 1 else 0 }))
     })
+}
+
+fun ValueGraph<Node, Edge>.nearestNode(x: Float, y: Float, from: Node? = null): Node? {
+    val imaginaryNode = Node(x, y)
+    return nodes()
+        .minByOrNull { node ->
+            val distanceToNode: Float = distance(imaginaryNode, node)
+            val distanceToFrom: Float = from?.let { distance(imaginaryNode, from) } ?: 0f
+            distanceToNode + distanceToFrom
+        }
+}
+
+data class EdgeResult(val x: Float, val y: Float, val edge: EndpointPair<Node>)
+
+fun ValueGraph<Node, Edge>.nearestEdge(x: Float, y: Float, from: Node? = null): EdgeResult? {
+    val imaginaryNode = Node(x, y)
+    val nearestEdge: EndpointPair<Node> = edges().minByOrNull { endpointPair ->
+        val u: Node = endpointPair.nodeU()
+        val v: Node = endpointPair.nodeV()
+        val sumDistance: Float = distance(u, imaginaryNode) + distance(imaginaryNode, v)
+        val distance: Float = distance(u, v)
+        sumDistance - distance
+    } ?: return null
+
+    val u: Node = nearestEdge.nodeU()
+    val v: Node = nearestEdge.nodeV()
+    val (dx, dy) = getClosest(u, v, imaginaryNode)
+    return EdgeResult(dx, dy, nearestEdge)
+}
+
+fun getClosest(a: Node, b: Node, p: Node): Pair<Float, Float> {
+    val aToP = p.x - a.x to p.y - a.y
+    val aToB = b.x - a.x to b.y - a.y
+    val aToBSquared = aToB.first.pow(2) + aToB.second.pow(2)
+    val aToPDotAtoB = aToP.first * aToB.first + aToP.second * aToB.second
+    val t: Float = aToPDotAtoB / aToBSquared
+    return (a.x + aToB.first * t) to (a.y + aToB.second * t)
 }
 

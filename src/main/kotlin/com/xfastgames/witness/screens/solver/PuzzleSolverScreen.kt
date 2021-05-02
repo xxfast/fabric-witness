@@ -49,8 +49,6 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.RaycastContext
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 private const val BORDER_WIDTH = 14
 private const val CLICK_PADDING = 0.4f
@@ -153,8 +151,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             ?: previousLine.nodes().first { it.modifier == Modifier.START }
                 .copy(modifier = Modifier.END)
 
-        val maxDimension: Int = maxOf(width, height)
-        val maxScale: Float = 1f / maxDimension
         val world: ClientWorld = requireNotNull(client?.world)
         val panelHitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
 
@@ -163,57 +159,26 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val (clampedClickX, clampedClickY) = panelHitResult.position
 
-        val thickness = 1.pc
-        val overNode: Node? = puzzle.graph.nodes().find { node ->
-            clampedClickX in (node.x - thickness)..(node.x + thickness) &&
-                    clampedClickY in (node.y - thickness)..(node.y + thickness)
-        }
-
-        val mouseXRange: ClosedFloatingPointRange<Float> =
-            (clampedClickX - thickness)..(clampedClickX + thickness)
-
-        val mouseYRange: ClosedFloatingPointRange<Float> =
-            (clampedClickY - thickness)..(clampedClickY + thickness)
-
-        fun distance(u: Node, v: Node): Float =
-            sqrt((v.x - u.x).pow(2) + (v.y - u.y).pow(2))
-
-        var xEdgeIntersection: ClosedFloatingPointRange<Float>? = null
-        var yEdgeIntersection: ClosedFloatingPointRange<Float>? = null
-        val mouseNode = Node(clampedClickX, clampedClickY, Modifier.DOT)
-
-        val overEdge: EndpointPair<Node>? = puzzle.graph.edges().firstOrNull { endpointPair ->
-            val edge: Edge? = puzzle.graph.edgeValue(endpointPair).value
-            if (edge in listOf(Modifier.NONE, Modifier.HIDDEN)) return@firstOrNull false
-            val u: Node = endpointPair.nodeU()
-            val v: Node = endpointPair.nodeV()
-            val sumDistance: Float = distance(u, mouseNode) + distance(mouseNode, v)
-            val distance: Float = distance(u, v)
-            if (sumDistance - distance < 0.001f) {
-                val edgeXRange: ClosedFloatingPointRange<Float> = u.x..v.x
-                val edgeYRange: ClosedFloatingPointRange<Float> = u.y..v.y
-                xEdgeIntersection = (mouseXRange intersection edgeXRange)
-                yEdgeIntersection = (mouseYRange intersection edgeYRange)
-                return@firstOrNull true
-            }
-            return@firstOrNull false
-        }
-
-        val xIntersection: Float? = xEdgeIntersection?.mid
-        val yIntersection: Float? = yEdgeIntersection?.mid
+        val imaginaryNode = Node(clampedClickX, clampedClickY, Modifier.DOT)
 
         val line: List<Node> = Traverser.forGraph(previousLine).breadthFirst(start).toList()
         val lastNode: Node? = line.lastOrNull { it.modifier != Modifier.END }
         val nodeBeforeLastNode: Node? = lastNode?.let { line.getOrNull(line.indexOf(lastNode) - 1) }
 
-        // TODO: Buggy! Can cause next edge to connect just because they share a node
-        val edgeCanBeReachedFromLastNode: Boolean =
-            overEdge?.nodeU() == lastNode || overEdge?.nodeV() == lastNode
+        val overNode: Node? = puzzle.graph.nearestNode(clampedClickX, clampedClickY, lastNode)
+        val overEdgeResult: EdgeResult? = puzzle.graph.nearestEdge(clampedClickX, clampedClickY, lastNode)
+        val overEdge: EndpointPair<Node>? = overEdgeResult?.edge
+        val overEdgeImaginaryPoint: Node? = overEdgeResult?.let { Node(overEdgeResult.x, overEdgeResult.y) }
 
-        val validatedEnd: Node =
-            if (xIntersection != null && yIntersection != null && edgeCanBeReachedFromLastNode)
-                end.copy(x = xIntersection, y = yIntersection)
-            else end
+        // TODO: I think we can simplify this
+        val validatedEnd: Node = when {
+            overNode == null || overEdgeImaginaryPoint == null -> end
+
+            distance(overNode, imaginaryNode) < distance(overEdgeImaginaryPoint, imaginaryNode) ->
+                end.copy(x = overNode.x, y = overNode.y)
+
+            else -> end.copy(x = overEdgeImaginaryPoint.x, y = overEdgeImaginaryPoint.y)
+        }
 
         val updatedLine: MutableGraph<Node> = mutableGraph(previousLine)
         updatedLine.removeNode(end)
@@ -222,7 +187,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         // TODO: Remove debug logic
         val debugNode: Node? = updatedLine.nodes().find { node -> node.modifier == Modifier.DOT }
         debugNode?.let { updatedLine.removeNode(it) }
-        updatedLine.addNode(mouseNode)
+
+        updatedLine.addNode(imaginaryNode)
 
         val overNodeCanBeReached: Boolean = overNode != null && lastNode != null &&
                 puzzle.graph.hasEdgeConnecting(overNode, lastNode)
@@ -259,10 +225,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
     // TODO: Refactor this mess to a domain with a finite state
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        println("Mouse Click X: $mouseX")
-        println("Mouse X: ${mouse.x}")
-        println("Screen Width: ${this.width}")
-        println("Window Width: ${clientInstance.window.width}")
         val client: MinecraftClient = requireNotNull(client)
         val player: ClientPlayerEntity = requireNotNull(client.player)
         val world: ClientWorld = requireNotNull(client.world)

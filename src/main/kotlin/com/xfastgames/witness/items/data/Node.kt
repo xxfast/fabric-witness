@@ -1,6 +1,8 @@
 package com.xfastgames.witness.items.data
 
 import net.minecraft.nbt.CompoundTag
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 private const val KEY_NODE_X = "x"
 private const val KEY_NODE_Y = "y"
@@ -20,3 +22,6 @@ fun CompoundTag.putNode(node: Node) {
     putFloat(KEY_NODE_Y, node.y)
     putInt(KEY_NODE_MODIFIER, node.modifier.ordinal)
 }
+
+fun distance(u: Node, v: Node): Float =
+    sqrt((v.x - u.x).pow(2) + (v.y - u.y).pow(2))
