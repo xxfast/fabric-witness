@@ -16,7 +16,7 @@ val <N> Graph<N>.adjacencyMatrix: List<List<Boolean>>
 /***
  * Adds a [nodeList] to a existing graph with the given [adjacencyMatrix]
  */
-fun <N> MutableGraph<N>.add(nodeList: List<N>, adjacencyMatrix: List<List<Boolean>>): MutableGraph<N> =
+fun <N : Any> MutableGraph<N>.add(nodeList: List<N>, adjacencyMatrix: List<List<Boolean>>): MutableGraph<N> =
     this.apply {
         nodeList.forEach { node -> this.addNode(node) }
         adjacencyMatrix.forEachIndexed { thisIndex, edges ->
@@ -28,14 +28,19 @@ fun <N> MutableGraph<N>.add(nodeList: List<N>, adjacencyMatrix: List<List<Boolea
         }
     }
 
-fun <N> mutableGraph(): MutableGraph<N> = GraphBuilder
+fun <N : Any> MutableGraph<N>.clear() {
+    val nodes: List<N> = this.nodes().toList()
+    nodes.forEach { removeNode(it) }
+}
+
+fun <N : Any> mutableGraph(): MutableGraph<N> = GraphBuilder
     .undirected()
     .build()
 
-fun <N> mutableGraph(from: Graph<N>): MutableGraph<N> {
+fun <N : Any> mutableGraph(from: Graph<N>): MutableGraph<N> {
     val graph: MutableGraph<N> = GraphBuilder.from(from).build()
     graph.add(from.nodes().toList(), from.adjacencyMatrix)
     return graph
 }
 
-fun <N> emptyGraph(): Graph<N> = mutableGraph()
+fun <N : Any> emptyGraph(): Graph<N> = mutableGraph()

@@ -122,9 +122,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     override fun tick() {
     }
 
-    private var lastKnownValidX: Double = 0.0
-    private var lastKnownValidY: Double = 0.0
-
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         if (!domain.isSolving) return
 
@@ -143,14 +140,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val previousLine: Graph<Node> = puzzle.line
 
-        // Get the end
-        val previousEnd: Node? = previousLine.nodes().firstOrNull { it.modifier == Modifier.END }
-
-        // If there's no end, this means this is the first end that needs to be added
-        val end: Node = previousEnd
-            ?: previousLine.nodes().first { it.modifier == Modifier.START }
-                .copy(modifier = Modifier.END)
-
         val world: ClientWorld = requireNotNull(client?.world)
         val panelHitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
 
@@ -159,66 +148,59 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val (clampedClickX, clampedClickY) = panelHitResult.position
 
-        val imaginaryNode = Node(clampedClickX, clampedClickY, Modifier.DOT)
-
         val line: List<Node> = Traverser.forGraph(previousLine).breadthFirst(start).toList()
-        val lastNode: Node? = line.lastOrNull { it.modifier != Modifier.END }
-        val nodeBeforeLastNode: Node? = lastNode?.let { line.getOrNull(line.indexOf(lastNode) - 1) }
+        val lastNode: Node = line.last { it.modifier != Modifier.END }
+        val nodeBeforeLastNode: Node? = lastNode.let { line.getOrNull(line.indexOf(lastNode) - 1) }
 
         val overNode: Node? = puzzle.graph.nearestNode(clampedClickX, clampedClickY, lastNode)
         val overEdgeResult: EdgeResult? = puzzle.graph.nearestEdge(clampedClickX, clampedClickY, lastNode)
         val overEdge: EndpointPair<Node>? = overEdgeResult?.edge
-        val overEdgeImaginaryPoint: Node? = overEdgeResult?.let { Node(overEdgeResult.x, overEdgeResult.y) }
+        val updatedLine: MutableGraph<Node> = mutableGraph(previousLine)
 
-        // TODO: I think we can simplify this
-        val validatedEnd: Node = when {
-            overNode == null || overEdgeImaginaryPoint == null -> end
-
-            distance(overNode, imaginaryNode) < distance(overEdgeImaginaryPoint, imaginaryNode) ->
-                end.copy(x = overNode.x, y = overNode.y)
-
-            else -> end.copy(x = overEdgeImaginaryPoint.x, y = overEdgeImaginaryPoint.y)
+        // If over an edge and there's an existing end
+        if (overEdgeResult != null) {
+            // Remove the previous end
+            val previousEnd: Node? = line.firstOrNull { it.modifier == Modifier.END }
+            previousEnd?.let { end -> updatedLine.removeNode(end) }
+            val newEnd = Node(x = overEdgeResult.x, y = overEdgeResult.y, Modifier.END)
+            updatedLine.addNode(newEnd)
+            updatedLine.putEdge(newEnd, lastNode)
         }
 
-        val updatedLine: MutableGraph<Node> = mutableGraph(previousLine)
-        updatedLine.removeNode(end)
-        updatedLine.addNode(validatedEnd)
-
-        // TODO: Remove debug logic
-        val debugNode: Node? = updatedLine.nodes().find { node -> node.modifier == Modifier.DOT }
-        debugNode?.let { updatedLine.removeNode(it) }
-
-        updatedLine.addNode(imaginaryNode)
-
-        val overNodeCanBeReached: Boolean = overNode != null && lastNode != null &&
-                puzzle.graph.hasEdgeConnecting(overNode, lastNode)
+        val updatedSolution: List<Node> = Traverser.forGraph(updatedLine).breadthFirst(start).toList()
+        val updatedEnd: Node? = updatedSolution.firstOrNull { it.modifier == Modifier.END }
 
         when {
-            overNode != null && lastNode != null && overNode !in line && overNodeCanBeReached -> {
+            // If over an node, and the node is not already part of solution
+            overNode != null &&
+                    updatedEnd != null &&
+                    overNode !in updatedLine.nodes() &&
+                    distance(updatedEnd, overNode) <= .2 &&
+                    puzzle.graph.hasEdgeConnecting(lastNode, overNode) -> {
                 updatedLine.addNode(overNode)
-                updatedLine.putEdge(overNode, validatedEnd)
                 updatedLine.putEdge(overNode, lastNode)
             }
 
-            overNode != null && lastNode != null && overNode == lastNode && nodeBeforeLastNode != null -> {
+            // If over an node, and the node is already part of solution
+            overNode != null &&
+                    overNode in updatedLine.nodes() &&
+                    overNode != lastNode &&
+                    overNode.modifier != Modifier.START -> {
+                updatedLine.removeNode(overNode)
                 updatedLine.removeNode(lastNode)
-                updatedLine.putEdge(nodeBeforeLastNode, validatedEnd)
-            }
-
-            lastNode != null -> {
-                updatedLine.putEdge(lastNode, validatedEnd)
             }
         }
 
-        if (overNode == null && overEdge == null) {
-            // Slightly move the mouse position to
-            val windowX: Double = (lastKnownValidX / this.width) * clientInstance.window.width
-            val windowY: Double = (lastKnownValidY / this.height) * clientInstance.window.height
-//            mouse.setPosition(x = windowX, y = windowY)
-        } else {
-            lastKnownValidX = mouseX
-            lastKnownValidY = mouseY
-        }
+        val solution: List<Node> =
+            if (updatedLine.nodes().contains(start))
+                Traverser.forGraph(updatedLine).breadthFirst(start).toList()
+            else emptyList()
+
+        // Remove nodes that are not a part of the main line
+        val nodesThatAreNotInSolution: List<Node> =
+            updatedLine.nodes().filter { node -> node !in solution }
+
+        nodesThatAreNotInSolution.forEach { node -> updatedLine.removeNode(node) }
 
         updateLine(blockEntity, puzzle, updatedLine)
     }
@@ -259,8 +241,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             FOCUS_MODE_DOING_INSTANCE.stop()
             client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
             startedBlockEntity = blockEntity
-            lastKnownValidX = mouseX
-            lastKnownValidY = mouseY
         } else missClick(player)
 
         return false
