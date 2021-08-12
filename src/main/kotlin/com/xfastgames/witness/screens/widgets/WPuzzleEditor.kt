@@ -15,11 +15,14 @@ import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.render.OverlayTexture
+import net.minecraft.client.render.Tessellator
 import net.minecraft.client.render.VertexConsumerProvider
+import net.minecraft.client.render.VertexFormats
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.util.math.Vector3f
 import net.minecraft.inventory.Inventory
 import net.minecraft.item.ItemStack
+import org.lwjgl.opengl.GL11
 
 private const val CLICK_PADDING = 0.2f
 
@@ -70,14 +73,29 @@ class WPuzzleEditor(
         val puzzle: Panel = puzzleStack.tag?.getPanel(KEY_PANEL) ?: Panel.DEFAULT
 
         puzzlePanelRenderer.renderGraph(
-            puzzle.graph,
-            puzzle.width,
-            puzzle.height,
-            matrices,
-            immediateConsumer,
-            15728880,
-            OverlayTexture.DEFAULT_UV
+            graph = puzzle.graph,
+            width = puzzle.width,
+            height = puzzle.height,
+            matrices = matrices,
+            vertexConsumers = immediateConsumer,
+            light = 15728880,
+            overlay = OverlayTexture.DEFAULT_UV
         )
+
+        val tessellator: Tessellator? = Tessellator.getInstance()
+        val bufferBuilder = tessellator!!.buffer
+        bufferBuilder.begin(GL11.GL_QUADS, VertexFormats.POSITION_COLOR)
+        bufferBuilder.color(0, 0, 0, 1).next()
+        puzzlePanelRenderer.renderHighlighted(
+            graph = puzzle.graph,
+            width = puzzle.width,
+            height = puzzle.height,
+            matrices = matrices,
+            vertexConsumer = bufferBuilder,
+            light = 15728880,
+            overlay = OverlayTexture.DEFAULT_UV
+        )
+        tessellator.draw()
 
         matrices.translate(x.toDouble(), y.toDouble(), .0)
         matrices.scale(puzzleScale, -puzzleScale, puzzleScale)
@@ -95,7 +113,7 @@ class WPuzzleEditor(
         val xPosition = 1 - (x.toFloat() / width)
         val yPosition = 1 - (y.toFloat() / height)
 
-        val scale: Int = maxOf(inputPuzzle.width,  inputPuzzle.height)
+        val scale: Int = maxOf(inputPuzzle.width, inputPuzzle.height)
         val puzzleRelativeX: Float = xPosition * scale
         val puzzleRelativeY: Float = yPosition * scale
 

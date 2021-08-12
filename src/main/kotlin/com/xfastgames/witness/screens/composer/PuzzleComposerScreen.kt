@@ -17,13 +17,17 @@ import com.xfastgames.witness.screens.widgets.WRadioGroup
 import com.xfastgames.witness.screens.widgets.WRadioImageButton
 import com.xfastgames.witness.screens.widgets.icons.BreakIcon
 import com.xfastgames.witness.screens.widgets.icons.EndIcon
+import com.xfastgames.witness.screens.widgets.icons.HexagonDotIcon
 import com.xfastgames.witness.screens.widgets.icons.StartIcon
 import com.xfastgames.witness.utils.*
 import io.github.cottonmc.cotton.gui.SyncedGuiDescription
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
 import io.github.cottonmc.cotton.gui.client.CottonInventoryScreen
 import io.github.cottonmc.cotton.gui.client.ScreenDrawing
-import io.github.cottonmc.cotton.gui.widget.*
+import io.github.cottonmc.cotton.gui.widget.WItemSlot
+import io.github.cottonmc.cotton.gui.widget.WPlainPanel
+import io.github.cottonmc.cotton.gui.widget.WPlayerInvPanel
+import io.github.cottonmc.cotton.gui.widget.WWidget
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
@@ -98,9 +102,9 @@ class PuzzleComposerScreenDescription(
     private val startButton = WRadioImageButton(icon = StartIcon, group = toggleGroup)
     private val endButton = WRadioImageButton(icon = EndIcon, group = toggleGroup)
     private val breakButton = WRadioImageButton(icon = BreakIcon, group = toggleGroup)
-    private val hexagonDotButton = WRadioImageButton(group = toggleGroup)
-    private val freeSlotButton1 = WRadioImageButton(group = toggleGroup)
-    private val freeSlotButton2 = WRadioImageButton(group = toggleGroup)
+    private val hexagonDotButton = WRadioImageButton(icon = HexagonDotIcon, group = toggleGroup)
+    private val addButton = WRadioImageButton(group = toggleGroup)
+    private val removeButton = WRadioImageButton(group = toggleGroup)
 
     private val editor = WPuzzleEditor(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX)
     private val playerInventoryPanel: WPlayerInvPanel = this.createPlayerInventoryPanel()
@@ -184,6 +188,9 @@ class PuzzleComposerScreenDescription(
                 selectedToggle == startButton && node != null ->
                     node.modifier.nextIn(Modifier.START, Modifier.NORMAL)
 
+                selectedToggle == endButton && node != null ->
+                    node.modifier.nextIn(Modifier.END, Modifier.NORMAL)
+
                 node?.modifier != null -> node.modifier
                 else -> Modifier.NONE
             }
@@ -257,8 +264,8 @@ class PuzzleComposerScreenDescription(
         root.add(breakButton, 0, y)
         root.add(hexagonDotButton, 17, y)
         y += 16
-        root.add(freeSlotButton1, 0, y)
-        root.add(freeSlotButton2, 17, y)
+        root.add(addButton, 0, y)
+        root.add(removeButton, 17, y)
         y += 22
         root.add(outputSlot, 8, y)
         y += outputSlot.height + 16
