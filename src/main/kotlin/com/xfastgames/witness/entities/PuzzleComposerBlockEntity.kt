@@ -17,13 +17,12 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.InventoryProvider
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.BlockEntityType
-import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventories
 import net.minecraft.inventory.SidedInventory
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.NbtCompound
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.screen.NamedScreenHandlerFactory
 import net.minecraft.screen.ScreenHandler
@@ -35,7 +34,7 @@ import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.WorldAccess
 
-class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
+class PuzzleComposerBlockEntity(pos: BlockPos?, state: BlockState?) : BlockEntity(ENTITY_TYPE, pos, state),
     NamedScreenHandlerFactory,
     InventoryProvider,
     BlockEntityClientSerializable,
@@ -51,7 +50,7 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
 
         val ENTITY_TYPE: BlockEntityType<PuzzleComposerBlockEntity> = registerBlockEntity(IDENTIFIER) {
             BlockEntityType.Builder
-                .create({ PuzzleComposerBlockEntity() }, PuzzleComposerBlock.BLOCK)
+                .create({ pos, state -> PuzzleComposerBlockEntity(pos, state) }, PuzzleComposerBlock.BLOCK)
                 .build(null)
         }
 
@@ -69,9 +68,7 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
         }
 
         override fun onClient() {
-            BlockEntityRendererRegistry.INSTANCE.register(ENTITY_TYPE) { dispatcher: BlockEntityRenderDispatcher ->
-                PuzzleComposerBlockRenderer(dispatcher)
-            }
+            BlockEntityRendererRegistry.INSTANCE.register(ENTITY_TYPE) { PuzzleComposerBlockRenderer() }
         }
     }
 
@@ -88,20 +85,20 @@ class PuzzleComposerBlockEntity : BlockEntity(ENTITY_TYPE),
 
     override fun getInventory(state: BlockState?, world: WorldAccess?, pos: BlockPos?): SidedInventory = inventory
 
-    override fun fromTag(state: BlockState?, tag: CompoundTag) {
-        super.fromTag(state, tag)
+    override fun readNbt(nbt: NbtCompound?) {
+        super.readNbt(nbt)
         inventory.items.clear()
-        Inventories.fromTag(tag, inventory.items)
+        Inventories.readNbt(nbt, inventory.items)
     }
 
-    override fun toTag(tag: CompoundTag): CompoundTag {
-        super.toTag(tag)
-        Inventories.toTag(tag, inventory.items)
-        return tag
+    override fun writeNbt(nbt: NbtCompound): NbtCompound {
+        super.writeNbt(nbt)
+        Inventories.writeNbt(nbt, inventory.items)
+        return nbt
     }
 
-    override fun toClientTag(tag: CompoundTag): CompoundTag = toTag(tag)
-    override fun fromClientTag(tag: CompoundTag) = fromTag(cachedState, tag)
+    override fun toClientTag(nbt: NbtCompound): NbtCompound = writeNbt(nbt)
+    override fun fromClientTag(nbt: NbtCompound) = readNbt(nbt)
 
     fun syncInventorySlotTag(slotIndex: Int, itemStack: ItemStack) {
         val passedData = PacketByteBuf(Unpooled.buffer())

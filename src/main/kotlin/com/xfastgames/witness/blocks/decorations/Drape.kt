@@ -23,7 +23,7 @@ import java.util.*
 enum class DrapePart : StringIdentifiable {
     TOP, MIDDLE, LOWER, LEAF;
 
-    override fun asString(): String = this.name.toLowerCase()
+    override fun asString(): String = this.name.lowercase(Locale.getDefault())
 }
 
 abstract class Drape :

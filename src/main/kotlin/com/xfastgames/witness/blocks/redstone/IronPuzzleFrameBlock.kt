@@ -65,7 +65,8 @@ class IronPuzzleFrameBlock : BlockWithEntity(
 
     override fun getRenderType(state: BlockState?): BlockRenderType = BlockRenderType.MODEL
 
-    override fun createBlockEntity(world: BlockView?): BlockEntity? = PuzzleFrameBlockEntity()
+    override fun createBlockEntity(pos: BlockPos?, state: BlockState?): BlockEntity? =
+        PuzzleFrameBlockEntity(pos, state)
 
     override fun getPlacementState(ctx: ItemPlacementContext): BlockState? {
         val blockBelow: Block = ctx.world.getBlockState(ctx.blockPos.below).block
@@ -262,7 +263,7 @@ class IronPuzzleFrameBlock : BlockWithEntity(
             // when there's a panel and player is not sneaking
             inventory.items[0].isNotEmpty -> {
                 if (hit?.side == state[HORIZONTAL_FACING].opposite) {
-                    if (world.isClient) MinecraftClient.getInstance().openScreen(PuzzleSolverScreen())
+                    if (world.isClient) MinecraftClient.getInstance().setScreen(PuzzleSolverScreen())
                     return ActionResult.CONSUME
                 }
                 return ActionResult.FAIL

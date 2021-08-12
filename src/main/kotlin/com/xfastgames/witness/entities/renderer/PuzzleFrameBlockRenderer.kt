@@ -4,16 +4,14 @@ import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.rotate
 import net.minecraft.client.render.VertexConsumerProvider
-import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher
 import net.minecraft.client.render.block.entity.BlockEntityRenderer
 import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.client.util.math.Vector3f
 import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3f
 
-class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
-    BlockEntityRenderer<PuzzleFrameBlockEntity>(dispatcher) {
+class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity> {
 
     companion object {
         val PUZZLE_FRAME_SCALE = 0.85f
@@ -39,7 +37,7 @@ class PuzzleFrameBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
 
         // Rotate the entity to the direction of the block
         val direction: Direction = blockEntity.cachedState.get(Properties.HORIZONTAL_FACING)
-        matrices.rotate(Vector3f.POSITIVE_Y, -direction.asRotation())
+        matrices.rotate(Vec3f.POSITIVE_Y, -direction.asRotation())
 
         // Scale the panel
         matrices.scale(PUZZLE_FRAME_SCALE, PUZZLE_FRAME_SCALE, 1f)

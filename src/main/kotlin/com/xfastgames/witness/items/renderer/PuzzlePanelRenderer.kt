@@ -14,7 +14,6 @@ import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.model.json.ModelTransformation.Mode
 import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.client.util.math.Vector3f
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.util.Arm
@@ -22,6 +21,8 @@ import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.Matrix3f
 import net.minecraft.util.math.Matrix4f
+import net.minecraft.util.math.Vec3f
+import java.util.*
 import kotlin.math.*
 
 @Suppress("UnstableApiUsage")
@@ -32,7 +33,10 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
     private val solutionFillTexture = Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_solution_fill.png")
 
     private fun getBackdropTexture(color: DyeColor): Identifier =
-        Identifier(Witness.IDENTIFIER, "textures/entity/puzzle_panel_backdrop_${color.name.toLowerCase()}.png")
+        Identifier(
+            Witness.IDENTIFIER,
+            "textures/entity/puzzle_panel_backdrop_${color.name.lowercase(Locale.getDefault())}.png"
+        )
 
     override fun render(
         stack: ItemStack,
@@ -48,7 +52,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
                 matrices.push()
                 matrices.scale(3.0f, 3.0f, 3.0f)
                 matrices.translate(.0, -.5, -1.0)
-                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                matrices.rotate(Vec3f.NEGATIVE_Y, 180f)
                 renderPanel(stack, matrices, vertexConsumers, light, overlay)
                 matrices.pop()
                 renderArmHoldingItem(matrices, vertexConsumers, light, 0.0f, 0.0f, Arm.LEFT)
@@ -59,7 +63,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
                 matrices.push()
                 matrices.scale(3.0f, 3.0f, 3.0f)
                 matrices.translate(1.5, -.5, -1.0)
-                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                matrices.rotate(Vec3f.NEGATIVE_Y, 180f)
                 renderPanel(stack, matrices, vertexConsumers, light, overlay)
                 matrices.pop()
                 renderArmHoldingItem(matrices, vertexConsumers, light, 0.0f, 0.0f, Arm.RIGHT)
@@ -68,19 +72,19 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
             Mode.GROUND, Mode.THIRD_PERSON_RIGHT_HAND, Mode.THIRD_PERSON_LEFT_HAND -> {
                 val client: MinecraftClient = MinecraftClient.getInstance()
                 matrices.translate(.5, .45, .5)
-                client.itemRenderer.renderItem(paneStack, Mode.GROUND, light, overlay, matrices, vertexConsumers)
+                client.itemRenderer.renderItem(paneStack, Mode.GROUND, light, overlay, matrices, vertexConsumers, 0)
                 matrices.translate(.25, -.125, .02)
                 matrices.scale(.5f, .5f, .5f)
-                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                matrices.rotate(Vec3f.NEGATIVE_Y, 180f)
                 renderPanel(stack, matrices, vertexConsumers, light, overlay)
                 matrices.translate(1.0, .0, .075)
-                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                matrices.rotate(Vec3f.NEGATIVE_Y, 180f)
                 renderPanel(stack, matrices, vertexConsumers, light, overlay)
             }
 
             else -> {
                 matrices.translate(1.0, .0, .5)
-                matrices.rotate(Vector3f.NEGATIVE_Y, 180f)
+                matrices.rotate(Vec3f.NEGATIVE_Y, 180f)
                 renderPanel(stack, matrices, vertexConsumers, light, overlay)
             }
         }
@@ -93,7 +97,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         light: Int,
         overlay: Int
     ) {
-        val puzzle: Panel = stack.tag?.getPanel(KEY_PANEL) ?: Panel.DEFAULT
+        val puzzle: Panel = stack.nbt?.getPanel(KEY_PANEL) ?: Panel.DEFAULT
         renderBackground(puzzle.backgroundColor, matrices, vertexConsumers, light, overlay)
         renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, vertexConsumers, light, overlay)
         renderLine(puzzle.line, puzzle.width, puzzle.height, matrices, vertexConsumers, light, overlay)
@@ -114,7 +118,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         val backdropConsumer: VertexConsumer =
             vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(backdropTexture, false))
 
-        backdropConsumer.square(matrices, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
+        backdropConsumer.square(matrices, Vec3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
         return matrices.pop()
     }
 
@@ -124,9 +128,9 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         }
 
     private fun RenderContext.renderNode(graph: ValueGraph<Node, Edge>, node: Node): Unit = when {
-        node.modifier == Modifier.START -> circle(Vector3f(node.x, node.y, 0f), 4.pc)
-        numberOfEdgesVisible(graph, node) > 1 -> circle(Vector3f(node.x, node.y, 0f), 2.pc)
-        numberOfEdgesVisible(graph, node) == 1 -> square(Vector3f(node.x - 2.pc, node.y - 2.pc, 0f), 4.pc)
+        node.modifier == Modifier.START -> circle(Vec3f(node.x, node.y, 0f), 4.pc)
+        numberOfEdgesVisible(graph, node) > 1 -> circle(Vec3f(node.x, node.y, 0f), 2.pc)
+        numberOfEdgesVisible(graph, node) == 1 -> square(Vec3f(node.x - 2.pc, node.y - 2.pc, 0f), 4.pc)
         else -> Unit
     }
 
@@ -134,8 +138,8 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         val edge: Edge = graph.edgeValue(side).value ?: return
         val startNode: Node = side.nodeU()
         val endNode: Node = side.nodeV()
-        val start = Vector3f(startNode.x, startNode.y, 0f)
-        val end = Vector3f(endNode.x, endNode.y, 0f)
+        val start = Vec3f(startNode.x, startNode.y, 0f)
+        val end = Vec3f(endNode.x, endNode.y, 0f)
         edge(start, end, 4.pc, edge)
     }
 
@@ -219,15 +223,15 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
             vertexConsumers.getBuffer(RenderLayer.getBeaconBeam(solutionFillTexture, false))
         withRenderContext(matrices, fillConsumer, light, overlay) {
             line.nodes().forEach { node ->
-                if (node.modifier == Modifier.START) circle(Vector3f(node.x, node.y, 0f), 4.pc)
-                else circle(Vector3f(node.x, node.y, 0f), 2.pc)
+                if (node.modifier == Modifier.START) circle(Vec3f(node.x, node.y, 0f), 4.pc)
+                else circle(Vec3f(node.x, node.y, 0f), 2.pc)
             }
 
             line.edges().forEach { side ->
                 val startNode: Node = side.nodeU()
                 val endNode: Node = side.nodeV()
-                val start = Vector3f(startNode.x, startNode.y, 0f)
-                val end = Vector3f(endNode.x, endNode.y, 0f)
+                val start = Vec3f(startNode.x, startNode.y, 0f)
+                val end = Vec3f(endNode.x, endNode.y, 0f)
                 edge(start, end, 4.pc, Modifier.NORMAL)
             }
         }
@@ -237,12 +241,12 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         return matrices.pop()
     }
 
-    private fun RenderContext.edge(start: Vector3f, end: Vector3f, thickness: Float, edge: Edge) {
+    private fun RenderContext.edge(start: Vec3f, end: Vec3f, thickness: Float, edge: Edge) {
         fun RenderContext.`break`(
-            start: Vector3f,
-            end: Vector3f
+            start: Vec3f,
+            end: Vec3f
         ) {
-            val max: Vector3f = maxOf(start, end)
+            val max: Vec3f = maxOf(start, end)
             val theta: Float = atan2(start.y - end.y, start.x - end.x)
             val halfThickness: Float = thickness / 2
             val lengthX: Float = start.x - end.x
@@ -250,7 +254,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
             val length: Float = sqrt(lengthX.pow(2) + lengthY.pow(2)) + thickness
             val halfLength: Float = (length / 2)
 
-            val vertices: List<Vector3f> = listOf(
+            val vertices: List<Vec3f> = listOf(
                 max.copy().apply { add(0f, -halfThickness, 0f) },
                 max.copy().apply { add(0f, halfThickness, 0f) },
                 max.copy().apply { add(halfLength - thickness, +halfThickness, 0f) },
@@ -264,7 +268,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
                 val tempY: Float = corner.y - max.y
                 val rotatedX: Float = tempX * cos(theta) - tempY * sin(theta)
                 val rotatedY: Float = tempX * sin(theta) + tempY * cos(theta)
-                Vector3f(rotatedX + max.x, rotatedY + max.y, max.z)
+                Vec3f(rotatedX + max.x, rotatedY + max.y, max.z)
             }
 
             vertices.forEach { position ->
@@ -282,11 +286,11 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
         }
 
         fun RenderContext.start(
-            start: Vector3f,
-            end: Vector3f
+            start: Vec3f,
+            end: Vec3f
         ) {
             line(start, end, thickness)
-            val midpoint: Vector3f = (start + end) / 2f
+            val midpoint: Vec3f = (start + end) / 2f
             circle(midpoint, thickness)
         }
 

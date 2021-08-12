@@ -44,7 +44,8 @@ class PuzzleComposerBlock : BlockWithEntity(
 
     override fun getRenderType(state: BlockState?): BlockRenderType = BlockRenderType.MODEL
 
-    override fun createBlockEntity(world: BlockView?): BlockEntity? = PuzzleComposerBlockEntity()
+    override fun createBlockEntity(pos: BlockPos?, state: BlockState?): BlockEntity? =
+        PuzzleComposerBlockEntity(pos, state)
 
     override fun getPlacementState(ctx: ItemPlacementContext): BlockState? {
         return super.getPlacementState(ctx)?.with(HORIZONTAL_FACING, ctx.playerFacing)

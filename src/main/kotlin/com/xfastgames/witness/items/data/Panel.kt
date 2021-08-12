@@ -1,11 +1,14 @@
 package com.xfastgames.witness.items.data
 
-import com.google.common.graph.*
+import com.google.common.graph.Graph
+import com.google.common.graph.MutableValueGraph
+import com.google.common.graph.ValueGraph
+import com.google.common.graph.ValueGraphBuilder
 import com.xfastgames.witness.items.data.Panel.Companion.Type
 import com.xfastgames.witness.utils.guava.emptyGraph
 import com.xfastgames.witness.utils.guava.mutableGraph
 import com.xfastgames.witness.utils.pow
-import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.NbtCompound
 import net.minecraft.util.DyeColor
 
 private const val KEY_WIDTH = "width"
@@ -190,7 +193,7 @@ sealed class Panel(val type: Type) {
 }
 
 @Suppress("UnstableApiUsage")
-fun CompoundTag.getPanel(key: String): Panel? {
+fun NbtCompound.getPanel(key: String): Panel? {
     if (!contains(key)) return null
     return getCompound(key).let { tag ->
         val type: Type = Type.values()[tag.getInt(KEY_PANEL_TYPE)]
@@ -207,8 +210,8 @@ fun CompoundTag.getPanel(key: String): Panel? {
     }
 }
 
-fun CompoundTag.putPanel(key: String, panel: Panel) {
-    put(key, CompoundTag().apply {
+fun NbtCompound.putPanel(key: String, panel: Panel) {
+    put(key, NbtCompound().apply {
         putInt(KEY_PANEL_TYPE, panel.type.ordinal)
         putGraph(KEY_LINE, panel.line)
         putInt(KEY_BACKGROUND_COLOR, panel.backgroundColor.ordinal)

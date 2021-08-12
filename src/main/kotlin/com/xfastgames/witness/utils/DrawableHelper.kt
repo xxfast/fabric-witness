@@ -1,10 +1,7 @@
 package com.xfastgames.witness.utils
 
 import com.mojang.blaze3d.systems.RenderSystem
-import net.minecraft.client.render.BufferBuilder
-import net.minecraft.client.render.BufferRenderer
-import net.minecraft.client.render.Tessellator
-import net.minecraft.client.render.VertexFormats
+import net.minecraft.client.render.*
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.math.Matrix4f
 import kotlin.math.cos
@@ -26,7 +23,7 @@ fun fill(
     RenderSystem.enableBlend()
     RenderSystem.disableTexture()
     RenderSystem.defaultBlendFunc()
-    bufferBuilder.begin(7, VertexFormats.POSITION_COLOR)
+    bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR)
     bufferBuilder.vertex(matrix, x1.toFloat(), y2.toFloat(), 0.0f).color(r, g, b, a).next()
     bufferBuilder.vertex(matrix, x2.toFloat(), y2.toFloat(), 0.0f).color(r, g, b, a).next()
     bufferBuilder.vertex(matrix, x2.toFloat(), y1.toFloat(), 0.0f).color(r, g, b, a).next()
@@ -48,7 +45,7 @@ fun circle(
     RenderSystem.enableBlend()
     RenderSystem.disableTexture()
     RenderSystem.defaultBlendFunc()
-    bufferBuilder.begin(7, VertexFormats.POSITION_COLOR)
+    bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR)
 
     var theta: Double = arc.first + resolution
     while (theta < arc.last) {
@@ -85,7 +82,7 @@ fun hexagon(
     RenderSystem.enableBlend()
     RenderSystem.disableTexture()
     RenderSystem.defaultBlendFunc()
-    bufferBuilder.begin(7, VertexFormats.POSITION_COLOR)
+    bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR)
 
     val x: Float = centerX.toFloat()
     val y: Float = centerY.toFloat()

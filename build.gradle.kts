@@ -6,9 +6,10 @@ plugins {
 
 repositories {
     mavenCentral()
-    maven(url = "http://maven.fabricmc.net/") { name = "Fabric" }
+    maven(url = "https://maven.fabricmc.net/") { name = "Fabric" }
     maven(url = "https://server.bbkr.space/artifactory/libs-release") { name = "CottonMC" }
     maven(url = "https://maven.siphalor.de") { name = "Siphalor's Maven" }
+    maven(url = "https://maven.terraformersmc.com/") { name = "TerraformersMC" }
 }
 
 minecraft {
@@ -47,13 +48,13 @@ tasks.withType<JavaCompile> {
 
 tasks {
     compileJava {
-        targetCompatibility = "1.8"
-        sourceCompatibility = "1.8"
+        targetCompatibility = "16"
+        sourceCompatibility = "16"
     }
 
     compileKotlin {
         kotlinOptions {
-            jvmTarget = "1.8"
+            jvmTarget = "16"
             freeCompilerArgs = listOf(
                 "-Xopt-in=kotlin.RequiresOptIn",
                 "-Xopt-in=kotlin.ExperimentalStdlibApi"

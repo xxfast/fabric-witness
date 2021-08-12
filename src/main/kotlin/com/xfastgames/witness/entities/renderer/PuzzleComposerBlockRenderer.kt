@@ -6,17 +6,14 @@ import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PU
 import com.xfastgames.witness.utils.rotate
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.render.WorldRenderer
-import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher
 import net.minecraft.client.render.block.entity.BlockEntityRenderer
 import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.client.util.math.Vector3f
 import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3f
 
-
-class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
-    BlockEntityRenderer<PuzzleComposerBlockEntity>(dispatcher) {
+class PuzzleComposerBlockRenderer : BlockEntityRenderer<PuzzleComposerBlockEntity> {
 
     private val puzzlePanelRenderer = PuzzlePanelRenderer
 
@@ -39,10 +36,10 @@ class PuzzleComposerBlockRenderer(dispatcher: BlockEntityRenderDispatcher) :
 
         // Rotate the entity to the direction of the block
         val direction: Direction = blockEntity.cachedState.get(Properties.HORIZONTAL_FACING)
-        matrices.rotate(Vector3f.POSITIVE_Y, -direction.asRotation())
+        matrices.rotate(Vec3f.POSITIVE_Y, -direction.asRotation())
 
         // Rotate to horizontal plane
-        matrices.rotate(Vector3f.POSITIVE_X, 90.0f)
+        matrices.rotate(Vec3f.POSITIVE_X, 90.0f)
 
         // Scale the panel
         matrices.scale(0.85f, 0.85f, 1f)

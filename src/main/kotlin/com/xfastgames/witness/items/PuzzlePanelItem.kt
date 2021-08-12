@@ -13,10 +13,11 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.NbtCompound
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.world.World
+import java.util.*
 
 const val KEY_PANEL = "panel"
 
@@ -32,7 +33,7 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
     }
 
     override fun onCraft(stack: ItemStack?, world: World?, player: PlayerEntity?) {
-        stack?.tag = CompoundTag().apply { putPanel(KEY_PANEL, Panel.TEST) }
+        stack?.nbt = NbtCompound().apply { putPanel(KEY_PANEL, Panel.TEST) }
     }
 
     // TODO: Use localised strings here
@@ -42,9 +43,10 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
         tooltip: MutableList<Text>,
         context: TooltipContext?
     ) {
-        val puzzle: Panel = stack.tag?.getPanel(KEY_PANEL) ?: return
+        val puzzle: Panel = stack.nbt?.getPanel(KEY_PANEL) ?: return
 
-        val typeString: String = puzzle.type.name.capitalize()
+        val typeString: String =
+            puzzle.type.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
 
         val sizeString = when (puzzle) {
             is Panel.Grid -> "${puzzle.width - 1} x ${puzzle.height - 1}"
@@ -54,7 +56,10 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
 
         val colorString: String = puzzle.backgroundColor.name
             .split("_")
-            .joinToString(" ") { it.toLowerCase().capitalize() }
+            .joinToString(" ") {
+                it.lowercase(Locale.getDefault())
+                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            }
 
         tooltip.add(Text.of("($sizeString $colorString $typeString)"))
     }

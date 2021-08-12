@@ -14,15 +14,14 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.InventoryProvider
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.BlockEntityType
-import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher
 import net.minecraft.inventory.Inventories
 import net.minecraft.inventory.SidedInventory
-import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.NbtCompound
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.WorldAccess
 
-class PuzzleFrameBlockEntity : BlockEntity(ENTITY_TYPE),
+class PuzzleFrameBlockEntity(pos: BlockPos?, state: BlockState?) : BlockEntity(ENTITY_TYPE, pos, state),
     BlockEntityClientSerializable,
     InventoryProvider {
 
@@ -33,14 +32,12 @@ class PuzzleFrameBlockEntity : BlockEntity(ENTITY_TYPE),
 
         val ENTITY_TYPE: BlockEntityType<PuzzleFrameBlockEntity> = registerBlockEntity(IDENTIFIER) {
             BlockEntityType.Builder
-                .create({ PuzzleFrameBlockEntity() }, IronPuzzleFrameBlock.BLOCK)
+                .create({ pos, state -> PuzzleFrameBlockEntity(pos, state) }, IronPuzzleFrameBlock.BLOCK)
                 .build(null)
         }
 
         override fun onClient() {
-            BlockEntityRendererRegistry.INSTANCE.register(ENTITY_TYPE) { dispatcher: BlockEntityRenderDispatcher ->
-                PuzzleFrameBlockRenderer(dispatcher)
-            }
+            BlockEntityRendererRegistry.INSTANCE.register(ENTITY_TYPE) { PuzzleFrameBlockRenderer() }
         }
     }
 
@@ -48,20 +45,20 @@ class PuzzleFrameBlockEntity : BlockEntity(ENTITY_TYPE),
 
     override fun getInventory(state: BlockState?, world: WorldAccess?, pos: BlockPos?): SidedInventory = inventory
 
-    override fun fromTag(state: BlockState?, tag: CompoundTag) {
-        super.fromTag(state, tag)
+    override fun readNbt(nbt: NbtCompound?) {
+        super.readNbt(nbt)
         inventory.items.clear()
-        Inventories.fromTag(tag, inventory.items)
+        Inventories.readNbt(nbt, inventory.items)
     }
 
-    override fun toTag(tag: CompoundTag): CompoundTag {
-        super.toTag(tag)
-        Inventories.toTag(tag, inventory.items)
-        return tag
+    override fun writeNbt(nbt: NbtCompound): NbtCompound {
+        super.writeNbt(nbt)
+        Inventories.writeNbt(nbt, inventory.items)
+        return nbt
     }
 
-    override fun toClientTag(tag: CompoundTag): CompoundTag = toTag(tag)
-    override fun fromClientTag(tag: CompoundTag) = fromTag(cachedState, tag)
+    override fun toClientTag(nbt: NbtCompound): NbtCompound = writeNbt(nbt)
+    override fun fromClientTag(tag: NbtCompound) = readNbt(tag)
 
     @Environment(EnvType.SERVER)
     override fun sync() {

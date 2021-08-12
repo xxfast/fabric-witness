@@ -3,6 +3,7 @@ package com.xfastgames.witness.screens.widgets
 import com.xfastgames.witness.Witness
 import io.github.cottonmc.cotton.gui.client.ScreenDrawing
 import io.github.cottonmc.cotton.gui.widget.WWidget
+import io.github.cottonmc.cotton.gui.widget.data.InputResult
 import io.github.cottonmc.cotton.gui.widget.icon.Icon
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.sound.PositionedSoundInstance
@@ -30,8 +31,8 @@ class WRadioImageButton(
     override fun canResize(): Boolean = false
     override fun canFocus(): Boolean = true
 
-    override fun onClick(x: Int, y: Int, button: Int) {
-        if (!isEnabled) return
+    override fun onClick(x: Int, y: Int, button: Int): InputResult {
+        if (!isEnabled) return InputResult.IGNORED
         isSelected = !isSelected
         group?.select(this)
         MinecraftClient.getInstance().soundManager.play(
@@ -40,6 +41,7 @@ class WRadioImageButton(
                 1.0f
             )
         )
+        return InputResult.PROCESSED
     }
 
     override fun paint(matrices: MatrixStack?, x: Int, y: Int, mouseX: Int, mouseY: Int) {
@@ -57,7 +59,7 @@ class WRadioImageButton(
         val u2: Float = textureOffset + 0.25f
         val v2: Float = 1f
 
-        ScreenDrawing.texturedRect(x, y, 16, 16, texture, u1, v1, u2, v2, -1)
+        ScreenDrawing.texturedRect(matrices, x, y, 16, 16, texture, u1, v1, u2, v2, -1)
         icon?.paint(matrices, x, y, 16)
     }
 }

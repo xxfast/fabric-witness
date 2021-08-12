@@ -1,13 +1,13 @@
 object Jetbrains {
     object Kotlin {
-        const val version = "1.4.0"
+        const val version = "1.5.21"
     }
 }
 
 object Mods {
-    const val modmenu = "io.github.prospector:modmenu:1.14.6+build.31"
-    const val libgui = "io.github.cottonmc:LibGui:3.3.5+${Minecraft.version}"
-    const val nbtcrafting = "de.siphalor:nbtcrafting-1.16:2+"
+    const val modmenu = "com.terraformersmc:modmenu:2.0.4"
+    const val libgui = "io.github.cottonmc:LibGui:4.1.6+${Minecraft.version}"
+    const val nbtcrafting = "de.siphalor:nbtcrafting-1.17:2+"
 }
 
 object Google {
@@ -24,28 +24,28 @@ object JUnit {
 object Fabric {
 
     object Kotlin {
-        const val version = "${Jetbrains.Kotlin.version}+build.1"
+        const val version = "1.6.3+kotlin.${Jetbrains.Kotlin.version}"
     }
 
     object Loader {
         /** https://maven.fabricmc.net/net/fabricmc/fabric-loader/ */
-        const val version = "0.11.3"
+        const val version = "0.11.6"
     }
 
     object API {
-        const val version = "0.32.5+1.16"
+        const val version = "0.37.2+1.17"
     }
 
     object Loom {
-        const val version = "0.6-SNAPSHOT"
+        const val version = "0.8-SNAPSHOT"
     }
 
     object YarnMappings {
-        const val version = "${Minecraft.version}+build.6"
+        const val version = "${Minecraft.version}+build.37"
         const val classifier = "v2"
     }
 }
 
 object Minecraft {
-    const val version = "1.16.5"
+    const val version = "1.17.1"
 }

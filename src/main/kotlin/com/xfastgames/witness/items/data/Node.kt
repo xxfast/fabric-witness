@@ -4,7 +4,7 @@ import com.google.common.graph.EndpointPair
 import com.google.common.graph.MutableGraph
 import com.google.common.graph.Traverser
 import com.xfastgames.witness.utils.guava.clear
-import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.NbtCompound
 import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -15,14 +15,14 @@ private const val KEY_NODE_MODIFIER = "modifier"
 
 data class Node(val x: Float, val y: Float, val modifier: Modifier = Modifier.NONE)
 
-fun CompoundTag.getNode() = Node(
+fun NbtCompound.getNode() = Node(
     x = getFloat(KEY_NODE_X),
     y = getFloat(KEY_NODE_Y),
     modifier = getInt(KEY_NODE_MODIFIER)
         .let { Modifier.values()[it] }
 )
 
-fun CompoundTag.putNode(node: Node) {
+fun NbtCompound.putNode(node: Node) {
     putFloat(KEY_NODE_X, node.x)
     putFloat(KEY_NODE_Y, node.y)
     putInt(KEY_NODE_MODIFIER, node.modifier.ordinal)
@@ -32,13 +32,7 @@ fun distance(u: Node, v: Node): Float =
     sqrt((v.x - u.x).pow(2) + (v.y - u.y).pow(2))
 
 @Suppress("UnstableApiUsage")
-fun distance(node: Node, edge: EndpointPair<Node>): Float {
-    return TODO()
-}
-
-@Suppress("UnstableApiUsage")
 operator fun EndpointPair<Node>.contains(node: Node) = this.nodeU() == node || this.nodeV() == node
-
 
 /**
  * Optimize a node graph with [Ramer–Douglas–Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm)

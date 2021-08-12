@@ -2,7 +2,7 @@ package com.xfastgames.witness.utils
 
 import net.minecraft.client.MinecraftClient
 
-fun MinecraftClient.closeScreen(): Unit {
+fun MinecraftClient.closeScreen() {
     this.currentScreen?.onClose()
-    this.openScreen(null)
+    this.setScreen(null)
 }

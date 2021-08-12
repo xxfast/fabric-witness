@@ -32,13 +32,14 @@ import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
 import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
+import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
 import net.minecraft.item.DyeItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.NbtCompound
 import net.minecraft.screen.ScreenHandlerContext
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.text.Text
@@ -75,9 +76,17 @@ class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription?, player: Player
 }
 
 class InputSlotBackgroundPainter(private val itemSlot: WItemSlot, private val texture: Identifier) : BackgroundPainter {
-    override fun paintBackground(left: Int, top: Int, panel: WWidget?) {
-        BackgroundPainter.SLOT.paintBackground(left, top, panel)
-        ScreenDrawing.texturedRect(left, top, itemSlot.width, itemSlot.height, texture, Colors.TRANSPARENT.toRgb())
+    override fun paintBackground(matrices: MatrixStack?, left: Int, top: Int, panel: WWidget?) {
+        BackgroundPainter.SLOT.paintBackground(matrices, left, top, panel)
+        ScreenDrawing.texturedRect(
+            matrices,
+            left,
+            top,
+            itemSlot.width,
+            itemSlot.height,
+            texture,
+            Colors.TRANSPARENT.toRgb()
+        )
     }
 }
 
@@ -143,17 +152,17 @@ class PuzzleComposerScreenDescription(
             val dyeStackItem: Item = dyeItemStack.item
             val updatedColor: DyeColor =
                 if (dyeItemStack.isEmpty || dyeStackItem !is DyeItem)
-                    changedItemStack.tag?.getPanel(KEY_PANEL)?.backgroundColor ?: return@addChangeListener
+                    changedItemStack.nbt?.getPanel(KEY_PANEL)?.backgroundColor ?: return@addChangeListener
                 else dyeStackItem.color
 
-            val updatedPanel: Panel = changedItemStack.tag?.getPanel(KEY_PANEL) ?: return@addChangeListener
+            val updatedPanel: Panel = changedItemStack.nbt?.getPanel(KEY_PANEL) ?: return@addChangeListener
             val tintedPanel: Panel = when (updatedPanel) {
                 is Panel.Grid -> updatedPanel.copy(backgroundColor = updatedColor)
                 is Panel.Tree -> updatedPanel.copy(backgroundColor = updatedColor)
                 is Panel.Freeform -> updatedPanel.copy(backgroundColor = updatedColor)
             }
 
-            val updatedStack: ItemStack = changedItemStack.copy().apply { tag?.putPanel(KEY_PANEL, tintedPanel) }
+            val updatedStack: ItemStack = changedItemStack.copy().apply { nbt?.putPanel(KEY_PANEL, tintedPanel) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, updatedStack)
         }
 
@@ -165,8 +174,8 @@ class PuzzleComposerScreenDescription(
             if (changedItemStack.isNotEmpty) return@addChangeListener
             updateInventory(PUZZLE_INPUT_SLOT_INDEX, ItemStack.EMPTY)
             // Consume dye if the puzzle color has changed
-            val inputBackgroundColor: DyeColor? = inputStack.tag?.getPanel(KEY_PANEL)?.backgroundColor
-            val outputBackgroundColor: DyeColor? = changedItemStack.tag?.getPanel(KEY_PANEL)?.backgroundColor
+            val inputBackgroundColor: DyeColor? = inputStack.nbt?.getPanel(KEY_PANEL)?.backgroundColor
+            val outputBackgroundColor: DyeColor? = changedItemStack.nbt?.getPanel(KEY_PANEL)?.backgroundColor
             // TODO: This is currently broken
             if (inputBackgroundColor != outputBackgroundColor) {
                 val updatedDyeStack: ItemStack = dyeStack.copy().apply { decrement(changedItemStack.count) }
@@ -180,7 +189,7 @@ class PuzzleComposerScreenDescription(
 
             val outputPuzzle: Panel =
                 blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
-                    .tag?.getPanel(KEY_PANEL) ?: return@setClickListener
+                    .nbt?.getPanel(KEY_PANEL) ?: return@setClickListener
 
             val selectedToggle: WRadioImageButton? = toggleGroup.selected
 
@@ -239,11 +248,11 @@ class PuzzleComposerScreenDescription(
             if (updatedPuzzle == outputPuzzle) return@setClickListener
 
             val inputStack: ItemStack = blockInventory.getStack(PUZZLE_INPUT_SLOT_INDEX)
-            val inputTag: CompoundTag = inputStack.tag ?: return@setClickListener
+            val inputTag: NbtCompound = inputStack.nbt ?: return@setClickListener
             val inputPanel: Panel? = inputTag.getPanel(KEY_PANEL)
             if (updatedPuzzle == inputPanel) return@setClickListener
 
-            val outputStack: ItemStack = inputStack.copy().apply { tag?.putPanel(KEY_PANEL, updatedPuzzle) }
+            val outputStack: ItemStack = inputStack.copy().apply { nbt?.putPanel(KEY_PANEL, updatedPuzzle) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, outputStack)
         }
 

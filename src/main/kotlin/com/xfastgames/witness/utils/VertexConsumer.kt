@@ -2,15 +2,15 @@ package com.xfastgames.witness.utils
 
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.client.util.math.Vector3f
 import net.minecraft.util.math.Matrix3f
 import net.minecraft.util.math.Matrix4f
+import net.minecraft.util.math.Vec3f
 import java.lang.Math.toRadians
 import kotlin.math.*
 
 fun VertexConsumer.circle(
     matrices: MatrixStack,
-    center: Vector3f,
+    center: Vec3f,
     radius: Float,
     light: Int,
     overlay: Int,
@@ -51,7 +51,7 @@ fun VertexConsumer.circle(
     }
 }
 
-fun VertexConsumer.square(matrices: MatrixStack, position: Vector3f, length: Float, light: Int, overlay: Int) {
+fun VertexConsumer.square(matrices: MatrixStack, position: Vec3f, length: Float, light: Int, overlay: Int) {
     val offSets: List<Pair<Float, Float>> = listOf(0f to 0f, 1f to 0f, 1f to 1f, 0f to 1f).reversed()
     offSets.forEach { (offsetX, offsetY) ->
         val matrix: MatrixStack.Entry = matrices.peek()
@@ -69,7 +69,7 @@ fun VertexConsumer.square(matrices: MatrixStack, position: Vector3f, length: Flo
 
 fun VertexConsumer.rectangle(
     matrices: MatrixStack,
-    position: Vector3f,
+    position: Vec3f,
     width: Float,
     height: Float,
     light: Int,
@@ -92,22 +92,22 @@ fun VertexConsumer.rectangle(
 
 fun VertexConsumer.line(
     matrices: MatrixStack,
-    u: Vector3f,
-    v: Vector3f,
+    u: Vec3f,
+    v: Vec3f,
     thickness: Float,
     light: Int,
     overlay: Int
 ) {
-    val max: Vector3f = maxOf(u, v)
-    val min: Vector3f = minOf(u, v)
+    val max: Vec3f = maxOf(u, v)
+    val min: Vec3f = minOf(u, v)
     val theta: Float = atan2(u.y - v.y, u.x - v.x)
     val halfThickness: Float = thickness / 2
     val lengthX: Float = u.x - v.x
     val lengthY: Float = u.y - v.y
     val length: Float = sqrt(lengthX.pow(2) + lengthY.pow(2)) + thickness
 
-    val start: Vector3f = if (theta > 0f) min else max
-    val vertices: List<Vector3f> = listOf(
+    val start: Vec3f = if (theta > 0f) min else max
+    val vertices: List<Vec3f> = listOf(
         start.copy().apply { add(0f, -halfThickness, 0f) },
         start.copy().apply { add(0f, halfThickness, 0f) },
         start.copy().apply { add(length - thickness, +halfThickness, 0f) },
@@ -117,7 +117,7 @@ fun VertexConsumer.line(
         val tempY: Float = corner.y - start.y
         val rotatedX: Float = tempX * cos(theta) - tempY * sin(theta)
         val rotatedY: Float = tempX * sin(theta) + tempY * cos(theta)
-        Vector3f(rotatedX + start.x, rotatedY + start.y, start.z)
+        Vec3f(rotatedX + start.x, rotatedY + start.y, start.z)
     }
 
     vertices.forEach { position ->

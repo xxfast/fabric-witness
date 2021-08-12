@@ -2,18 +2,18 @@ package com.xfastgames.witness.utils
 
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.client.util.math.Vector3f
+import net.minecraft.util.math.Vec3f
 
-fun RenderContext.rectangle(position: Vector3f, width: Float, height: Float) =
+fun RenderContext.rectangle(position: Vec3f, width: Float, height: Float) =
     vertexConsumer.rectangle(matrices, position, width, height, light, overlay)
 
-fun RenderContext.square(position: Vector3f, length: Float) =
+fun RenderContext.square(position: Vec3f, length: Float) =
     vertexConsumer.square(matrices, position, length, light, overlay)
 
-fun RenderContext.circle(position: Vector3f, radius: Float, arc: IntRange = 0..360) =
+fun RenderContext.circle(position: Vec3f, radius: Float, arc: IntRange = 0..360) =
     vertexConsumer.circle(matrices, position, radius, light, overlay, arc)
 
-fun RenderContext.line(start: Vector3f, end: Vector3f, thickness: Float) =
+fun RenderContext.line(start: Vec3f, end: Vec3f, thickness: Float) =
     vertexConsumer.line(matrices, start, end, thickness, light, overlay)
 
 fun withRenderContext(

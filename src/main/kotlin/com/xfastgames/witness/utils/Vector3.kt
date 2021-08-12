@@ -1,10 +1,10 @@
 package com.xfastgames.witness.utils
 
 import net.minecraft.client.util.math.Vector3d
-import net.minecraft.client.util.math.Vector3f
 import net.minecraft.util.math.Quaternion
+import net.minecraft.util.math.Vec3f
 
-fun Vector3d.rotate(axis: Vector3f, angleDegrees: Float): Vector3d {
+fun Vector3d.rotate(axis: Vec3f, angleDegrees: Float): Vector3d {
     val rotation: Quaternion = axis.getDegreesQuaternion(angleDegrees)
     val quaternion = Quaternion(rotation)
     quaternion.hamiltonProduct(Quaternion(this.x.toFloat(), this.y.toFloat(), this.z.toFloat(), 0.0f))
@@ -14,21 +14,21 @@ fun Vector3d.rotate(axis: Vector3f, angleDegrees: Float): Vector3d {
     return Vector3d(quaternion.x.toDouble(), quaternion.y.toDouble(), quaternion.z.toDouble())
 }
 
-fun Vector3f.rotate(axis: Vector3f, angleDegrees: Float) =
+fun Vec3f.rotate(axis: Vec3f, angleDegrees: Float) =
     this.rotate(axis.getDegreesQuaternion(angleDegrees))
 
-operator fun Vector3f.minus(other: Vector3f): Vector3f = this.copy().apply { subtract(other) }
-operator fun Vector3f.plus(other: Vector3f): Vector3f = this.copy().apply { add(other) }
-operator fun Vector3f.div(other: Vector3f): Vector3f =
+operator fun Vec3f.minus(other: Vec3f): Vec3f = this.copy().apply { subtract(other) }
+operator fun Vec3f.plus(other: Vec3f): Vec3f = this.copy().apply { add(other) }
+operator fun Vec3f.div(other: Vec3f): Vec3f =
     this.copy().apply { multiplyComponentwise(1f / other.x, 1f / other.y, 1f / other.z) }
 
-operator fun Vector3f.div(other: Float): Vector3f =
+operator fun Vec3f.div(other: Float): Vec3f =
     this.copy().apply { multiplyComponentwise(1f / other, 1f / other, 1f / other) }
 
-fun maxOf(first: Vector3f, second: Vector3f): Vector3f =
+fun maxOf(first: Vec3f, second: Vec3f): Vec3f =
     if (first.x > second.x && first.y > second.y) first
     else second
 
-fun minOf(first: Vector3f, second: Vector3f): Vector3f =
+fun minOf(first: Vec3f, second: Vec3f): Vec3f =
     if (first.x < second.x && first.y < second.y) first
     else second
