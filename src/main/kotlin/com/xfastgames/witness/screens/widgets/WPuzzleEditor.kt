@@ -65,7 +65,7 @@ class WPuzzleEditor(
         matrices.scale(puzzleScale, -puzzleScale, puzzleScale)
         matrices.rotate(Vec3f.POSITIVE_Z, 180f)
         // Translate relative to panel placement
-        matrices.translate(-1.275, -.895, .0)
+        matrices.translate(-1.23, -.895, .0)
 
         val puzzle: Panel = puzzleStack.nbt?.getPanel(KEY_PANEL) ?: Panel.DEFAULT
 

@@ -3,17 +3,14 @@ package com.xfastgames.witness.items
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.getPanel
-import com.xfastgames.witness.items.data.putPanel
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerItem
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
 import net.minecraft.client.item.TooltipContext
-import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.world.World
@@ -30,10 +27,6 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
 
     override fun onClient() {
         BuiltinItemRendererRegistry.INSTANCE.register(ITEM, PuzzlePanelRenderer)
-    }
-
-    override fun onCraft(stack: ItemStack?, world: World?, player: PlayerEntity?) {
-        stack?.nbt = NbtCompound().apply { putPanel(KEY_PANEL, Panel.TEST) }
     }
 
     // TODO: Use localised strings here

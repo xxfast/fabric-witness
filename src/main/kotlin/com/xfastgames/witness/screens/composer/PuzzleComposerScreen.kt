@@ -102,7 +102,7 @@ class PuzzleComposerScreenDescription(
     getBlockInventory(context, PuzzleComposerBlockEntity.INVENTORY_SIZE),
     null
 ) {
-    private val root: WPlainPanel = WPlainPanel().apply { setSize(150, 150) }
+    private val root: WPlainPanel = WPlainPanel().apply { setSize(170, 220) }
     private val inputSlot = WItemSlot(blockInventory, PUZZLE_INPUT_SLOT_INDEX, 1, 1, true)
     private val inventorySlots: WItemSlot = WItemSlot.of(blockInventory, PUZZLE_INVENTORY_SLOT_INDEX, 2, 3)
     private val outputSlot: WItemSlot = WItemSlot(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX, 1, 1, true)
@@ -262,23 +262,24 @@ class PuzzleComposerScreenDescription(
 
     private fun layout() {
         var y = 12
+        val marginStart = 4
         y += 8
         root.add(editor, 46, y, editor.width, editor.height)
         y += 3
-        root.add(inputSlot, 8, y)
+        root.add(inputSlot, 12, y)
         y += 24
-        root.add(startButton, 0, y)
-        root.add(endButton, 17, y)
+        root.add(startButton, marginStart, y)
+        root.add(endButton, marginStart + startButton.width + 2, y)
         y += 16
-        root.add(breakButton, 0, y)
-        root.add(hexagonDotButton, 17, y)
+        root.add(breakButton, marginStart, y)
+        root.add(hexagonDotButton, marginStart + startButton.width + 2, y)
         y += 16
-        root.add(addButton, 0, y)
-        root.add(removeButton, 17, y)
+        root.add(addButton, marginStart, y)
+        root.add(removeButton, marginStart + startButton.width + 2, y)
         y += 22
-        root.add(outputSlot, 8, y)
-        y += outputSlot.height + 16
-        root.add(playerInventoryPanel, 0, y)
+        root.add(outputSlot, 12, y)
+        y += outputSlot.height + 10
+        root.add(playerInventoryPanel, marginStart, y)
         root.validate(this)
     }
 
