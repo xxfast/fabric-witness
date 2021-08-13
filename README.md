@@ -1,15 +1,17 @@
+<img src="src/main/resources/assets/witness/icon.png" align="right" width="100" height="100">
+
 # fabric-witness
+
 ![Gradle build](https://github.com/xxfast/fabric-witness/workflows/Gradle%20build/badge.svg)
 [![Release](https://img.shields.io/github/v/release/xxfast/fabric-witness.svg?include_prereleases&logo=mojang-studios)](https://github.com/xxfast/fabric-witness/releases)
 
-<img src="src/main/resources/assets/witness/icon.png" align="right" width="100" height="100">
 <img src="https://user-images.githubusercontent.com/13775137/95962402-0e99ce00-0e52-11eb-87a4-a8959bb7aefe.png" align="center">
 
 ## What is it?
 
 The fabric mod that adds puzzle frames from The Witness to Minecraft
 
-This is also a companion mod for The Witness Minecraft [youtube](https://www.youtube.com/channel/UCrLikF1yl6dqz0N9OaJlAcA) series - and adds a variety of decoration blocks to the game to recreate the island 
+This is also a companion mod for The Witness Minecraft [youtube](https://www.youtube.com/channel/UCrLikF1yl6dqz0N9OaJlAcA) series - and adds a variety of decoration blocks to the game to recreate the island
 
 ## How do I get it?
 
