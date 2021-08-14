@@ -62,14 +62,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/libs/fabric-witness-${{ env.release_version }}.jar
+          asset_path: ./build/libs/fabric-witness.jar
           asset_name: fabric-witness-${{ env.release_version }}.jar
           asset_content_type: application/java-archive
 
-      - name: Isolate build artifact
+      - name: Move build artifact
         run: |
           mkdir ./build/libs/mods
-          mv ./build/libs/fabric-witness-${{ env.release_version }}.jar ./build/libs/mods/fabric-witness.jar
+          mv ./build/libs/fabric-witness.jar ./build/libs/mods/fabric-witness.jar
+
       - name: Deploy to server
         uses: sebastianpopp/ftp-action@releases/v2
         with:
