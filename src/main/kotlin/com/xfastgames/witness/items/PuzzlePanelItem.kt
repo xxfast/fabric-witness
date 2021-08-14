@@ -16,6 +16,7 @@ import net.minecraft.util.Identifier
 import net.minecraft.world.World
 import java.util.*
 
+const val KEY_COST = "cost"
 const val KEY_PANEL = "panel"
 
 class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
@@ -54,6 +55,12 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
             }
 
-        tooltip.add(Text.of("($sizeString $colorString $typeString)"))
+        val cost: String = stack.nbt?.getInt(KEY_COST)?.let { cost -> "Costs $cost apt" }.orEmpty()
+        val isAdvanced: Boolean = context?.isAdvanced == true
+
+        if (isAdvanced) {
+            tooltip.add(Text.of("($sizeString $colorString $typeString)"))
+            tooltip.add(Text.of(cost))
+        }
     }
 }

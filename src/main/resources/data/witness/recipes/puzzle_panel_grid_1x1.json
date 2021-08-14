@@ -12,6 +12,7 @@
   "result": {
     "item": "witness:puzzle_panel",
     "data": {
+      "cost": 1,
       "panel": {
         "backgroundColor": 0,
         "line": {

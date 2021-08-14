@@ -13,6 +13,7 @@
       "item": "witness:puzzle_panel",
       "data": {
         "require": {
+          "cost": "",
           "panel": {
             "type": 0,
             "width": 2,
@@ -36,6 +37,7 @@
         }
       },
       "panel": {
+        "cost": "$ i1.cost + 1",
         "backgroundColor": 0,
         "graph": {
           "edges": [

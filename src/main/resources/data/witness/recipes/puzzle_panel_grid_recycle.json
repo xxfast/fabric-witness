@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "witness:puzzle_panel",
+      "data": {
+        "require": {
+          "cost": ""
+        }
+      }
+    }
+  ],
+  "result": {
+    "item": "witness:ancient_puzzle_tablet",
+    "count": 1,
+    "data": {
+      "nbtcrafting:count": "$ i0.cost"
+    }
+  }
+}
