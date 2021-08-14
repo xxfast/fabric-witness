@@ -94,12 +94,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         fill(matrices, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
         fill(matrices, 0, 0, BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
         fill(matrices, width - BORDER_WIDTH, 0, width, height, 255f, 255f, 255f, borderAlpha)
-
-        // TODO: In the witness the cursor is still rendered
-        if (!domain.isSolving) {
-            circle(matrices, mouseX, mouseY, cursorShadowSize, 255f, 255f, 255f, .25f)
-            circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 255f, 255f, 255f, .9f)
-        }
+        circle(matrices, mouseX, mouseY, cursorShadowSize, 255f, 255f, 255f, .25f)
+        circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 255f, 255f, 255f, .9f)
     }
 
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
