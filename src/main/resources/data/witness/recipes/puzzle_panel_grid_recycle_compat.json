@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "witness:puzzle_panel",
+      "data": {
+        "deny": {
+          "cost": ""
+        }
+      }
+    }
+  ],
+  "result": {
+    "item": "witness:ancient_puzzle_tablet",
+    "count": 4
+  }
+}
