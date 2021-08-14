@@ -17,7 +17,6 @@ import com.xfastgames.witness.screens.widgets.WRadioGroup
 import com.xfastgames.witness.screens.widgets.WRadioImageButton
 import com.xfastgames.witness.screens.widgets.icons.BreakIcon
 import com.xfastgames.witness.screens.widgets.icons.EndIcon
-import com.xfastgames.witness.screens.widgets.icons.HexagonDotIcon
 import com.xfastgames.witness.screens.widgets.icons.StartIcon
 import com.xfastgames.witness.utils.*
 import io.github.cottonmc.cotton.gui.SyncedGuiDescription
@@ -111,7 +110,7 @@ class PuzzleComposerScreenDescription(
     private val startButton = WRadioImageButton(icon = StartIcon, group = toggleGroup)
     private val endButton = WRadioImageButton(icon = EndIcon, group = toggleGroup)
     private val breakButton = WRadioImageButton(icon = BreakIcon, group = toggleGroup)
-    private val hexagonDotButton = WRadioImageButton(icon = HexagonDotIcon, group = toggleGroup)
+    private val hexagonDotButton = WRadioImageButton(group = toggleGroup)
     private val addButton = WRadioImageButton(group = toggleGroup)
     private val removeButton = WRadioImageButton(group = toggleGroup)
 
@@ -255,6 +254,12 @@ class PuzzleComposerScreenDescription(
             val outputStack: ItemStack = inputStack.copy().apply { nbt?.putPanel(KEY_PANEL, updatedPuzzle) }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, outputStack)
         }
+
+        // TODO: Re-enable once this is implemented
+        endButton.isEnabled = false
+        hexagonDotButton.isEnabled = false
+        addButton.isEnabled = false
+        removeButton.isEnabled = false
 
         layout()
         context?.run { world, pos -> if (world.isClient) addPainters() }
