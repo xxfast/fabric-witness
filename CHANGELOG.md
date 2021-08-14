@@ -1,17 +1,48 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
+to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.11.0] - 2021-08-14
+
+### Added
+
+- Support for Minecraft 1.17.1
+  - Note: Keep your axolotls away from panels :P
+
+- Added puzzle panel solving (Experimental)
+  - Note: Solutions are only client side for now
+
+- Added new puzzle panel crafting recipes (Experimental)
+  - Each tile approximately costs one ancient puzzle tablet
+  - Expansion becomes progressively cheaper. More about this in the wiki
+
+### Changed
+
+- Changed puzzle panel item's data model
+  - This means old panels would no longer be compatible with this version onwards.
+  - You can still recover the cost of old panels with outdated models using a crafting table
+  - This opens up possibility of panels of various shapes and forms, but more on these later ;)
+
+- Changed puzzle composer layout to be more intuitive
+
+### Removed
+
+- Removed puzzle composer size sliders in favor of a more balanced crafting approach
 
 ## [0.10.1] - 2020-10-18
+
 ### Added
-- Added puzzle composer recipe 
+
+- Added puzzle composer recipe
 
 ### Fixed
+
 - Issue with the background painters of item slots not rendering
 - Improved puzzle panel item rendering in first person, third-person, and on the ground
-- Setting puzzle panels to the puzzle frame from off-hand 
+- Setting puzzle panels to the puzzle frame from off-hand
 
 ## [0.10.0] - 2020-10-14
 ### Added
