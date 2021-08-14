@@ -20,9 +20,10 @@ fun fill(
 ) {
     val matrix: Matrix4f = matrices.peek().model
     val bufferBuilder: BufferBuilder = Tessellator.getInstance().buffer
-    RenderSystem.enableBlend()
     RenderSystem.disableTexture()
+    RenderSystem.enableBlend()
     RenderSystem.defaultBlendFunc()
+    RenderSystem.setShaderColor(r, g, b, a)
     bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR)
     bufferBuilder.vertex(matrix, x1.toFloat(), y2.toFloat(), 0.0f).color(r, g, b, a).next()
     bufferBuilder.vertex(matrix, x2.toFloat(), y2.toFloat(), 0.0f).color(r, g, b, a).next()
@@ -42,9 +43,10 @@ fun circle(
 ) {
     val matrix: Matrix4f = matrices.peek().model
     val bufferBuilder: BufferBuilder = Tessellator.getInstance().buffer
-    RenderSystem.enableBlend()
     RenderSystem.disableTexture()
+    RenderSystem.enableBlend()
     RenderSystem.defaultBlendFunc()
+    RenderSystem.setShaderColor(r, g, b, a)
     bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR)
 
     var theta: Double = arc.first + resolution

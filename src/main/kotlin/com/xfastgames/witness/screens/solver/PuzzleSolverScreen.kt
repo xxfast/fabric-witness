@@ -90,15 +90,15 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         cursorShadowSize.interpolate()
         val borderAlpha: Float = borderAlpha.value
         val cursorShadowSize: Int = cursorShadowSize.value
-        fill(matrices, BORDER_WIDTH, 0, width - BORDER_WIDTH, BORDER_WIDTH, 1f, 1f, 1f, borderAlpha)
-        fill(matrices, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
-        fill(matrices, 0, 0, BORDER_WIDTH, height, 1f, 1f, 1f, borderAlpha)
-        fill(matrices, width - BORDER_WIDTH, 0, width, height, 1f, 1f, 1f, borderAlpha)
+        fill(matrices, BORDER_WIDTH, 0, width - BORDER_WIDTH, BORDER_WIDTH, 255f, 255f, 255f, borderAlpha)
+        fill(matrices, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
+        fill(matrices, 0, 0, BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
+        fill(matrices, width - BORDER_WIDTH, 0, width, height, 255f, 255f, 255f, borderAlpha)
 
         // TODO: In the witness the cursor is still rendered
         if (!domain.isSolving) {
-            circle(matrices, mouseX, mouseY, cursorShadowSize, 1f, 1f, 1f, .25f)
-            circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 1f, 1f, 1f, .9f)
+            circle(matrices, mouseX, mouseY, cursorShadowSize, 255f, 255f, 255f, .25f)
+            circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 255f, 255f, 255f, .9f)
         }
     }
 
