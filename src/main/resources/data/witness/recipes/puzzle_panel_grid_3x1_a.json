@@ -1,0 +1,138 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "puzzle_panel",
+  "pattern": [
+    "TTT"
+  ],
+  "key": {
+    "T": {
+      "item": "witness:ancient_puzzle_tablet"
+    }
+  },
+  "result": {
+    "item": "witness:puzzle_panel",
+    "data": {
+      "panel": {
+        "backgroundColor": 0,
+        "line": {
+          "nodes": [],
+          "fill": []
+        },
+        "width": 4,
+        "type": 0,
+        "graph": {
+          "nodes": [
+            {
+              "modifier": 0,
+              "x": 0.5,
+              "y": 1.5
+            },
+            {
+              "modifier": 0,
+              "x": 0.5,
+              "y": 2.5
+            },
+            {
+              "modifier": 0,
+              "x": 1.5,
+              "y": 1.5
+            },
+            {
+              "modifier": 0,
+              "x": 1.5,
+              "y": 2.5
+            },
+            {
+              "modifier": 0,
+              "x": 2.5,
+              "y": 1.5
+            },
+            {
+              "modifier": 0,
+              "x": 2.5,
+              "y": 2.5
+            },
+            {
+              "modifier": 0,
+              "x": 3.5,
+              "y": 1.5
+            },
+            {
+              "modifier": 0,
+              "x": 3.5,
+              "y": 2.5
+            }
+          ],
+          "edges": [
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            "nbtcrafting:array_type=i"
+          ]
+        },
+        "height": 2
+      }
+    }
+  }
+}

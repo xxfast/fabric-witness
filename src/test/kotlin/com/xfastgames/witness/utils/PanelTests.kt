@@ -11,7 +11,7 @@ private const val TEST_KEY_GRAPH = "panel"
 class PanelTests {
     @Test
     fun `Test grid panel serialisation and deserialization`() {
-        val gridPanel: Panel.Grid = Panel.Grid.ofSize(4)
+        val gridPanel: Panel.Grid = Panel.Grid.ofSize(2, 4)
         val tag: NbtCompound = NbtCompound().apply { putPanel(TEST_KEY_GRAPH, gridPanel) }
         println(tag)
         val actual: Panel? = tag.getPanel(TEST_KEY_GRAPH)

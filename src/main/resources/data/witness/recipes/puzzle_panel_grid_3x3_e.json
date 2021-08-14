@@ -2,8 +2,8 @@
   "type": "minecraft:crafting_shaped",
   "group": "puzzle_panel",
   "pattern": [
-    "TP",
-    "TT"
+    "TT",
+    "TP"
   ],
   "key": {
     "T": {
@@ -26,7 +26,7 @@
     "item": "witness:puzzle_panel",
     "data": {
       "$": {
-        "value": "i0",
+        "value": "i3",
         "paths": {
           "/panel\\.line/": "keep",
           "/panel\\.graph/": "keep",
