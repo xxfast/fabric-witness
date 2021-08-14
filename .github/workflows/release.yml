@@ -19,7 +19,7 @@ jobs:
           java-version: 16
 
       - name: Setting version variable
-        run: echo "release_version=${GITHUB_REF:11}" >> $GITHUB_ENV'
+        run: echo "release_version=${GITHUB_REF:11}" >> $GITHUB_ENV
 
       - name: Check release version
         run: |
