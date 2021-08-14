@@ -27,7 +27,7 @@ Make sure to also load in these dependencies
 
 ## Releasing
 
-1. Update the mod version in `gradle.properties`
+1. Update the mod version in `buildSrc/src/main/kotlin/Info.kt`
 2. Add a changelog entry in `CHANGELOG.md`
 3. Commit with a message like `Prepare for relase vX.Y.Z`
 4. Tag with `vX.Y.Z`

@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "witness",
   "version": "${version}",
-  "name": "Witness Minecraft",
-  "description": "This a helper mod for the Witness Minecraft Series",
+  "name": "${name}",
+  "description": "${description}",
   "authors": [
     "xxfast"
   ],
