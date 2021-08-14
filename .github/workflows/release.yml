@@ -18,14 +18,15 @@ jobs:
         with:
           java-version: 16
 
-      - name: Set env
-        run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF:11}
+      - name: Isolate version name
+        run: echo '::set-output name=RELEASE_VERSION::${GITHUB_REF:11}'
+        id: version-isolation
 
       - name: Check release version
         run: |
           echo $RELEASE_VERSION
-          echo ${{ env.RELEASE_VERSION }}
-          echo ./build/libs/fabric-witness-${{  env.RELEASE_VERSION  }}.jar
+          echo ${{ steps.version-isolation.outputs.RELEASE_VERSION }}
+          echo ./build/libs/fabric-witness-${{  steps.version-isolation.outputs.RELEASE_VERSION  }}.jar
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -59,14 +60,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/libs/fabric-witness-${{  env.RELEASE_VERSION  }}.jar
-          asset_name: fabric-witness-${{  env.RELEASE_VERSION  }}.jar
+          asset_path: ./build/libs/fabric-witness-${{  steps.version-isolation.outputs.RELEASE_VERSION  }}.jar
+          asset_name: fabric-witness-${{  steps.version-isolation.outputs.RELEASE_VERSION  }}.jar
           asset_content_type: application/java-archive
 
       - name: Isolate build artifact
         run: |
           mkdir ./build/libs/mods
-          mv ./build/libs/fabric-witness-${{  env.RELEASE_VERSION  }}.jar ./build/libs/mods/fabric-witness.jar
+          mv ./build/libs/fabric-witness-${{  steps.version-isolation.outputs.RELEASE_VERSION  }}.jar ./build/libs/mods/fabric-witness.jar
       - name: Deploy to server
         uses: sebastianpopp/ftp-action@releases/v2
         with:
