@@ -27,14 +27,11 @@ dependencies {
     modImplementation("net.fabricmc", "fabric-language-kotlin", Fabric.Kotlin.version)
     modImplementation("net.fabricmc.fabric-api", "fabric-api", Fabric.API.version)
 
-    modImplementation(Mods.libgui)
+    modImplementation(include(Mods.libgui)!!)
     modImplementation(Mods.modmenu)
     modImplementation(Mods.nbtcrafting)
 
-    implementation(Google.guava)
-
     testRuntimeOnly(JUnit.jupiter_engine)
-
     testImplementation(JUnit.jupiter)
     testImplementation(Google.truth)
 }

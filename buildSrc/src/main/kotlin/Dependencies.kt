@@ -11,7 +11,6 @@ object Mods {
 }
 
 object Google {
-    const val guava = "com.google.guava:guava:30.0-jre"
     const val truth = "com.google.truth:truth:1.0.1"
 }
 

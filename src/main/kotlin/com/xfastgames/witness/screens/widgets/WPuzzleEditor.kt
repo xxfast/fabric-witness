@@ -7,6 +7,7 @@ import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.getPanel
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
+import com.xfastgames.witness.utils.guava.edgeValueOf
 import com.xfastgames.witness.utils.intersects
 import com.xfastgames.witness.utils.rotate
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
@@ -136,7 +137,7 @@ class WPuzzleEditor(
                 result
             }
 
-        val edge: Edge? = edgeNodePair?.let { inputPuzzle.graph.edgeValue(it).orElse(null) }
+        val edge: Edge? = edgeNodePair?.let { inputPuzzle.graph.edgeValueOf(it) }
 
         onClickListener?.onClick(node, edge, edgeNodePair)
         return InputResult.PROCESSED

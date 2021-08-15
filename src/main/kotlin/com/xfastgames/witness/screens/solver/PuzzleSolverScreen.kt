@@ -3,7 +3,6 @@ package com.xfastgames.witness.screens.solver
 import com.google.common.graph.EndpointPair
 import com.google.common.graph.Graph
 import com.google.common.graph.MutableGraph
-import com.google.common.graph.Traverser
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
@@ -14,6 +13,8 @@ import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.screens.solver.PuzzleSolverScreen.Sounds.Instances.FOCUS_MODE_DOING_INSTANCE
 import com.xfastgames.witness.sounds.LoopingSoundInstance
 import com.xfastgames.witness.utils.*
+import com.xfastgames.witness.utils.guava.Traverser
+import com.xfastgames.witness.utils.guava.hasEdgeConnecting
 import com.xfastgames.witness.utils.guava.mutableGraph
 import kotlinx.coroutines.FlowPreview
 import net.fabricmc.api.EnvType
@@ -137,7 +138,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val (clampedClickX, clampedClickY) = panelHitResult.position
 
-        val line: List<Node> = Traverser.forGraph(previousLine).breadthFirst(start).toList()
+        val line: List<Node> = Traverser.forGraph(previousLine).depthFirst(start).toList()
         val lastNode: Node = line.last { it.modifier != Modifier.END }
         val nodeBeforeLastNode: Node? = lastNode.let { line.getOrNull(line.indexOf(lastNode) - 1) }
 
@@ -156,9 +157,11 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             updatedLine.putEdge(newEnd, lastNode)
         }
 
-        val updatedSolution: List<Node> = Traverser.forGraph(updatedLine).breadthFirst(start).toList()
+        val updatedSolution: List<Node> = Traverser.forGraph(updatedLine).depthFirst(start)
         val updatedEnd: Node? = updatedSolution.firstOrNull { it.modifier == Modifier.END }
 
+        // TODO: Looks like this maybe broken after removing guava traverser,
+        //  but seems to work on standalone builds weirdly enough
         when {
             // If over an node, and the node is not already part of solution
             overNode != null &&
@@ -182,7 +185,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val solution: List<Node> =
             if (updatedLine.nodes().contains(start))
-                Traverser.forGraph(updatedLine).breadthFirst(start).toList()
+                Traverser.forGraph(updatedLine).depthFirst(start).toList()
             else emptyList()
 
         // Remove nodes that are not a part of the main line

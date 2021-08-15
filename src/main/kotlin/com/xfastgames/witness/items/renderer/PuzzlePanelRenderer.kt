@@ -7,6 +7,8 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.utils.*
+import com.xfastgames.witness.utils.guava.edgeValueOf
+import com.xfastgames.witness.utils.guava.incidentEdges
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.render.RenderLayer
@@ -124,7 +126,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
 
     private fun numberOfEdgesVisible(graph: ValueGraph<Node, Edge>, node: Node): Int =
         graph.incidentEdges(node).count { endpointPair ->
-            graph.edgeValue(endpointPair).value !in listOf(Edge.NONE, Edge.HIDDEN)
+            graph.edgeValueOf(endpointPair) !in listOf(Edge.NONE, Edge.HIDDEN)
         }
 
     private fun RenderContext.renderNode(graph: ValueGraph<Node, Edge>, node: Node): Unit = when {
@@ -135,7 +137,7 @@ object PuzzlePanelRenderer : BuiltinItemRendererRegistry.DynamicItemRenderer {
     }
 
     private fun RenderContext.renderEdge(graph: ValueGraph<Node, Edge>, side: EndpointPair<Node>) {
-        val edge: Edge = graph.edgeValue(side).value ?: return
+        val edge: Edge = graph.edgeValueOf(side) ?: return
         val startNode: Node = side.nodeU()
         val endNode: Node = side.nodeV()
         val start = Vec3f(startNode.x, startNode.y, 0f)

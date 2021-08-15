@@ -12,8 +12,6 @@ import org.junit.jupiter.api.Test
 
 const val KEY_GRAPH = "testGraph"
 
-enum class Person { Bob, Alice, Rob, Maria, Mark }
-
 @Suppress("UnstableApiUsage")
 class GraphTests {
 
@@ -21,6 +19,7 @@ class GraphTests {
     private val bottomLeft = Node(1f, 0f)
     private val topRight = Node(0f, 1f)
     private val topLeft = Node(1f, 1f, Modifier.END)
+
     private val testGraph: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected()
         .build<Node, Edge>().apply {
             putEdgeValue(bottomRight, topRight, Modifier.NORMAL)
@@ -153,7 +152,7 @@ class GraphTests {
         @Test
         fun `Test nearest Edge from bottom right to middle`() {
             val actual: EdgeResult? = testGraph.nearestEdge(.5f, .5f, bottomRight)
-            val expect: EdgeResult = EdgeResult(.0f, .5f, EndpointPair.unordered(topRight, bottomRight))
+            val expect = EdgeResult(.0f, .5f, EndpointPair.unordered(topRight, bottomRight))
             assertThat(actual).isEqualTo(expect)
         }
     }

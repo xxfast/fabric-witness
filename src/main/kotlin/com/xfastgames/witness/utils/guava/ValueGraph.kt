@@ -2,20 +2,29 @@
 
 package com.xfastgames.witness.utils.guava
 
+import com.google.common.graph.EndpointPair
 import com.google.common.graph.MutableValueGraph
 import com.google.common.graph.ValueGraph
 import com.google.common.graph.ValueGraphBuilder
-import com.xfastgames.witness.utils.value
 
-val <N, E> ValueGraph<N, E>.adjacencyMatrix: List<List<E?>>
+fun <N : Any, E : Any> ValueGraph<N, E>.edgeValueOf(u: N, v: N): E? =
+    edgeValueOrDefault(u, v, null)
+
+fun <N : Any, E : Any> ValueGraph<N, E>.edgeValueOf(pair: EndpointPair<N>): E? =
+    edgeValueOf(pair.nodeU(), pair.nodeV())
+
+fun <N : Any, E : Any> ValueGraph<N, E>.incidentEdges(node: N): List<EndpointPair<N>> =
+    this.edges().filter { endpointPair -> endpointPair.contains(node) }
+
+val <N : Any, E : Any> ValueGraph<N, E>.adjacencyMatrix: List<List<E?>>
     get() = this.nodes().map { thisNode ->
-        this.nodes().map { thatNode ->
-            this.edgeValue(thisNode, thatNode).value
-        }
+        this.nodes().map { thatNode -> this.edgeValueOf(thisNode, thatNode) }
     }
 
-inline fun <N, reified E> ValueGraph<N, E>.edgeValues(): List<E> =
-    this.edges().map { nodePair -> this.edgeValue(nodePair).orElse(null) }.filterIsInstance<E>()
+inline fun <N : Any, reified E : Any> ValueGraph<N, E>.edgeValues(): List<E> =
+    this.edges()
+        .map { nodePair -> this.edgeValue(nodePair.nodeU(), nodePair.nodeV()) }
+        .filterIsInstance<E>()
 
 /***
  * Adds a [nodeList] to a existing graph with the given [adjacencyMatrix]

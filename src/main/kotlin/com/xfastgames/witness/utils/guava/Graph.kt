@@ -6,7 +6,10 @@ import com.google.common.graph.Graph
 import com.google.common.graph.GraphBuilder
 import com.google.common.graph.MutableGraph
 
-val <N> Graph<N>.adjacencyMatrix: List<List<Boolean>>
+fun <N : Any> Graph<N>.hasEdgeConnecting(thisNode: N, thatNode: N): Boolean =
+    this.adjacentNodes(thisNode).contains(thatNode)
+
+val <N : Any> Graph<N>.adjacencyMatrix: List<List<Boolean>>
     get() = this.nodes().map { thisNode ->
         this.nodes().map { thatNode ->
             this.hasEdgeConnecting(thisNode, thatNode)

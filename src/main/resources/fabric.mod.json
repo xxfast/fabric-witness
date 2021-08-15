@@ -29,7 +29,6 @@
     "fabricloader": ">=0.11.6",
     "fabric": "*",
     "fabric-language-kotlin": "*",
-    "libgui": "*",
     "nbtcrafting": "*",
     "minecraft": "1.17.x"
   },

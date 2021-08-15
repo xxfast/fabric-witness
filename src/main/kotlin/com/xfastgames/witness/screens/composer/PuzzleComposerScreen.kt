@@ -19,6 +19,7 @@ import com.xfastgames.witness.screens.widgets.icons.BreakIcon
 import com.xfastgames.witness.screens.widgets.icons.EndIcon
 import com.xfastgames.witness.screens.widgets.icons.StartIcon
 import com.xfastgames.witness.utils.*
+import com.xfastgames.witness.utils.guava.putEdgeValue
 import io.github.cottonmc.cotton.gui.SyncedGuiDescription
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
 import io.github.cottonmc.cotton.gui.client.CottonInventoryScreen
@@ -211,7 +212,7 @@ class PuzzleComposerScreenDescription(
                 val neighbours: List<Node> = outputPuzzle.graph.adjacentNodes(node).toList()
                 val neighbourhood: MutableMap<Node, Edge> = mutableMapOf()
                 neighbours.forEach { neighbour ->
-                    neighbourhood[neighbour] = outputPuzzle.graph.edgeValue(neighbour, node).get()
+                    neighbourhood[neighbour] = outputPuzzle.graph.edgeValue(neighbour, node)
                 }
                 updatedGraph.removeNode(node)
                 updatedGraph.addNode(updatedNode)
