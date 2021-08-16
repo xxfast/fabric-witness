@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "test",
+  "pattern": [
+    "A",
+    "P"
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:apple"
+    },
+    "P": {
+      "item": "minecraft:iron_pickaxe",
+      "data": {
+        "require": {
+          "Damage": 4,
+          "RepairCost": ""
+        }
+      }
+    }
+  },
+  "result": {
+    "item": "minecraft:apple"
+  }
+}

@@ -7,7 +7,7 @@ object Jetbrains {
 object Mods {
     const val modmenu = "com.terraformersmc:modmenu:2.0.4"
     const val libgui = "io.github.cottonmc:LibGui:4.1.6+${Minecraft.version}"
-    const val nbtcrafting = "de.siphalor:nbtcrafting-1.17:2+"
+    const val nbtcrafting = "de.siphalor:nbtcrafting-1.17:2.0.20+mc1.17.1"
 }
 
 object Google {
