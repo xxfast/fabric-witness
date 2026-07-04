@@ -5,7 +5,6 @@ import com.google.common.graph.MutableValueGraph
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
-import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_BACKGROUND_DYE_SLOT_INDEX
@@ -19,6 +18,7 @@ import com.xfastgames.witness.screens.widgets.icons.BreakIcon
 import com.xfastgames.witness.screens.widgets.icons.EndIcon
 import com.xfastgames.witness.screens.widgets.icons.StartIcon
 import com.xfastgames.witness.utils.*
+import com.xfastgames.witness.utils.guava.edgeValueOf
 import com.xfastgames.witness.utils.guava.putEdgeValue
 import io.github.cottonmc.cotton.gui.SyncedGuiDescription
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
@@ -30,16 +30,17 @@ import io.github.cottonmc.cotton.gui.widget.WPlayerInvPanel
 import io.github.cottonmc.cotton.gui.widget.WWidget
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
-import net.fabricmc.fabric.api.client.screenhandler.v1.ScreenRegistry
-import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
-import net.minecraft.client.util.math.MatrixStack
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType
+import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
 import net.minecraft.item.DyeItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtCompound
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import net.minecraft.screen.ScreenHandlerContext
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.text.Text
@@ -47,18 +48,23 @@ import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 
-val PUZZLE_COMPOSER_SCREEN_HANDLER: ScreenHandlerType<PuzzleComposerScreenDescription> =
-    ScreenHandlerRegistry.registerExtended(PuzzleComposerBlock.IDENTIFIER) { syncId, playerInventory, buf ->
-        val pos: BlockPos = buf.readBlockPos()
-        PuzzleComposerScreenDescription(
-            syncId,
-            playerInventory,
-            ScreenHandlerContext.create(playerInventory.player.world, pos)
-        )
-    }
+val PUZZLE_COMPOSER_SCREEN_HANDLER: ScreenHandlerType<PuzzleComposerScreenDescription> = Registry.register(
+    Registries.SCREEN_HANDLER,
+    PuzzleComposerBlock.IDENTIFIER,
+    ExtendedScreenHandlerType(
+        { syncId, playerInventory, pos: BlockPos ->
+            PuzzleComposerScreenDescription(
+                syncId,
+                playerInventory,
+                ScreenHandlerContext.create(playerInventory.player.entityWorld, pos)
+            )
+        },
+        BlockPos.PACKET_CODEC
+    )
+)
 
-class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription?, player: PlayerEntity?, title: Text?) :
-    CottonInventoryScreen<PuzzleComposerScreenDescription?>(gui, player, title) {
+class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription, player: PlayerEntity, title: Text?) :
+    CottonInventoryScreen<PuzzleComposerScreenDescription>(gui, player, title) {
 
     companion object : Clientside {
 
@@ -68,7 +74,7 @@ class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription?, player: Player
         const val PUZZLE_OUTPUT_SLOT_INDEX = 7
 
         override fun onClient() {
-            ScreenRegistry.register(PUZZLE_COMPOSER_SCREEN_HANDLER) { gui, inventory, title ->
+            HandledScreens.register(PUZZLE_COMPOSER_SCREEN_HANDLER) { gui, inventory, title ->
                 PuzzleComposerScreen(gui, inventory.player, title)
             }
         }
@@ -76,10 +82,10 @@ class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription?, player: Player
 }
 
 class InputSlotBackgroundPainter(private val itemSlot: WItemSlot, private val texture: Identifier) : BackgroundPainter {
-    override fun paintBackground(matrices: MatrixStack?, left: Int, top: Int, panel: WWidget?) {
-        BackgroundPainter.SLOT.paintBackground(matrices, left, top, panel)
+    override fun paintBackground(context: DrawContext, left: Int, top: Int, panel: WWidget?) {
+        BackgroundPainter.SLOT.paintBackground(context, left, top, panel)
         ScreenDrawing.texturedRect(
-            matrices,
+            context,
             left,
             top,
             itemSlot.width,
@@ -94,7 +100,7 @@ class InputSlotBackgroundPainter(private val itemSlot: WItemSlot, private val te
 class PuzzleComposerScreenDescription(
     syncId: Int,
     playerInventory: PlayerInventory,
-    context: ScreenHandlerContext?
+    context: ScreenHandlerContext
 ) : SyncedGuiDescription(
     PUZZLE_COMPOSER_SCREEN_HANDLER,
     syncId,
@@ -118,7 +124,7 @@ class PuzzleComposerScreenDescription(
     private val editor = WPuzzleEditor(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX)
     private val playerInventoryPanel: WPlayerInvPanel = this.createPlayerInventoryPanel()
 
-    private val placeholderPuzzleTexture = Identifier(Witness.IDENTIFIER, "textures/gui/placeholder_puzzle.png")
+    private val placeholderPuzzleTexture = Identifier.of(Witness.IDENTIFIER, "textures/gui/placeholder_puzzle.png")
 
     private fun updateInventory(slotIndex: Int, itemStack: ItemStack) {
         val inventory: Inventory = blockInventory
@@ -129,11 +135,11 @@ class PuzzleComposerScreenDescription(
 
     init {
         setRootPanel(root)
-        inputSlot.setFilter { itemStack -> itemStack.item is PuzzlePanelItem }
-        outputSlot.setFilter { itemStack -> itemStack.item is PuzzlePanelItem }
-        inputSlot.isInsertingAllowed = true
-        outputSlot.isModifiable = false
-        outputSlot.isTakingAllowed = true
+        inputSlot.setInputFilter { itemStack -> itemStack.item is PuzzlePanelItem }
+        outputSlot.setInputFilter { itemStack -> itemStack.item is PuzzlePanelItem }
+        inputSlot.setInsertingAllowed(true)
+        outputSlot.setModifiable(false)
+        outputSlot.setTakingAllowed(true)
 
         inputSlot.addChangeListener { _, inventory, index, changedItemStack ->
             // if empty remove the output
@@ -152,17 +158,17 @@ class PuzzleComposerScreenDescription(
             val dyeStackItem: Item = dyeItemStack.item
             val updatedColor: DyeColor =
                 if (dyeItemStack.isEmpty || dyeStackItem !is DyeItem)
-                    changedItemStack.nbt?.getPanel(KEY_PANEL)?.backgroundColor ?: return@addChangeListener
+                    changedItemStack.panel?.backgroundColor ?: return@addChangeListener
                 else dyeStackItem.color
 
-            val updatedPanel: Panel = changedItemStack.nbt?.getPanel(KEY_PANEL) ?: return@addChangeListener
+            val updatedPanel: Panel = changedItemStack.panel ?: return@addChangeListener
             val tintedPanel: Panel = when (updatedPanel) {
                 is Panel.Grid -> updatedPanel.copy(backgroundColor = updatedColor)
                 is Panel.Tree -> updatedPanel.copy(backgroundColor = updatedColor)
                 is Panel.Freeform -> updatedPanel.copy(backgroundColor = updatedColor)
             }
 
-            val updatedStack: ItemStack = changedItemStack.copy().apply { nbt?.putPanel(KEY_PANEL, tintedPanel) }
+            val updatedStack: ItemStack = changedItemStack.copy().apply { panel = tintedPanel }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, updatedStack)
         }
 
@@ -174,8 +180,8 @@ class PuzzleComposerScreenDescription(
             if (changedItemStack.isNotEmpty) return@addChangeListener
             updateInventory(PUZZLE_INPUT_SLOT_INDEX, ItemStack.EMPTY)
             // Consume dye if the puzzle color has changed
-            val inputBackgroundColor: DyeColor? = inputStack.nbt?.getPanel(KEY_PANEL)?.backgroundColor
-            val outputBackgroundColor: DyeColor? = changedItemStack.nbt?.getPanel(KEY_PANEL)?.backgroundColor
+            val inputBackgroundColor: DyeColor? = inputStack.panel?.backgroundColor
+            val outputBackgroundColor: DyeColor? = changedItemStack.panel?.backgroundColor
             // TODO: This is currently broken
             if (inputBackgroundColor != outputBackgroundColor) {
                 val updatedDyeStack: ItemStack = dyeStack.copy().apply { decrement(changedItemStack.count) }
@@ -188,8 +194,7 @@ class PuzzleComposerScreenDescription(
             if (edge == null && node == null && edgeNodePair == null) return@setClickListener
 
             val outputPuzzle: Panel =
-                blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
-                    .nbt?.getPanel(KEY_PANEL) ?: return@setClickListener
+                blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: return@setClickListener
 
             val selectedToggle: WRadioImageButton? = toggleGroup.selected
 
@@ -212,7 +217,9 @@ class PuzzleComposerScreenDescription(
                 val neighbours: List<Node> = outputPuzzle.graph.adjacentNodes(node).toList()
                 val neighbourhood: MutableMap<Node, Edge> = mutableMapOf()
                 neighbours.forEach { neighbour ->
-                    neighbourhood[neighbour] = outputPuzzle.graph.edgeValue(neighbour, node)
+                    outputPuzzle.graph.edgeValueOf(neighbour, node)?.let { value ->
+                        neighbourhood[neighbour] = value
+                    }
                 }
                 updatedGraph.removeNode(node)
                 updatedGraph.addNode(updatedNode)
@@ -248,11 +255,10 @@ class PuzzleComposerScreenDescription(
             if (updatedPuzzle == outputPuzzle) return@setClickListener
 
             val inputStack: ItemStack = blockInventory.getStack(PUZZLE_INPUT_SLOT_INDEX)
-            val inputTag: NbtCompound = inputStack.nbt ?: return@setClickListener
-            val inputPanel: Panel? = inputTag.getPanel(KEY_PANEL)
+            val inputPanel: Panel = inputStack.panel ?: return@setClickListener
             if (updatedPuzzle == inputPanel) return@setClickListener
 
-            val outputStack: ItemStack = inputStack.copy().apply { nbt?.putPanel(KEY_PANEL, updatedPuzzle) }
+            val outputStack: ItemStack = inputStack.copy().apply { panel = updatedPuzzle }
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, outputStack)
         }
 
@@ -263,7 +269,7 @@ class PuzzleComposerScreenDescription(
         removeButton.isEnabled = false
 
         layout()
-        context?.run { world, pos -> if (world.isClient) addPainters() }
+        context.run { world, pos -> if (world.isClient) addPainters() }
     }
 
     private fun layout() {

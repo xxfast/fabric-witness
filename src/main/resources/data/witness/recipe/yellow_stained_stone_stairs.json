@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "stained_stone_stair",
+  "pattern": [
+    "#  ",
+    "## ",
+    "###"
+  ],
+  "key": {
+    "#": "witness:yellow_stained_stone"
+  },
+  "result": {
+    "id": "witness:yellow_stained_stone_stairs",
+    "count": 4
+  }
+}

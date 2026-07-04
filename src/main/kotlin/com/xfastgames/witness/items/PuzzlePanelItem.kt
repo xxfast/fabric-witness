@@ -2,42 +2,47 @@ package com.xfastgames.witness.items
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.data.Panel
-import com.xfastgames.witness.items.data.getPanel
-import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
+import com.xfastgames.witness.items.data.cost
+import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.utils.Clientside
+import com.xfastgames.witness.utils.itemSettings
 import com.xfastgames.witness.utils.registerItem
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
-import net.minecraft.client.item.TooltipContext
+import net.minecraft.component.type.TooltipDisplayComponent
 import net.minecraft.item.Item
-import net.minecraft.item.ItemGroup
 import net.minecraft.item.ItemStack
+import net.minecraft.item.tooltip.TooltipType
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
-import net.minecraft.world.World
-import java.util.*
+import java.util.Locale
+import java.util.function.Consumer
 
 const val KEY_COST = "cost"
 const val KEY_PANEL = "panel"
 
-class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
+class PuzzlePanelItem(settings: Settings) : Item(settings), Clientside {
 
     companion object {
-        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "puzzle_panel")
-        val ITEM: Item = registerItem(IDENTIFIER, PuzzlePanelItem())
+        val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "puzzle_panel")
+        val ITEM: Item = registerItem(IDENTIFIER, PuzzlePanelItem(itemSettings(IDENTIFIER)))
     }
 
     override fun onClient() {
-        BuiltinItemRendererRegistry.INSTANCE.register(ITEM, PuzzlePanelRenderer)
+        // TODO(migration): The old BuiltinItemRendererRegistry (custom in-hand/GUI item renderer) was
+        // removed in the 1.21.4 item-model rework. Rendering the live puzzle onto the held/GUI item now
+        // requires a data-driven `special` item model + SpecialModelRenderer. Until that is authored the
+        // item falls back to its static model (textures/item/puzzle_panel.png). Needs in-game work.
     }
 
     // TODO: Use localised strings here
+    @Deprecated("Vanilla deprecates Item.appendTooltip in favour of component-driven tooltips")
     override fun appendTooltip(
         stack: ItemStack,
-        world: World?,
-        tooltip: MutableList<Text>,
-        context: TooltipContext?
+        context: TooltipContext,
+        displayComponent: TooltipDisplayComponent,
+        textConsumer: Consumer<Text>,
+        type: TooltipType
     ) {
-        val puzzle: Panel = stack.nbt?.getPanel(KEY_PANEL) ?: return
+        val puzzle: Panel = stack.panel ?: return
 
         val typeString: String =
             puzzle.type.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
@@ -55,12 +60,11 @@ class PuzzlePanelItem : Item(Settings().group(ItemGroup.REDSTONE)), Clientside {
                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
             }
 
-        val cost: String = stack.nbt?.getInt(KEY_COST)?.let { cost -> "Costs $cost apt" }.orEmpty()
-        val isAdvanced: Boolean = context?.isAdvanced == true
+        val cost: String = stack.cost?.let { cost -> "Costs $cost apt" }.orEmpty()
 
-        if (isAdvanced) {
-            tooltip.add(Text.of("($sizeString $colorString $typeString)"))
-            tooltip.add(Text.of(cost))
+        if (type.isAdvanced) {
+            textConsumer.accept(Text.of("($sizeString $colorString $typeString)"))
+            textConsumer.accept(Text.of(cost))
         }
     }
 }

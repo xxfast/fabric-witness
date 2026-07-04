@@ -2,14 +2,10 @@ package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.*
-import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
+import net.minecraft.block.AbstractBlock
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
-import net.minecraft.block.Material
 import net.minecraft.block.ShapeContext
-import net.minecraft.item.BlockItem
-import net.minecraft.item.Item
-import net.minecraft.item.ItemGroup
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.sound.BlockSoundGroup
 import net.minecraft.state.StateManager
@@ -21,16 +17,15 @@ import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.BlockView
 
-class IronStandBlock : Block(
-    FabricBlockSettings.of(Material.METAL)
-        .strength(2.5f)
-        .sounds(BlockSoundGroup.METAL)
-) {
+class IronStandBlock(settings: AbstractBlock.Settings) : Block(settings) {
 
     companion object {
-        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "iron_stand")
-        val BLOCK: Block = registerBlock(IronStandBlock(), IDENTIFIER)
-        val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.REDSTONE))
+        val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "iron_stand")
+        val BLOCK: Block = registerBlock(
+            IronStandBlock(blockSettings(IDENTIFIER).strength(2.5f).sounds(BlockSoundGroup.METAL)),
+            IDENTIFIER
+        )
+        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
     }
 
     init {
@@ -39,7 +34,7 @@ class IronStandBlock : Block(
     }
 
     override fun getPlacementState(ctx: ItemPlacementContext): BlockState? {
-        return super.getPlacementState(ctx)?.with(HORIZONTAL_FACING, ctx.playerFacing)
+        return super.getPlacementState(ctx)?.with(HORIZONTAL_FACING, ctx.horizontalPlayerFacing)
     }
 
     override fun appendProperties(stateManager: StateManager.Builder<Block, BlockState>) {

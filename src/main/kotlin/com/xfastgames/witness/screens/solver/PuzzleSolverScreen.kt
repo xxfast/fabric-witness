@@ -7,12 +7,13 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Companion.PUZZLE_FRAME_SCALE
-import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
-import com.xfastgames.witness.screens.solver.PuzzleSolverScreen.Sounds.Instances.FOCUS_MODE_DOING_INSTANCE
+import com.xfastgames.witness.screens.solver.PuzzleSolverScreen.Sounds.FOCUS_MODE_DOING_INSTANCE
+import com.xfastgames.witness.sounds.WitnessSounds
 import com.xfastgames.witness.sounds.LoopingSoundInstance
 import com.xfastgames.witness.utils.*
+import com.xfastgames.witness.utils.Interpolator
 import com.xfastgames.witness.utils.guava.Traverser
 import com.xfastgames.witness.utils.guava.hasEdgeConnecting
 import com.xfastgames.witness.utils.guava.mutableGraph
@@ -24,18 +25,18 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.Mouse
+import net.minecraft.client.gui.Click
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
+import net.minecraft.client.input.KeyInput
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.util.NarratorManager
-import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ItemFrameEntity
 import net.minecraft.entity.projectile.ProjectileUtil
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
 import net.minecraft.state.property.Properties
@@ -45,6 +46,8 @@ import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.*
 import net.minecraft.world.RaycastContext
+import org.joml.Quaternionf
+import org.joml.Vector3f
 
 private const val BORDER_WIDTH = 14
 private const val CLICK_PADDING = 0.4f
@@ -55,18 +58,8 @@ private const val CLICK_PADDING = 0.4f
 class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
     object Sounds {
-        val POINTLESS_CLICK: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "pointless_click"))
-        val FOCUS_MODE_ENTER: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_enter"))
-        val FOCUS_MODE_EXIT: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_exit"))
-        val FOCUS_MODE_DOING: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_doing"))
-        val FOCUS_MODE_BEING: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_being"))
-        val FOCUS_MODE_CONSIDERING_EXIT: SoundEvent =
-            registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_considering_exit"))
-        val FOCUS_MODE_WONDERING: SoundEvent =
-            registerSound(Identifier(Witness.IDENTIFIER, "focus_mode_wondering"))
-
-        object Instances {
-            val FOCUS_MODE_DOING_INSTANCE = LoopingSoundInstance(FOCUS_MODE_DOING, SoundCategory.AMBIENT)
+        val FOCUS_MODE_DOING_INSTANCE by lazy {
+            LoopingSoundInstance(WitnessSounds.FOCUS_MODE_DOING, SoundCategory.AMBIENT)
         }
     }
 
@@ -80,33 +73,33 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
     override fun init() {
         mouse.hide()
-        client?.player?.playSound(Sounds.FOCUS_MODE_ENTER, 0.5f, 1f)
+        client?.player?.playSound(WitnessSounds.FOCUS_MODE_ENTER, 0.5f, 1f)
         client?.options?.hudHidden = true
     }
 
-    override fun isPauseScreen(): Boolean = false
+    override fun shouldPause(): Boolean = false
 
-    override fun render(matrices: MatrixStack, mouseX: Int, mouseY: Int, delta: Float) {
+    override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
         borderAlpha.interpolate()
         cursorShadowSize.interpolate()
         val borderAlpha: Float = borderAlpha.value
         val cursorShadowSize: Int = cursorShadowSize.value
-        fill(matrices, BORDER_WIDTH, 0, width - BORDER_WIDTH, BORDER_WIDTH, 255f, 255f, 255f, borderAlpha)
-        fill(matrices, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
-        fill(matrices, 0, 0, BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
-        fill(matrices, width - BORDER_WIDTH, 0, width, height, 255f, 255f, 255f, borderAlpha)
-        circle(matrices, mouseX, mouseY, cursorShadowSize, 255f, 255f, 255f, .25f)
-        circle(matrices, mouseX, mouseY, BORDER_WIDTH / 2, 255f, 255f, 255f, .9f)
+        fill(context, BORDER_WIDTH, 0, width - BORDER_WIDTH, BORDER_WIDTH, 255f, 255f, 255f, borderAlpha)
+        fill(context, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
+        fill(context, 0, 0, BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
+        fill(context, width - BORDER_WIDTH, 0, width, height, 255f, 255f, 255f, borderAlpha)
+        circle(context, mouseX, mouseY, cursorShadowSize, 255f, 255f, 255f, .25f)
+        circle(context, mouseX, mouseY, BORDER_WIDTH / 2, 255f, 255f, 255f, .9f)
     }
 
-    override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        when (keyCode) {
+    override fun keyPressed(input: KeyInput): Boolean {
+        when (input.key()) {
             69 -> { // E 🙃
                 client?.closeScreen()
                 return true
             }
         }
-        return super.keyPressed(keyCode, scanCode, modifiers)
+        return super.keyPressed(input)
     }
 
     override fun tick() {
@@ -119,8 +112,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         // Only respond if the entity has an panel
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
-        val tag: NbtCompound = puzzleStack.nbt ?: return
-        val puzzle: Panel? = tag.getPanel(KEY_PANEL)
+        val puzzle: Panel? = puzzleStack.panel
         if (puzzleStack.item !is PuzzlePanelItem) return
         if (puzzle == null) return
 
@@ -198,10 +190,14 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     }
 
     // TODO: Refactor this mess to a domain with a finite state
-    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
+    override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
         val client: MinecraftClient = requireNotNull(client)
         val player: ClientPlayerEntity = requireNotNull(client.player)
         val world: ClientWorld = requireNotNull(client.world)
+
+        val mouseX: Double = click.x()
+        val mouseY: Double = click.y()
+        val button: Int = click.button()
 
         // If left button, close the screen
         if (button == 1) {
@@ -229,7 +225,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         }
 
         if (overNode != null) {
-            player.playSound(IronPuzzleFrameBlock.Sounds.START_TRACING, 1f, 1f)
+            player.playSound(WitnessSounds.PANEL_START_TRACING, 1f, 1f)
             FOCUS_MODE_DOING_INSTANCE.stop()
             client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
             startedBlockEntity = blockEntity
@@ -238,13 +234,13 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         return false
     }
 
-    override fun onClose() {
+    override fun removed() {
         client?.options?.hudHidden = false
-        client?.player?.playSound(Sounds.FOCUS_MODE_EXIT, 0.5f, 1f)
+        client?.player?.playSound(WitnessSounds.FOCUS_MODE_EXIT, 0.5f, 1f)
         domain.stopTrace()
         FOCUS_MODE_DOING_INSTANCE.stop()
         client?.mouse?.unlockCursor()
-        super.onClose()
+        super.removed()
     }
 
     private fun rayCastAtPanel(
@@ -258,37 +254,39 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val height: Int = client.window.scaledHeight
         val camera: Entity = requireNotNull(client.cameraEntity)
         val cameraDirection: Vec3d = camera.getRotationVec(tickDelta)
-        val fov: Double = client.options.fov
+        val fov: Double = client.options.fov.value.toDouble()
         val angleSize: Double = fov / height
 
-        val verticalRotationAxis = Vec3f(cameraDirection)
-        verticalRotationAxis.cross(Vec3f.POSITIVE_Y)
+        val verticalRotationAxis = cameraDirection.toVector3f()
+        verticalRotationAxis.cross(Vector3f(0f, 1f, 0f))
 
         //The camera is pointing directly up or down, you'll have to fix this one
-        if (!verticalRotationAxis.normalize()) return null
+        if (verticalRotationAxis.lengthSquared() == 0f) return null
+        verticalRotationAxis.normalize()
 
-        val horizontalRotationAxis = Vec3f(cameraDirection)
+        val horizontalRotationAxis = cameraDirection.toVector3f()
         horizontalRotationAxis.cross(verticalRotationAxis)
         horizontalRotationAxis.normalize()
 
-        val cameraRotationAxis = Vec3f(cameraDirection)
+        val cameraRotationAxis = cameraDirection.toVector3f()
         cameraRotationAxis.cross(horizontalRotationAxis)
         val anglePerPixel: Float = angleSize.toFloat()
         val horizontalRotation: Float = (mouseX.toFloat() - width / 2f) * anglePerPixel
         val verticalRotation: Float = (mouseY.toFloat() - height / 2f) * anglePerPixel
 
-        val orignialCameraAxis = Vec3f(cameraDirection)
-        orignialCameraAxis.rotate(cameraRotationAxis.getDegreesQuaternion(verticalRotation))
-        orignialCameraAxis.rotate(horizontalRotationAxis.getDegreesQuaternion(horizontalRotation))
+        val orignialCameraAxis = cameraDirection.toVector3f()
+        orignialCameraAxis.rotate(Quaternionf().rotationAxis(Math.toRadians(verticalRotation.toDouble()).toFloat(), cameraRotationAxis))
+        orignialCameraAxis.rotate(Quaternionf().rotationAxis(Math.toRadians(horizontalRotation.toDouble()).toFloat(), horizontalRotationAxis))
         val direction = Vec3d(orignialCameraAxis)
 
         val entity: Entity? = client.getCameraEntity()
         if (entity == null || client.world == null) return null
-        val interactionManager: ClientPlayerInteractionManager = requireNotNull(client.interactionManager)
-        var reachDistance: Double = interactionManager.reachDistance.toDouble() //Change this to extend the reach
+        // The old ClientPlayerInteractionManager.reachDistance/hasExtendedReach were replaced by
+        // entity attributes in 1.20.5+.
+        var reachDistance: Double = requireNotNull(client.player).blockInteractionRange
         val end: Vec3d = entity.getCameraPosVec(tickDelta).add(direction.multiply(reachDistance))
 
-        var target: HitResult? = entity.world.raycast(
+        var target: HitResult? = entity.entityWorld.raycast(
             RaycastContext(
                 entity.getCameraPosVec(tickDelta),
                 end,
@@ -300,13 +298,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         var tooFar = false
         var extendedReach = reachDistance
-        if (client.interactionManager!!.hasExtendedReach()) {
-            extendedReach = 6.0 //Change this to extend the reach
-            reachDistance = extendedReach
-        } else {
-            if (reachDistance > 3.0) {
-                tooFar = true
-            }
+        if (reachDistance > 3.0) {
+            tooFar = true
         }
         val cameraPos: Vec3d = entity.getCameraPosVec(tickDelta)
         extendedReach *= extendedReach
@@ -319,7 +312,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             .stretch(entity.getRotationVec(1.0f).multiply(reachDistance))
             .expand(1.0, 1.0, 1.0)
 
-        val rayTracePredicate: (Entity) -> Boolean = { e: Entity -> !e.isSpectator && e.collides() }
+        val rayTracePredicate: (Entity) -> Boolean = { e: Entity -> !e.isSpectator && e.canHit() }
         val entityHitResult: EntityHitResult? =
             ProjectileUtil.raycast(entity, cameraPos, vec3d3, box, rayTracePredicate, extendedReach)
 
@@ -352,7 +345,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         // Only respond if the entity has an panel
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
-        val puzzlePanel: Panel = puzzleStack.nbt?.getPanel(KEY_PANEL) ?: return null
+        val puzzlePanel: Panel = puzzleStack.panel ?: return null
         if (puzzleStack.item !is PuzzlePanelItem) return null
 
         // Only respond to block hit results for puzzle frames
@@ -411,14 +404,14 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val stack: ItemStack = blockEntity.inventory.getStack(0)
 
-        val updatedStack: ItemStack = stack.copy().apply { nbt?.putPanel(KEY_PANEL, updatedPanel) }
+        val updatedStack: ItemStack = stack.copy().apply { panel = updatedPanel }
 
         // TODO: Synchronise inventory
         blockEntity.inventory.setStack(0, updatedStack)
     }
 
     private fun missClick(player: ClientPlayerEntity): Boolean {
-        player.playSound(Sounds.POINTLESS_CLICK, 0.5f, 1f)
+        player.playSound(WitnessSounds.POINTLESS_CLICK, 0.5f, 1f)
         return false
     }
 }

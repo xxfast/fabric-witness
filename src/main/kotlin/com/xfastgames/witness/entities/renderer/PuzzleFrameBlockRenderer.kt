@@ -1,43 +1,69 @@
 package com.xfastgames.witness.entities.renderer
 
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
+import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
-import com.xfastgames.witness.utils.rotate
-import net.minecraft.client.render.VertexConsumerProvider
+import net.minecraft.client.render.OverlayTexture
 import net.minecraft.client.render.block.entity.BlockEntityRenderer
+import net.minecraft.client.render.block.entity.BlockEntityRendererFactories
+import net.minecraft.client.render.block.entity.state.BlockEntityRenderState
+import net.minecraft.client.render.command.ModelCommandRenderer
+import net.minecraft.client.render.command.OrderedRenderCommandQueue
+import net.minecraft.client.render.state.CameraRenderState
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3f
+import net.minecraft.util.math.RotationAxis
+import net.minecraft.util.math.Vec3d
 
-class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity> {
+class PuzzleFrameRenderState : BlockEntityRenderState() {
+    var panel: Panel? = null
+    var facing: Direction = Direction.NORTH
+}
+
+class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, PuzzleFrameRenderState> {
 
     companion object {
-        val PUZZLE_FRAME_SCALE = 0.85f
+        const val PUZZLE_FRAME_SCALE = 0.85f
+
+        fun register() {
+            BlockEntityRendererFactories.register(PuzzleFrameBlockEntity.ENTITY_TYPE) { PuzzleFrameBlockRenderer() }
+        }
     }
 
     private val puzzlePanelRenderer = PuzzlePanelRenderer
 
-    override fun render(
-        blockEntity: PuzzleFrameBlockEntity,
-        tickDelta: Float,
-        matrices: MatrixStack,
-        vertexConsumerProvider: VertexConsumerProvider,
-        light: Int,
-        overlay: Int
-    ) {
-        matrices.push()
+    override fun createRenderState(): PuzzleFrameRenderState = PuzzleFrameRenderState()
 
-        // Get the relevant puzzle
+    override fun updateRenderState(
+        blockEntity: PuzzleFrameBlockEntity,
+        state: PuzzleFrameRenderState,
+        tickDelta: Float,
+        cameraPos: Vec3d,
+        crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?
+    ) {
+        BlockEntityRenderState.updateBlockEntityRenderState(blockEntity, state, crumblingOverlay)
         val itemStack: ItemStack = blockEntity.inventory.items[0]
+        state.panel = if (itemStack.isEmpty) null else itemStack.panel ?: Panel.DEFAULT
+        state.facing = blockEntity.cachedState.get(Properties.HORIZONTAL_FACING)
+    }
+
+    override fun render(
+        state: PuzzleFrameRenderState,
+        matrices: MatrixStack,
+        queue: OrderedRenderCommandQueue,
+        cameraState: CameraRenderState
+    ) {
+        val panel: Panel = state.panel ?: return
+        matrices.push()
 
         // Move to center
         matrices.translate(.5, .5, .5)
 
         // Rotate the entity to the direction of the block
-        val direction: Direction = blockEntity.cachedState.get(Properties.HORIZONTAL_FACING)
-        matrices.rotate(Vec3f.POSITIVE_Y, -direction.asRotation())
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-state.facing.positiveHorizontalDegrees))
 
         // Scale the panel
         matrices.scale(PUZZLE_FRAME_SCALE, PUZZLE_FRAME_SCALE, 1f)
@@ -48,10 +74,8 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity> {
         // Move to corner
         matrices.translate(-.5, -.5, -.05)
 
-        if (itemStack.isEmpty) return matrices.pop()
-
         // Render puzzle panel
-        puzzlePanelRenderer.renderPanel(itemStack, matrices, vertexConsumerProvider, light, overlay)
+        puzzlePanelRenderer.renderPanel(panel, matrices, queue, state.lightmapCoordinates, OverlayTexture.DEFAULT_UV)
         matrices.pop()
     }
 }

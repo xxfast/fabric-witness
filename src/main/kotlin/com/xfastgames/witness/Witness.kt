@@ -9,16 +9,17 @@ import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.AncientPuzzleTablet
 import com.xfastgames.witness.items.PuzzlePanelItem
-import com.xfastgames.witness.screens.composer.PuzzleComposerScreen
-import com.xfastgames.witness.utils.Clientside
-import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
+import com.xfastgames.witness.items.data.PanelComponents
+import com.xfastgames.witness.recipes.PanelDyeRecipe
+import com.xfastgames.witness.screens.composer.PUZZLE_COMPOSER_SCREEN_HANDLER
+import com.xfastgames.witness.sounds.WitnessSounds
 import net.fabricmc.api.ModInitializer
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
 import net.minecraft.block.Block
 import net.minecraft.item.Item
+import net.minecraft.item.ItemGroups
 
-class Witness : ModInitializer, ClientModInitializer {
+class Witness : ModInitializer {
 
     companion object {
         const val IDENTIFIER = "witness"
@@ -47,7 +48,8 @@ class Witness : ModInitializer, ClientModInitializer {
             IronStandBlock.BLOCK
         )
 
-        val ITEMS: List<Item> = listOf(
+        /** Items shown in the building blocks creative tab (was ItemGroup.BUILDING_BLOCKS). */
+        val BUILDING_ITEMS: List<Item> = listOf(
             StainedStone.BLOCK_ITEM,
             StainedStoneStairs.BLOCK_ITEM,
             StainedStoneSlabs.BLOCK_ITEM,
@@ -56,7 +58,11 @@ class Witness : ModInitializer, ClientModInitializer {
             StainedStoneBricksSlabs.BLOCK_ITEM,
             StainedStoneBricksStairs.BLOCK_ITEM,
             StainedStoneBricksWall.BLOCK_ITEM,
-            StainedStoneBricksButton.BLOCK_ITEM,
+            CedarLog.BLOCK_ITEM
+        )
+
+        /** Items shown in the natural tab (was ItemGroup.DECORATIONS, removed in 1.19.3+). */
+        val NATURAL_ITEMS: List<Item> = listOf(
             OakLeavesRunners.BLOCK_ITEM,
             Yucca.BLOCK_ITEM,
             TallYucca.BLOCK_ITEM,
@@ -64,33 +70,50 @@ class Witness : ModInitializer, ClientModInitializer {
             MimosaBush.BLOCK_ITEM,
             PurpleBougainvilleaDrape.BLOCK_ITEM,
             BlueBougainvilleaDrape.BLOCK_ITEM,
-            PinkCedarLeaves.BLOCK_ITEM,
-            CedarLog.BLOCK_ITEM,
+            PinkCedarLeaves.BLOCK_ITEM
+        )
+
+        /** Items shown in the redstone tab (was ItemGroup.REDSTONE). */
+        val REDSTONE_ITEMS: List<Item> = listOf(
+            StainedStoneBricksButton.BLOCK_ITEM,
             IronPuzzleFrameBlock.BLOCK_ITEM,
             PuzzleComposerBlock.BLOCK_ITEM,
             IronStandBlock.BLOCK_ITEM,
-            PuzzlePanelItem.ITEM,
+            PuzzlePanelItem.ITEM
+        )
+
+        /** Items shown in the ingredients tab (was ItemGroup.MATERIALS). */
+        val INGREDIENT_ITEMS: List<Item> = listOf(
             AncientPuzzleTablet.ITEM
         )
 
-        val ENTITIES: List<Clientside> = listOf(
+        val ITEMS: List<Item> = BUILDING_ITEMS + NATURAL_ITEMS + REDSTONE_ITEMS + INGREDIENT_ITEMS
+
+        val ENTITIES: List<Any> = listOf(
             PuzzleFrameBlockEntity.Companion,
             PuzzleComposerBlockEntity.Companion
         )
-
-        val SCREENS: List<Clientside> by lazy {
-            listOf(PuzzleComposerScreen.Companion)
-        }
     }
 
-    override fun onInitialize() {}
+    override fun onInitialize() {
+        // Force registration of classes with registration side effects in companions.
+        PanelComponents.init()
+        PanelDyeRecipe.init()
+        WitnessSounds.init()
+        BLOCKS.size
+        ITEMS.size
+        ENTITIES.size
+        // Screen handler must be registered during common init (registries freeze afterwards).
+        PUZZLE_COMPOSER_SCREEN_HANDLER
 
-    @Environment(EnvType.CLIENT)
-    override fun onInitializeClient() {
-
-        listOf(BLOCKS, ITEMS, ENTITIES, SCREENS)
-            .flatten()
-            .filterIsInstance<Clientside>()
-            .forEach { it.onClient() }
+        // Item groups: the `Item.Settings().group(...)` API was replaced by ItemGroupEvents (1.19.3+).
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS)
+            .register { entries -> BUILDING_ITEMS.forEach(entries::add) }
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.NATURAL)
+            .register { entries -> NATURAL_ITEMS.forEach(entries::add) }
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.REDSTONE)
+            .register { entries -> REDSTONE_ITEMS.forEach(entries::add) }
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS)
+            .register { entries -> INGREDIENT_ITEMS.forEach(entries::add) }
     }
 }

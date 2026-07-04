@@ -3,19 +3,20 @@ package com.xfastgames.witness.blocks.building
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
-import net.minecraft.block.AbstractButtonBlock
-import net.minecraft.item.Item
-import net.minecraft.item.ItemGroup
+import net.minecraft.block.AbstractBlock
+import net.minecraft.block.BlockSetType
+import net.minecraft.block.ButtonBlock
 import net.minecraft.sound.SoundEvent
 import net.minecraft.sound.SoundEvents
 import net.minecraft.util.Identifier
 
-class StainedStoneBricksButton : AbstractButtonBlock(false, stainedStoneSettings) {
+class StainedStoneBricksButton(settings: AbstractBlock.Settings) :
+    ButtonBlock(BlockSetType.STONE, 20, settings) {
 
     companion object {
-        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "yellow_stained_stone_bricks_button")
-        val BLOCK = registerBlock(StainedStoneBricksButton(), IDENTIFIER)
-        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.REDSTONE))
+        val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "yellow_stained_stone_bricks_button")
+        val BLOCK = registerBlock(StainedStoneBricksButton(stainedStoneSettings(IDENTIFIER)), IDENTIFIER)
+        val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
     }
 
     override fun getClickSound(powered: Boolean): SoundEvent =

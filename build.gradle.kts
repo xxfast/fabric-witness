@@ -1,18 +1,18 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    kotlin("jvm") version Jetbrains.Kotlin.version
-    id("fabric-loom") version Fabric.Loom.version
+    // NOTE: Gradle 9's plugins {} block cannot resolve buildSrc constants, so
+    // the plugin versions are inlined here (kept in sync with Dependencies.kt).
+    kotlin("jvm") version "2.4.0"
+    id("fabric-loom") version "1.17.13"
     `maven-publish`
 }
 
 repositories {
     mavenCentral()
     maven(url = "https://maven.fabricmc.net/") { name = "Fabric" }
-    maven(url = "https://server.bbkr.space/artifactory/libs-release") { name = "CottonMC" }
-    maven(url = "https://maven.siphalor.de") { name = "Siphalor's Maven" }
+    maven(url = "https://staging.alexiil.uk/maven/") { name = "AlexIIL" }
     maven(url = "https://maven.terraformersmc.com/") { name = "TerraformersMC" }
-}
-
-minecraft {
 }
 
 tasks.test {
@@ -29,9 +29,9 @@ dependencies {
 
     modImplementation(include(Mods.libgui)!!)
     modImplementation(Mods.modmenu)
-    modImplementation(Mods.nbtcrafting)
 
     testRuntimeOnly(JUnit.jupiter_engine)
+    testRuntimeOnly(JUnit.platform_launcher)
     testImplementation(JUnit.jupiter)
     testImplementation(Google.truth)
 }
@@ -41,24 +41,26 @@ dependencies {
 // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
+    sourceCompatibility = "21"
+    targetCompatibility = "21"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+        optIn.addAll(
+            "kotlin.RequiresOptIn",
+            "kotlin.ExperimentalStdlibApi"
+        )
+    }
 }
 
 tasks {
-    compileJava {
-        targetCompatibility = "16"
-        sourceCompatibility = "16"
-    }
-
-    compileKotlin {
-        kotlinOptions {
-            jvmTarget = "16"
-            freeCompilerArgs = listOf(
-                "-Xopt-in=kotlin.RequiresOptIn",
-                "-Xopt-in=kotlin.ExperimentalStdlibApi"
-            )
-        }
-    }
-
     processResources {
         filesMatching("fabric.mod.json") {
             expand(
@@ -76,4 +78,3 @@ tasks {
         from("LICENSE")
     }
 }
-

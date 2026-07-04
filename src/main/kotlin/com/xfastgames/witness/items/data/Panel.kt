@@ -8,7 +8,12 @@ import com.xfastgames.witness.items.data.Panel.Companion.Type
 import com.xfastgames.witness.utils.guava.emptyGraph
 import com.xfastgames.witness.utils.guava.mutableGraph
 import com.xfastgames.witness.utils.pow
+import com.mojang.serialization.Codec
+import com.xfastgames.witness.utils.getIntTolerant
 import net.minecraft.nbt.NbtCompound
+import net.minecraft.network.RegistryByteBuf
+import net.minecraft.network.codec.PacketCodec
+import net.minecraft.network.codec.PacketCodecs
 import net.minecraft.util.DyeColor
 
 private const val KEY_WIDTH = "width"
@@ -166,6 +171,18 @@ sealed class Panel(val type: Type) {
     }
 
     companion object {
+        /**
+         * Codec used by the `witness:panel` data component. It reuses the existing NBT
+         * (de)serialization so the stored shape matches the pre-1.20.5 raw-NBT `panel` tag,
+         * and recipe JSON can specify the component with the same structure.
+         */
+        val CODEC: Codec<Panel> = NbtCompound.CODEC.xmap(
+            { nbt -> nbt.toPanel() },
+            { panel -> panel.toNbt() }
+        )
+
+        val PACKET_CODEC: PacketCodec<RegistryByteBuf, Panel> = PacketCodecs.registryCodec(CODEC)
+
         val DEFAULT: Panel by lazy { Grid.ofSize(3) }
 
         val TEST: Panel by lazy {
@@ -192,37 +209,44 @@ sealed class Panel(val type: Type) {
     }
 }
 
+/** Reads a panel whose fields are stored at the root of this compound. */
 @Suppress("UnstableApiUsage")
-fun NbtCompound.getPanel(key: String): Panel? {
-    if (!contains(key)) return null
-    return getCompound(key).let { tag ->
-        val type: Type = Type.values()[tag.getInt(KEY_PANEL_TYPE)]
-        val line: Graph<Node> = tag.getGraph(KEY_LINE)
+fun NbtCompound.toPanel(): Panel {
+    val type: Type = Type.values()[getIntTolerant(KEY_PANEL_TYPE)]
+    val line: Graph<Node> = getGraph(KEY_LINE)
 
-        val backgroundColor: DyeColor = DyeColor.values()[tag.getInt(KEY_BACKGROUND_COLOR)]
-        val grid: ValueGraph<Node, Edge> = tag.getValueGraph(KEY_GRAPH)
+    val backgroundColor: DyeColor = DyeColor.values()[getIntTolerant(KEY_BACKGROUND_COLOR)]
+    val grid: ValueGraph<Node, Edge> = getValueGraph(KEY_GRAPH)
 
-        when (type) {
-            Type.Grid -> Panel.Grid(line, grid, backgroundColor, tag.getInt(KEY_WIDTH), tag.getInt(KEY_HEIGHT))
-            Type.Tree -> Panel.Tree(line, grid, backgroundColor, tag.getInt(KEY_HEIGHT), tag.getInt(KEY_HEIGHT))
-            Type.Freeform -> Panel.Freeform(line, grid, backgroundColor, tag.getInt(KEY_WIDTH), tag.getInt(KEY_HEIGHT))
-        }
+    return when (type) {
+        Type.Grid -> Panel.Grid(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT))
+        Type.Tree -> Panel.Tree(line, grid, backgroundColor, getIntTolerant(KEY_HEIGHT), getIntTolerant(KEY_HEIGHT))
+        Type.Freeform -> Panel.Freeform(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT))
     }
 }
 
-fun NbtCompound.putPanel(key: String, panel: Panel) {
-    put(key, NbtCompound().apply {
-        putInt(KEY_PANEL_TYPE, panel.type.ordinal)
-        putGraph(KEY_LINE, panel.line)
-        putInt(KEY_BACKGROUND_COLOR, panel.backgroundColor.ordinal)
-        putValueGraph(KEY_GRAPH, panel.graph)
-        when (panel) {
-            is Panel.Grid, is Panel.Freeform -> {
-                putInt(KEY_WIDTH, panel.width)
-                putInt(KEY_HEIGHT, panel.height)
-            }
-
-            is Panel.Tree -> putInt(KEY_HEIGHT, panel.height)
+/** Writes this panel's fields into a fresh compound (inverse of [toPanel]). */
+fun Panel.toNbt(): NbtCompound = NbtCompound().also { tag ->
+    tag.putInt(KEY_PANEL_TYPE, type.ordinal)
+    tag.putGraph(KEY_LINE, line)
+    tag.putInt(KEY_BACKGROUND_COLOR, backgroundColor.ordinal)
+    tag.putValueGraph(KEY_GRAPH, graph)
+    when (this) {
+        is Panel.Grid, is Panel.Freeform -> {
+            tag.putInt(KEY_WIDTH, width)
+            tag.putInt(KEY_HEIGHT, height)
         }
-    })
+
+        is Panel.Tree -> tag.putInt(KEY_HEIGHT, height)
+    }
+}
+
+@Suppress("UnstableApiUsage")
+fun NbtCompound.getPanel(key: String): Panel? {
+    if (!contains(key)) return null
+    return getCompoundOrEmpty(key).toPanel()
+}
+
+fun NbtCompound.putPanel(key: String, panel: Panel) {
+    put(key, panel.toNbt())
 }

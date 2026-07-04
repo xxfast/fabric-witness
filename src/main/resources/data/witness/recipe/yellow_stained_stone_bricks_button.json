@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "witness:yellow_stained_stone_bricks"
+  ],
+  "result": {
+    "id": "witness:yellow_stained_stone_bricks_button"
+  }
+}

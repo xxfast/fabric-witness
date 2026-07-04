@@ -1,11 +1,11 @@
 package com.xfastgames.witness.blocks.redstone
 
+import com.mojang.serialization.MapCodec
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.screens.solver.PuzzleSolverScreen
 import com.xfastgames.witness.utils.*
-import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.minecraft.block.*
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.MinecraftClient
@@ -28,19 +28,9 @@ import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.BlockView
 import net.minecraft.world.World
+import net.minecraft.world.block.WireOrientation
 
-class IronPuzzleFrameBlock : BlockWithEntity(
-    FabricBlockSettings.of(Material.METAL)
-        .strength(2.5f)
-        .sounds(BlockSoundGroup.METAL)
-        .lightLevel { state ->
-            if (state[ENABLED]) 10 else 0
-        }
-) {
-    object Sounds {
-        val START_TRACING: SoundEvent = registerSound(Identifier(Witness.IDENTIFIER, "panel_start_tracing"))
-    }
-
+class IronPuzzleFrameBlock(settings: AbstractBlock.Settings) : BlockWithEntity(settings) {
     companion object {
         val ENABLED: BooleanProperty = BooleanProperty.of("enabled")
         val TOP_CONNECTED: BooleanProperty = BooleanProperty.of("top_connected")
@@ -48,9 +38,18 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         val RIGHT_CONNECTED: BooleanProperty = BooleanProperty.of("right_connected")
         val BOTTOM_CONNECTED: BooleanProperty = BooleanProperty.of("bottom_connected")
 
-        val IDENTIFIER = Identifier(Witness.IDENTIFIER, "iron_puzzle_frame")
-        val BLOCK: Block = registerBlock(IronPuzzleFrameBlock(), IDENTIFIER)
-        val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER, Item.Settings().group(ItemGroup.REDSTONE))
+        val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "iron_puzzle_frame")
+        val CODEC: MapCodec<IronPuzzleFrameBlock> = createCodec(::IronPuzzleFrameBlock)
+        val BLOCK: Block = registerBlock(
+            IronPuzzleFrameBlock(
+                blockSettings(IDENTIFIER)
+                    .strength(2.5f)
+                    .sounds(BlockSoundGroup.METAL)
+                    .luminance { state -> if (state[ENABLED]) 10 else 0 }
+            ),
+            IDENTIFIER
+        )
+        val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER)
     }
 
     init {
@@ -62,6 +61,8 @@ class IronPuzzleFrameBlock : BlockWithEntity(
             .with(RIGHT_CONNECTED, false)
             .with(BOTTOM_CONNECTED, false)
     }
+
+    override fun getCodec(): MapCodec<out BlockWithEntity> = CODEC
 
     override fun getRenderType(state: BlockState?): BlockRenderType = BlockRenderType.MODEL
 
@@ -77,31 +78,25 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         val blockWest: Block = ctx.world.getBlockState(ctx.blockPos.west()).block
 
         val blockLeft: Block =
-            when (ctx.playerFacing.axis) {
-                Direction.Axis.X -> when (ctx.playerFacing.direction) {
+            when (ctx.horizontalPlayerFacing.axis) {
+                Direction.Axis.X -> when (ctx.horizontalPlayerFacing.direction) {
                     Direction.AxisDirection.POSITIVE -> blockNorth
-                    // Direction.AxisDirection.NEGATIVE
                     else -> blockSouth
                 }
-                // Direction.Axis.Z
-                else -> when (ctx.playerFacing.direction) {
+                else -> when (ctx.horizontalPlayerFacing.direction) {
                     Direction.AxisDirection.POSITIVE -> blockEast
-                    // Direction.AxisDirection.NEGATIVE
                     else -> blockWest
                 }
             }
 
         val blockRight: Block =
-            when (ctx.playerFacing.axis) {
-                Direction.Axis.X -> when (ctx.playerFacing.direction) {
+            when (ctx.horizontalPlayerFacing.axis) {
+                Direction.Axis.X -> when (ctx.horizontalPlayerFacing.direction) {
                     Direction.AxisDirection.POSITIVE -> blockSouth
-                    // Direction.AxisDirection.NEGATIVE
                     else -> blockNorth
                 }
-                // Direction.Axis.Z
-                else -> when (ctx.playerFacing.direction) {
+                else -> when (ctx.horizontalPlayerFacing.direction) {
                     Direction.AxisDirection.POSITIVE -> blockWest
-                    // Direction.AxisDirection.NEGATIVE
                     else -> blockEast
                 }
             }
@@ -112,7 +107,7 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         val onRightOfFrame: Boolean = blockLeft is IronPuzzleFrameBlock
 
         return super.getPlacementState(ctx)
-            ?.with(HORIZONTAL_FACING, ctx.playerFacing)
+            ?.with(HORIZONTAL_FACING, ctx.horizontalPlayerFacing)
             ?.with(BOTTOM_CONNECTED, onTopOfFrameOrStand)
             ?.with(TOP_CONNECTED, onBelowOfFrameOrStand)
             ?.with(LEFT_CONNECTED, onRightOfFrame)
@@ -123,8 +118,8 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         state: BlockState,
         world: World,
         pos: BlockPos,
-        block: Block,
-        fromPos: BlockPos,
+        sourceBlock: Block,
+        wireOrientation: WireOrientation?,
         notify: Boolean
     ) {
         val blockUp: Block = world.getBlockState(pos.up()).block
@@ -189,17 +184,17 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         return shape.rotateShape(to = direction)
     }
 
-    override fun onBreak(world: World, pos: BlockPos, state: BlockState, player: PlayerEntity) {
+    override fun onBreak(world: World, pos: BlockPos, state: BlockState, player: PlayerEntity): BlockState {
         val entity: BlockEntity? = world.getBlockEntity(pos)
         require(entity is PuzzleFrameBlockEntity)
         entity.inventory.items.forEach { stack -> dropStack(world, pos, stack) }
-        super.onBreak(world, pos, state, player)
+        return super.onBreak(world, pos, state, player)
     }
 
     override fun onPlaced(
         world: World,
-        pos: BlockPos?,
-        state: BlockState?,
+        pos: BlockPos,
+        state: BlockState,
         placer: LivingEntity?,
         itemStack: ItemStack?
     ) {
@@ -215,7 +210,24 @@ class IronPuzzleFrameBlock : BlockWithEntity(
         world: World,
         pos: BlockPos,
         player: PlayerEntity,
-        hand: Hand?,
+        hit: BlockHitResult
+    ): ActionResult = interact(state, world, pos, player, hit)
+
+    override fun onUseWithItem(
+        stack: ItemStack,
+        state: BlockState,
+        world: World,
+        pos: BlockPos,
+        player: PlayerEntity,
+        hand: Hand,
+        hit: BlockHitResult
+    ): ActionResult = interact(state, world, pos, player, hit)
+
+    private fun interact(
+        state: BlockState,
+        world: World,
+        pos: BlockPos,
+        player: PlayerEntity,
         hit: BlockHitResult?
     ): ActionResult {
         val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
@@ -226,26 +238,23 @@ class IronPuzzleFrameBlock : BlockWithEntity(
             inventory.items[0].isEmpty &&
                     (player.mainHandStack.item is PuzzlePanelItem ||
                             player.offHandStack.item is PuzzlePanelItem) -> {
-                // Only put one of the panel in the frame
                 val holdingStack: ItemStack =
-                    if (player.mainHandStack.item is PuzzlePanelItem) player.inventory.mainHandStack
+                    if (player.mainHandStack.item is PuzzlePanelItem) player.mainHandStack
                     else player.offHandStack
 
                 val frameStack: ItemStack = holdingStack.split(1)
-                // The rest goes back to players hand
                 if (player.mainHandStack.item is PuzzlePanelItem)
                     player.setStackInHand(Hand.MAIN_HAND, holdingStack)
                 else player.setStackInHand(Hand.OFF_HAND, holdingStack)
 
                 inventory.items[0] = frameStack
-                player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_IRON, 1f, 1f)
+                player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_IRON.value(), 1f, 1f)
             }
 
             // when there is an item in the frame and player is sneaking
             inventory.items[0].isNotEmpty && player.isInSneakingPose -> {
                 val frameStack: ItemStack = inventory.items[0]
                 when {
-                    // If the player has and empty main hand
                     player.mainHandStack.isEmpty -> {
                         inventory.removeStack(0)
                         player.setStackInHand(Hand.MAIN_HAND, frameStack)
@@ -256,7 +265,7 @@ class IronPuzzleFrameBlock : BlockWithEntity(
                         player.setStackInHand(Hand.OFF_HAND, frameStack)
                     }
 
-                    else -> ActionResult.FAIL
+                    else -> return ActionResult.FAIL
                 }
             }
 
@@ -270,7 +279,6 @@ class IronPuzzleFrameBlock : BlockWithEntity(
             }
 
             else -> return ActionResult.FAIL
-
         }
 
         // Update block state

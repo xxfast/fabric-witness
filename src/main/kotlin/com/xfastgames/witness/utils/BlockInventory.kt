@@ -1,6 +1,5 @@
 package com.xfastgames.witness.utils
 
-import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.inventory.Inventories
@@ -54,7 +53,6 @@ class BlockInventory(size: Int, val owner: BlockEntity) : SidedInventory {
 
     override fun markDirty() {
         owner.markDirty()
-        require(owner is BlockEntityClientSerializable)
-        if (owner.world?.isClient == false) owner.sync()
+        if (owner is Syncable && owner.world?.isClient == false) owner.sync()
     }
 }

@@ -1,17 +1,31 @@
 package com.xfastgames.witness.blocks.decorations
 
-import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
-import net.minecraft.block.*
+import com.xfastgames.witness.utils.blockSettings
+import net.minecraft.block.AbstractBlock
+import net.minecraft.block.BlockState
+import net.minecraft.block.Fertilizable
+import net.minecraft.block.PlantBlock
+import net.minecraft.block.ShapeContext
 import net.minecraft.item.ItemStack
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.sound.BlockSoundGroup
+import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.random.Random
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.BlockView
 import net.minecraft.world.World
+import net.minecraft.world.WorldView
 
-abstract class FlowerBush : PlantBlock(FabricBlockSettings.of(Material.LEAVES).nonOpaque()), Fertilizable {
+/** Settings for a small ground plant/bush. Offset is now configured on the settings (getOffsetType was removed). */
+fun bushSettings(id: Identifier): AbstractBlock.Settings =
+    blockSettings(id)
+        .nonOpaque()
+        .sounds(BlockSoundGroup.GRASS)
+        .offset(AbstractBlock.OffsetType.XZ)
+
+abstract class FlowerBush(settings: AbstractBlock.Settings) : PlantBlock(settings), Fertilizable {
     override fun getOutlineShape(
         state: BlockState?,
         view: BlockView?,
@@ -27,17 +41,11 @@ abstract class FlowerBush : PlantBlock(FabricBlockSettings.of(Material.LEAVES).n
     ): VoxelShape =
         VoxelShapes.empty()
 
-    override fun getOffsetType(): OffsetType =
-        OffsetType.XZ
+    override fun isFertilizable(world: WorldView?, pos: BlockPos?, state: BlockState?): Boolean = true
 
-    override fun getSoundGroup(state: BlockState?): BlockSoundGroup = BlockSoundGroup.GRASS
+    override fun canGrow(world: World?, random: Random?, pos: BlockPos?, state: BlockState?): Boolean = true
 
-    override fun isFertilizable(world: BlockView?, pos: BlockPos?, state: BlockState?, isClient: Boolean): Boolean =
-        true
-
-    override fun canGrow(world: World?, random: java.util.Random?, pos: BlockPos?, state: BlockState?): Boolean = true
-
-    override fun grow(world: ServerWorld?, random: java.util.Random?, pos: BlockPos?, state: BlockState?) {
+    override fun grow(world: ServerWorld?, random: Random?, pos: BlockPos?, state: BlockState?) {
         dropStack(world, pos, ItemStack(this))
     }
 

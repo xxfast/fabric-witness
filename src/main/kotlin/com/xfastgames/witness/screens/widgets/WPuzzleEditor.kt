@@ -1,26 +1,27 @@
 package com.xfastgames.witness.screens.widgets
 
 import com.google.common.graph.EndpointPair
-import com.xfastgames.witness.items.KEY_PANEL
 import com.xfastgames.witness.items.data.Edge
+import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
-import com.xfastgames.witness.items.data.getPanel
-import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
+import com.xfastgames.witness.items.data.panel
+import com.xfastgames.witness.utils.circle
+import com.xfastgames.witness.utils.fill
 import com.xfastgames.witness.utils.guava.edgeValueOf
 import com.xfastgames.witness.utils.intersects
-import com.xfastgames.witness.utils.rotate
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
 import io.github.cottonmc.cotton.gui.widget.WWidget
 import io.github.cottonmc.cotton.gui.widget.data.InputResult
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.render.*
-import net.minecraft.client.util.math.MatrixStack
+import net.minecraft.client.gui.Click
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.inventory.Inventory
 import net.minecraft.item.ItemStack
-import net.minecraft.util.math.Vec3f
+import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 private const val CLICK_PADDING = 0.2f
 
@@ -34,9 +35,7 @@ class WPuzzleEditor(
         fun onClick(node: Node?, edge: Edge?, edgeNodePair: EndpointPair<Node>?)
     }
 
-    private val client: MinecraftClient by lazy { MinecraftClient.getInstance() }
     private val backgroundPainter: BackgroundPainter by lazy { BackgroundPainter.SLOT }
-    private val puzzlePanelRenderer: PuzzlePanelRenderer by lazy { PuzzlePanelRenderer }
 
     private var onClickListener: OnClickListener? = null
 
@@ -51,62 +50,79 @@ class WPuzzleEditor(
         onClickListener = clickListener
     }
 
+    /**
+     * TODO(migration): The pre-1.20 implementation rendered the live 3D puzzle panel into the GUI via
+     * `client.bufferBuilders.entityVertexConsumers` + Tessellator. That immediate-mode path no longer
+     * exists in the 1.21.6+ GUI pipeline, so the editor preview is now drawn with 2D DrawContext
+     * primitives (same graph, flat styling). Verify in-game that the preview lines up with clicks.
+     */
     @Environment(EnvType.CLIENT)
-    override fun paint(matrices: MatrixStack, x: Int, y: Int, mouseX: Int, mouseY: Int) {
-        backgroundPainter.paintBackground(matrices, x, y, this)
-        matrices.push()
+    @Suppress("UnstableApiUsage")
+    override fun paint(context: DrawContext, x: Int, y: Int, mouseX: Int, mouseY: Int) {
+        backgroundPainter.paintBackground(context, x, y, this)
         val puzzleStack: ItemStack = inventory.getStack(outputSlotIndex)
-        if (puzzleStack.isEmpty) return matrices.pop()
+        if (puzzleStack.isEmpty) return
 
-        /** TODO: Figure out why the puzzle background is not rendered in the render pass
-         * Also, 🎩🐇 magic number land!
-         */
-        val immediateConsumer: VertexConsumerProvider.Immediate = client.bufferBuilders.entityVertexConsumers
-        val puzzleScale = 6.75f
-        matrices.scale(puzzleScale, -puzzleScale, puzzleScale)
-        matrices.rotate(Vec3f.POSITIVE_Z, 180f)
-        // Translate relative to panel placement
-        matrices.translate(-1.23, -.895, .0)
+        val puzzle: Panel = puzzleStack.panel ?: Panel.DEFAULT
+        val scale: Int = max(puzzle.width, puzzle.height)
 
-        val puzzle: Panel = puzzleStack.nbt?.getPanel(KEY_PANEL) ?: Panel.DEFAULT
+        // puzzle coordinates -> widget pixels (both axes mirrored, matching onClick's mapping)
+        fun px(value: Float): Int = x + (width * (1 - value / scale)).roundToInt()
+        fun py(value: Float): Int = y + (height * (1 - value / scale)).roundToInt()
+        fun thickness(units: Float): Int = ((units / scale) * width).roundToInt().coerceAtLeast(1)
 
-        puzzlePanelRenderer.renderGraph(
-            graph = puzzle.graph,
-            width = puzzle.width,
-            height = puzzle.height,
-            matrices = matrices,
-            vertexConsumers = immediateConsumer,
-            light = 15728880,
-            overlay = OverlayTexture.DEFAULT_UV
-        )
+        val lineThickness: Int = thickness(4f / 16f)
 
-        val tessellator: Tessellator? = Tessellator.getInstance()
-        val bufferBuilder = tessellator!!.buffer
-        bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR)
-        bufferBuilder.color(0, 0, 0, 1).next()
-        puzzlePanelRenderer.renderHighlighted(
-            graph = puzzle.graph,
-            width = puzzle.width,
-            height = puzzle.height,
-            matrices = matrices,
-            vertexConsumer = bufferBuilder,
-            light = 15728880,
-            overlay = OverlayTexture.DEFAULT_UV
-        )
-        tessellator.draw()
+        // Edges
+        puzzle.graph.edges().forEach { side ->
+            val edge: Edge = puzzle.graph.edgeValueOf(side) ?: return@forEach
+            if (edge == Modifier.NONE || edge == Modifier.HIDDEN) return@forEach
+            drawLine(context, px(side.nodeU().x), py(side.nodeU().y), px(side.nodeV().x), py(side.nodeV().y), lineThickness)
+        }
 
-        matrices.translate(x.toDouble(), y.toDouble(), .0)
-        matrices.scale(puzzleScale, -puzzleScale, puzzleScale)
-        matrices.translate(.0, -1.0, .0)
+        // Nodes
+        puzzle.graph.nodes().forEach { node ->
+            val radius: Int = if (node.modifier == Modifier.START) thickness(4f / 16f) else thickness(2f / 16f)
+            circle(context, px(node.x), py(node.y), radius, .9f, .9f, .85f, 1f)
+        }
+    }
 
-        matrices.pop()
+    private fun drawLine(context: DrawContext, x1: Int, y1: Int, x2: Int, y2: Int, thickness: Int) {
+        val half: Int = thickness / 2
+        when {
+            x1 == x2 -> fill(
+                context,
+                x1 - half, minOf(y1, y2) - half, x1 + half, maxOf(y1, y2) + half,
+                .9f, .9f, .85f, 1f
+            )
+
+            y1 == y2 -> fill(
+                context,
+                minOf(x1, x2) - half, y1 - half, maxOf(x1, x2) + half, y1 + half,
+                .9f, .9f, .85f, 1f
+            )
+
+            else -> {
+                // Diagonal edge: approximate with stepped segments
+                val length: Int = hypot((x2 - x1).toDouble(), (y2 - y1).toDouble()).roundToInt()
+                val steps: Int = (length / (half.coerceAtLeast(1))).coerceAtLeast(1)
+                repeat(steps + 1) { step ->
+                    val t: Float = step.toFloat() / steps
+                    val cx: Int = (x1 + (x2 - x1) * t).roundToInt()
+                    val cy: Int = (y1 + (y2 - y1) * t).roundToInt()
+                    fill(context, cx - half, cy - half, cx + half, cy + half, .9f, .9f, .85f, 1f)
+                }
+            }
+        }
     }
 
     @Suppress("UnstableApiUsage")
-    override fun onClick(x: Int, y: Int, button: Int): InputResult {
+    override fun onClick(click: Click, doubled: Boolean): InputResult {
+        val x: Int = click.x().toInt()
+        val y: Int = click.y().toInt()
         val inputStack: ItemStack = inventory.getStack(outputSlotIndex)
         if (inputStack.isEmpty) return InputResult.IGNORED
-        val inputPuzzle: Panel = inputStack.nbt?.getPanel(KEY_PANEL) ?: return InputResult.IGNORED
+        val inputPuzzle: Panel = inputStack.panel ?: return InputResult.IGNORED
 
         val xPosition = 1 - (x.toFloat() / width)
         val yPosition = 1 - (y.toFloat() / height)

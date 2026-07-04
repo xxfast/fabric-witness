@@ -1,6 +1,8 @@
 package com.xfastgames.witness.items.data
 
 import com.google.common.graph.EndpointPair
+import com.xfastgames.witness.utils.getFloatTolerant
+import com.xfastgames.witness.utils.getIntTolerant
 import net.minecraft.nbt.NbtCompound
 import kotlin.math.hypot
 import kotlin.math.pow
@@ -13,9 +15,9 @@ private const val KEY_NODE_MODIFIER = "modifier"
 data class Node(val x: Float, val y: Float, val modifier: Modifier = Modifier.NONE)
 
 fun NbtCompound.getNode() = Node(
-    x = getFloat(KEY_NODE_X),
-    y = getFloat(KEY_NODE_Y),
-    modifier = getInt(KEY_NODE_MODIFIER)
+    x = getFloatTolerant(KEY_NODE_X),
+    y = getFloatTolerant(KEY_NODE_Y),
+    modifier = getIntTolerant(KEY_NODE_MODIFIER)
         .let { Modifier.values()[it] }
 )
 

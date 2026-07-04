@@ -2,36 +2,36 @@ package com.xfastgames.witness.utils
 
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.util.math.Matrix3f
-import net.minecraft.util.math.Matrix4f
-import net.minecraft.util.math.Vec3f
+import org.joml.Matrix4f
+import org.joml.Vector3f
 import java.lang.Math.toRadians
 import kotlin.math.*
 
+// 1.21 VertexConsumer: positions use org.joml matrices, normals take the MatrixStack.Entry directly,
+// and vertices auto-advance (the old `.next()` terminator was removed). These helpers operate on a
+// captured MatrixStack.Entry because the render-command-queue hands renderers an entry, not a stack.
+
 fun VertexConsumer.circle(
-    matrices: MatrixStack,
-    center: Vec3f,
+    entry: MatrixStack.Entry,
+    center: Vector3f,
     radius: Float,
     light: Int,
     overlay: Int,
     arc: IntRange = 0..360,
     resolution: Double = 15.0
 ) {
-    val matrix: MatrixStack.Entry = matrices.peek()
-    val normal: Matrix3f = matrix.normal
-    val model: Matrix4f = matrix.model
+    val model: Matrix4f = entry.positionMatrix
 
     var theta: Double = arc.first + resolution
     while (theta < arc.last) {
         theta -= resolution
         // Anchor quad to center
         vertex(model, center.x, center.y, center.z)
-        color(1f, 1f, 1f, 1f)
-        texture(0f, 1f)
-        overlay(overlay)
-        light(light)
-        normal(normal, .5f, .5f, .5f)
-        next()
+            .color(1f, 1f, 1f, 1f)
+            .texture(0f, 1f)
+            .overlay(overlay)
+            .light(light)
+            .normal(entry, .5f, .5f, .5f)
         // Draw quad segments
         repeat(3) {
             vertex(
@@ -40,36 +40,32 @@ fun VertexConsumer.circle(
                 center.y + radius * cos(toRadians(theta).toFloat()),
                 center.z
             )
-            color(1f, 1f, 1f, 1f)
-            texture(0f, 1f)
-            overlay(overlay)
-            light(light)
-            normal(normal, .5f, .5f, .5f)
-            next()
+                .color(1f, 1f, 1f, 1f)
+                .texture(0f, 1f)
+                .overlay(overlay)
+                .light(light)
+                .normal(entry, .5f, .5f, .5f)
             theta += resolution
         }
     }
 }
 
-fun VertexConsumer.square(matrices: MatrixStack, position: Vec3f, length: Float, light: Int, overlay: Int) {
+fun VertexConsumer.square(entry: MatrixStack.Entry, position: Vector3f, length: Float, light: Int, overlay: Int) {
     val offSets: List<Pair<Float, Float>> = listOf(0f to 0f, 1f to 0f, 1f to 1f, 0f to 1f).reversed()
     offSets.forEach { (offsetX, offsetY) ->
-        val matrix: MatrixStack.Entry = matrices.peek()
-        val normal: Matrix3f = matrix.normal
-        val model: Matrix4f = matrix.model
+        val model: Matrix4f = entry.positionMatrix
         vertex(model, position.x + offsetX * length, position.y + offsetY * length, position.z)
-        color(1f, 1f, 1f, 1f)
-        texture(offsetX, offsetY)
-        overlay(overlay)
-        light(light)
-        normal(normal, 1f, 1f, 1f)
-        next()
+            .color(1f, 1f, 1f, 1f)
+            .texture(offsetX, offsetY)
+            .overlay(overlay)
+            .light(light)
+            .normal(entry, 1f, 1f, 1f)
     }
 }
 
 fun VertexConsumer.rectangle(
-    matrices: MatrixStack,
-    position: Vec3f,
+    entry: MatrixStack.Entry,
+    position: Vector3f,
     width: Float,
     height: Float,
     light: Int,
@@ -77,62 +73,53 @@ fun VertexConsumer.rectangle(
 ) {
     val offSets: List<Pair<Float, Float>> = listOf(0f to 0f, 1f to 0f, 1f to 1f, 0f to 1f).reversed()
     offSets.forEach { (offsetX, offsetY) ->
-        val matrix: MatrixStack.Entry = matrices.peek()
-        val normal: Matrix3f = matrix.normal
-        val model: Matrix4f = matrix.model
+        val model: Matrix4f = entry.positionMatrix
         vertex(model, position.x + offsetX * width, position.y + offsetY * height, position.z)
-        color(1f, 1f, 1f, 1f)
-        texture(offsetX, offsetY)
-        overlay(overlay)
-        light(light)
-        normal(normal, .5f, .5f, .5f)
-        next()
+            .color(1f, 1f, 1f, 1f)
+            .texture(offsetX, offsetY)
+            .overlay(overlay)
+            .light(light)
+            .normal(entry, .5f, .5f, .5f)
     }
 }
 
 fun VertexConsumer.line(
-    matrices: MatrixStack,
-    u: Vec3f,
-    v: Vec3f,
+    entry: MatrixStack.Entry,
+    u: Vector3f,
+    v: Vector3f,
     thickness: Float,
     light: Int,
     overlay: Int
 ) {
-    val max: Vec3f = maxOf(u, v)
-    val min: Vec3f = minOf(u, v)
+    val max: Vector3f = maxOf(u, v)
+    val min: Vector3f = minOf(u, v)
     val theta: Float = atan2(u.y - v.y, u.x - v.x)
     val halfThickness: Float = thickness / 2
     val lengthX: Float = u.x - v.x
     val lengthY: Float = u.y - v.y
     val length: Float = sqrt(lengthX.pow(2) + lengthY.pow(2)) + thickness
 
-    val start: Vec3f = if (theta > 0f) min else max
-    val vertices: List<Vec3f> = listOf(
-        start.copy().apply { add(0f, -halfThickness, 0f) },
-        start.copy().apply { add(0f, halfThickness, 0f) },
-        start.copy().apply { add(length - thickness, +halfThickness, 0f) },
-        start.copy().apply { add(length - thickness, -halfThickness, 0f) },
+    val start: Vector3f = if (theta > 0f) min else max
+    val vertices: List<Vector3f> = listOf(
+        Vector3f(start).add(0f, -halfThickness, 0f),
+        Vector3f(start).add(0f, halfThickness, 0f),
+        Vector3f(start).add(length - thickness, +halfThickness, 0f),
+        Vector3f(start).add(length - thickness, -halfThickness, 0f),
     ).map { corner ->
         val tempX: Float = corner.x - start.x
         val tempY: Float = corner.y - start.y
         val rotatedX: Float = tempX * cos(theta) - tempY * sin(theta)
         val rotatedY: Float = tempX * sin(theta) + tempY * cos(theta)
-        Vec3f(rotatedX + start.x, rotatedY + start.y, start.z)
+        Vector3f(rotatedX + start.x, rotatedY + start.y, start.z)
     }
 
     vertices.forEach { position ->
-        val matrix: MatrixStack.Entry = matrices.peek()
-        val normal: Matrix3f = matrix.normal
-        val model: Matrix4f = matrix.model
+        val model: Matrix4f = entry.positionMatrix
         vertex(model, position.x, position.y, position.z)
-        color(1f, 1f, 1f, 1f)
-        texture(0f, 1f)
-        overlay(overlay)
-        light(light)
-        normal(normal, .5f, .5f, .5f)
-        next()
+            .color(1f, 1f, 1f, 1f)
+            .texture(0f, 1f)
+            .overlay(overlay)
+            .light(light)
+            .normal(entry, .5f, .5f, .5f)
     }
 }
-
-
-

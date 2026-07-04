@@ -29,7 +29,7 @@ inline fun <N : Any, reified E : Any> ValueGraph<N, E>.edgeValues(): List<E> =
 /***
  * Adds a [nodeList] to a existing graph with the given [adjacencyMatrix]
  */
-fun <N, E> MutableValueGraph<N, E>.add(nodeList: List<N>, adjacencyMatrix: List<List<E?>>): MutableValueGraph<N, E> =
+fun <N : Any, E : Any> MutableValueGraph<N, E>.add(nodeList: List<N>, adjacencyMatrix: List<List<E?>>): MutableValueGraph<N, E> =
     this.apply {
         nodeList.forEach { this.addNode(it) }
         adjacencyMatrix.forEachIndexed { thisIndex, edges ->
@@ -41,6 +41,6 @@ fun <N, E> MutableValueGraph<N, E>.add(nodeList: List<N>, adjacencyMatrix: List<
         }
     }
 
-fun <N, E> mutableValueGraph(): MutableValueGraph<N, E> = ValueGraphBuilder
+fun <N : Any, E : Any> mutableValueGraph(): MutableValueGraph<N, E> = ValueGraphBuilder
     .undirected()
     .build()

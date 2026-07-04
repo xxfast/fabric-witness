@@ -3,6 +3,7 @@
 package com.xfastgames.witness.items.data
 
 import com.google.common.graph.*
+import com.xfastgames.witness.utils.getIntListTolerant
 import com.xfastgames.witness.utils.guava.add
 import com.xfastgames.witness.utils.guava.adjacencyMatrix
 import net.minecraft.nbt.NbtCompound
@@ -15,21 +16,21 @@ private const val KEY_NODES = "nodes"
 private const val KEY_FILL = "fill"
 
 fun NbtCompound.getValueGraph(key: String): ValueGraph<Node, Edge> =
-    getCompound(key).let { tag ->
+    getCompoundOrEmpty(key).let { tag ->
         ValueGraphBuilder
             .undirected()
             .build<Node, Edge>()
             .apply {
                 if (tag.isEmpty) return@apply
 
-                val nodes: List<Node> = tag.getList(KEY_NODES, 10)
+                val nodes: List<Node> = tag.getListOrEmpty(KEY_NODES)
                     .filterIsInstance<NbtCompound>()
                     .map { it.getNode() }
 
                 if (nodes.isEmpty()) return@apply
 
                 val adjacencyMatrix =
-                    tag.getIntArray(KEY_EDGES)
+                    tag.getIntListTolerant(KEY_EDGES)
                         .map { index -> Modifier.values()[index] }
                         .map { modifier -> if (modifier == Modifier.NONE) null else modifier }
                         .chunked(nodes.size)
@@ -57,21 +58,21 @@ fun NbtCompound.putValueGraph(key: String, graph: ValueGraph<Node, Edge>) {
 
 @Suppress("UnstableApiUsage")
 fun NbtCompound.getGraph(key: String): Graph<Node> =
-    getCompound(key).let { tag ->
+    getCompoundOrEmpty(key).let { tag ->
         GraphBuilder
             .undirected()
             .build<Node>()
             .apply {
                 if (tag.isEmpty) return@apply
 
-                val nodes: List<Node> = tag.getList(KEY_NODES, 10)
+                val nodes: List<Node> = tag.getListOrEmpty(KEY_NODES)
                     .filterIsInstance<NbtCompound>()
                     .map { it.getNode() }
 
                 if (nodes.isEmpty()) return@apply
 
                 val adjacencyMatrix: List<List<Boolean>> =
-                    tag.getIntArray(KEY_FILL)
+                    tag.getIntListTolerant(KEY_FILL)
                         .map { value -> value != 0 }
                         .chunked(nodes.size)
 
@@ -87,7 +88,7 @@ fun NbtCompound.putGraph(key: String, graph: Graph<Node>) {
                 add(NbtCompound().apply { putNode(node) })
             }
         })
-        put(KEY_FILL, NbtIntArray(graph.adjacencyMatrix.flatten().map { value -> if (value) 1 else 0 }))
+        put(KEY_FILL, NbtIntArray(graph.adjacencyMatrix.flatten().map { value -> if (value) 1 else 0 }.toIntArray()))
     })
 }
 

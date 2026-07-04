@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "group": "stained_stone_slab",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": "witness:yellow_stained_stone"
+  },
+  "result": {
+    "id": "witness:yellow_stained_stone_slabs",
+    "count": 6
+  }
+}
