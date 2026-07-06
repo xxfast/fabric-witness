@@ -49,7 +49,7 @@ under `components` — the NBT readers tolerate dynamic-ops numeric types for th
   (`IronPuzzleFrameBlock`) → rendered live by `PuzzleFrameBlockRenderer`.
 - Solving: clicking a frame opens `screens/solver/PuzzleSolverScreen` (a full-screen overlay, not a
   ScreenHandler screen) which raycasts back at the physical panel, traces the line on the graph, and
-  validates via `PuzzleSolverDomain`; success powers the frame like redstone.
+  validates via `PuzzleSolverDomain`.
 - Composing: `PuzzleComposerBlock` opens a LibGui `SyncedGuiDescription`
   (`screens/composer/`, `WPuzzleEditor` widget) with slot changes synced C2S via
   `SynchronizePuzzleSlotPayload` (typed `CustomPayload`).
