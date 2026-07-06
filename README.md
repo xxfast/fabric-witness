@@ -18,12 +18,17 @@ This is also a companion mod for The Witness Minecraft [youtube](https://www.you
 - Head over to [releases](https://github.com/xxfast/fabric-witness/releases) and download the jar in the assets
 - Load it up with [fabric mod loader](https://fabricmc.net/)
 
+## Requirements
+This build targets **Minecraft 1.21.11** (Java 21). 
+
+For the details of the migration from 1.17.1, see [`MIGRATION.md`](MIGRATION.md).
+
 Make sure to also load in these dependencies
 
 1. [fabric-api](https://www.curseforge.com/minecraft/mc-mods/fabric-api)
 2. [fabric-language-kotlin](https://www.curseforge.com/minecraft/mc-mods/fabric-language-kotlin)
-3. [lib-gui](https://github.com/CottonMC/LibGui)
-4. [nbt-crafting](https://www.curseforge.com/minecraft/mc-mods/nbt-crafting)
+3. [LibGui](https://github.com/CottonMC/LibGui) 
+4. [ModMenu](https://www.curseforge.com/minecraft/mc-mods/modmenu)
 
 ## Releasing
 
