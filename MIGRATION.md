@@ -5,19 +5,19 @@ what changed by area, the judgment calls made, and what is known to be broken or
 
 ## Toolchain
 
-| Dependency | Before | After |
-|---|---|---|
-| Minecraft | 1.17.1 | 1.21.11 |
-| Yarn mappings | 1.17.1+build.37 | 1.21.11+build.6 |
-| Fabric Loader | 0.11.6 | 0.19.3 |
-| Fabric API | 0.37.2+1.17 | 0.141.4+1.21.11 |
-| Fabric Loom | 0.8-SNAPSHOT | 1.17.13 |
-| Kotlin / FLK | 1.5.21 / 1.6.3 | 2.4.0 / 1.13.12 |
-| LibGui | 4.1.6 | 15.1.0 |
-| ModMenu | 2.0.4 | 17.0.0 |
-| nbtcrafting | 2.0.20 | **removed** (project archived 2024, no successor) |
-| Gradle | 7.0.2 | 9.6.1 |
-| Java | 16 | 21 (pinned via `org.gradle.java.home` in `gradle.properties`) |
+| Dependency    | Before          | After                                                         |
+|---------------|-----------------|---------------------------------------------------------------|
+| Minecraft     | 1.17.1          | 1.21.11                                                       |
+| Yarn mappings | 1.17.1+build.37 | 1.21.11+build.6                                               |
+| Fabric Loader | 0.11.6          | 0.19.3                                                        |
+| Fabric API    | 0.37.2+1.17     | 0.141.4+1.21.11                                               |
+| Fabric Loom   | 0.8-SNAPSHOT    | 1.17.13                                                       |
+| Kotlin / FLK  | 1.5.21 / 1.6.3  | 2.4.0 / 1.13.12                                               |
+| LibGui        | 4.1.6           | 15.1.0                                                        |
+| ModMenu       | 2.0.4           | 17.0.0                                                        |
+| nbtcrafting   | 2.0.20          | **removed** (project archived 2024, no successor)             |
+| Gradle        | 7.0.2           | 9.6.1                                                         |
+| Java          | 16              | 21 (pinned via `org.gradle.java.home` in `gradle.properties`) |
 
 Notes:
 - Plugin versions are inlined in `build.gradle.kts`'s `plugins {}` block (Gradle 9 cannot read
