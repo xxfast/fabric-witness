@@ -70,7 +70,7 @@ the traversal itself.
 
 Partially modelled. `Modifier.END` exists on `Node` (`items/data/Edge.kt`), is placed in the
 composer (`PuzzleComposerScreen.kt`, `WPuzzleEditor.kt`) and rendered as a nub
-(`PuzzlePanelRenderer.kt`). `PuzzleSolverDomain` traces a line live and stops advancing once the
+(`PuzzlePanelRenderer.kt`). `PuzzleSolver` traces a line live and stops advancing once the
 current node is `Modifier.END` with no active segment (`buildLine()`), so reaching an end point
 correctly halts the drawn line.
 

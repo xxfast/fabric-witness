@@ -57,7 +57,7 @@ Deliberately **excludes item 2** (pre-1.20.5 save compat) — a `GOALS.md` non-g
 Read the codebase against `GOALS.md` and record what serves the north star, what's half-built, and
 what's dead weight. Seed findings (from the initial pass — verify each before acting):
 
-- **The solver validates no rules.** `PuzzleSolverDomain` is effectively a stub (`startTracingLine`
+- **The solver validates no rules.** `PuzzleSolver` is effectively a stub (`startTracingLine`
   adds the start node; `introduceWaypoint` is empty; success = line reached an `END` node). This is
   the central gap between the mod today and `GOALS.md`. Phase 1 is its remedy — flag, don't patch
   ad-hoc here.

@@ -95,7 +95,7 @@ reach `i ∈ {0, 1}`, since there is nothing to cancel the negative layer wherev
 
 Not modelled. `Modifier` in `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt` is
 `{ NONE, NORMAL, BREAK, DOT, START, END, HIDDEN }`: no polyomino or antipolyomino concept exists on
-edges, nodes, or as a region/cell clue. `PuzzleSolverDomain.kt`'s solving logic has no region,
+edges, nodes, or as a region/cell clue. `PuzzleSolver.kt`'s solving logic has no region,
 polyomino, or shape-packing logic at all; it only validates line-drawing constraints from the
 modifiers above. Region-based symbols (squares, stars, polyominoes, negative polyominoes) would
 need a new data model layer before any of this rule could be implemented.

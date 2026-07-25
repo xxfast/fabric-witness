@@ -71,7 +71,7 @@ start/end pair is just the transform applied to the first pair's `Node`s; it doe
 authoring if the transform and the primary graph are known.
 
 Algorithm sketch, keyed off the existing single-line tracer in
-`PuzzleSolverDomain.kt` (`chooseSegment`/`traceLimit`/`intersectionParameter`):
+`PuzzleSolver.kt` (`chooseSegment`/`traceLimit`/`intersectionParameter`):
 
 1. On every candidate move of the primary line, compute the corresponding candidate move of the
    mirrored line by applying the transform to the primary's current node and target node.
@@ -90,7 +90,7 @@ Algorithm sketch, keyed off the existing single-line tracer in
 
 Not modelled. `Modifier` (`src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt`) has no
 symmetry-related case (`NONE, NORMAL, BREAK, DOT, START, END, HIDDEN`), `Panel` has no second
-start/end or transform field, and `PuzzleSolverDomain.kt` traces exactly one line: `path` is a
+start/end or transform field, and `PuzzleSolver.kt` traces exactly one line: `path` is a
 single `MutableList<Node>`, and `chooseSegment`/`traceLimit` only check the traced line against
 itself, never against a second line. Adding this rule means extending `Panel`'s data model with an
 optional symmetry transform and running the tracer twice per move as sketched above.
@@ -102,4 +102,4 @@ optional symmetry transform and running the tracer twice per move as sketched ab
 - [02 - Symmetry, GameFAQs Walkthrough](https://gamefaqs.gamespot.com/pc/969704-the-witness/faqs/82392/02-symmetry)
 - [Symmetry Puzzle Solutions Guide, Gosunoob](https://www.gosunoob.com/witness/symmetry-puzzle-solutions-guide/)
 - [Sigma Randomizer, The Witness Speedrunning wiki](https://thewitness.miraheze.org/wiki/Sigma_Randomizer) (custom symmetry types: translational, flipped-translational, diagonal, 90° rotational, as additions on top of vanilla's two mirror types)
-- `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt`, `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolverDomain.kt` (in-repo, confirms current single-line-only implementation)
+- `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt`, `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt` (in-repo, confirms current single-line-only implementation)

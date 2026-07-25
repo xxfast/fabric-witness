@@ -47,7 +47,7 @@ validated per cell against their own four edges, ignoring the region partition e
 
 ## Where the mod actually stands
 
-`PuzzleSolverDomain` implements live line tracing only: segment selection, geometric
+`PuzzleSolver` implements live line tracing only: segment selection, geometric
 self-collision prevention, backtracking. There is no region flood-fill and no symbol validation
 anywhere in `src/main`. `SolutionAccepted` / `SolutionRejected` exist in `PuzzleSolverViewModels`
 but nothing transitions into them.

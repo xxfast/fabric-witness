@@ -57,9 +57,9 @@ Modelled. `Modifier.START` in `src/main/kotlin/com/xfastgames/witness/items/data
 
 - `PuzzleSolverScreen` (around the click handler) scans `puzzlePanel.graph.nodes()` for any node
   with `modifier == Modifier.START` under the cursor and calls
-  `PuzzleSolverDomain.startTracingLine(panel, start)` to begin the trace, so multiple start points
+  `PuzzleSolver.startTracingLine(panel, start)` to begin the trace, so multiple start points
   per panel are already supported: any of them can be clicked to start.
-- `PuzzleSolverDomain` treats the chosen start like any other node once tracing begins; it doesn't
+- `PuzzleSolver` treats the chosen start like any other node once tracing begins; it doesn't
   special-case `START` beyond the initial pickup (`startTracingLine` only checks the node exists in
   the graph).
 - The composer (`PuzzleComposerScreen`, `WPuzzleEditor`) lets an author cycle a node's modifier to

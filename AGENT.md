@@ -75,7 +75,7 @@ rule, indexed by `rules/README.md`. Check it before touching puzzle logic.
   (`IronPuzzleFrameBlock`) → rendered live by `PuzzleFrameBlockRenderer`.
 - Solving: clicking a frame opens `screens/solver/PuzzleSolverScreen` (a full-screen overlay, not a
   ScreenHandler screen) which raycasts back at the physical panel and traces the line on the graph
-  via `PuzzleSolverDomain` (tracing only, no solution validation yet).
+  via `PuzzleSolver` (tracing only, no solution validation yet).
 - Composing: `PuzzleComposerBlock` opens a LibGui `SyncedGuiDescription`
   (`screens/composer/`, `WPuzzleEditor` widget) with slot changes synced C2S via
   `SynchronizePuzzleSlotPayload` (typed `CustomPayload`).

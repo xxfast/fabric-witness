@@ -84,7 +84,7 @@ To validate computationally:
 Not modelled. `Modifier` in `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt` is
 `{ NONE, NORMAL, BREAK, DOT, START, END, HIDDEN }`, applied to nodes/edges only; there is no
 per-cell region-symbol type at all, so stars (and their color) have no representation yet.
-`PuzzleSolverDomain.kt` only traces the drawn line (`startTracingLine`, segment/intersection
+`PuzzleSolver.kt` only traces the drawn line (`startTracingLine`, segment/intersection
 checks) and never computes regions or evaluates any region-symbol rule.
 
 ## Sources

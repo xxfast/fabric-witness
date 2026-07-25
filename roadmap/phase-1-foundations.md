@@ -19,6 +19,6 @@ grid-only.
   "partial" continuous-line row in the fidelity table), **broken edges** (`BREAK`), and
   **hexagon dots** (`DOT`, line must pass over) — first real fidelity wins, and they exercise the
   framework without waiting on the region solver.
-- [ ] Wire real validation into `PuzzleSolverDomain` (replace "reached END" with "solution valid").
+- [ ] Wire real validation into `PuzzleSolver` (replace "reached END" with "solution valid").
 - [ ] Solver "feel" pass: fix the `PuzzleSolverScreen` tracing/transform TODOs so the line snaps and
   reads like the source game (Pillar 1).

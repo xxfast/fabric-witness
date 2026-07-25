@@ -111,8 +111,8 @@ predicate:
 
 Not modelled. `Modifier` in `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt` is
 `{ NONE, NORMAL, BREAK, DOT, START, END, HIDDEN }`, an edge-state enum with no eliminator/eraser
-value, and no cell-level "region symbol" concept exists yet. `PuzzleSolverDomain` in
-`src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolverDomain.kt` only implements line
+value, and no cell-level "region symbol" concept exists yet. `PuzzleSolver` in
+`src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt` only implements line
 tracing (`startTracingLine`/`move`/`buildLine`, geometric segment/collision logic) and has no region
 partitioning or symbol-validation step at all, so there is nothing yet to hang eliminator logic off
 of. Region validation (colors, stars, polyominoes, triangles) and eliminators would need to land

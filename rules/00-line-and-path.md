@@ -71,7 +71,7 @@ predecessor and one successor per node.
 Validating "is this a legal path so far": each new node added to the path must (a) be adjacent to
 the current path tip in the panel graph, (b) be connected by an edge that isn't `BREAK`/missing,
 and (c) not already appear in the path. This mod enforces (c) proactively during tracing rather
-than rejecting after the fact: `PuzzleSolverDomain.traceLimit` treats each candidate segment as a
+than rejecting after the fact: `PuzzleSolver.traceLimit` treats each candidate segment as a
 ray against every already-traced segment (`intersectionParameter`, a standard segment-intersection
 test via 2D cross products) and clamps how far the cursor can travel down that edge before it
 would cross or touch the existing line, so self-intersection is geometrically impossible to draw
@@ -92,7 +92,7 @@ Partially modelled. The graph types live in
 and `Node.kt`/`Graph.kt`/`Panel.kt` (`Panel.Grid`, `Panel.Tree`, `Panel.Freeform` variants, all
 backed by a Guava `ValueGraph<Node, Edge>`).
 
-`src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolverDomain.kt` implements live line
+`src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt` implements live line
 tracing: starting from a `START` node, extending along edges toward the movement direction
 (`chooseSegment`, edge alignment scoring), self-collision prevention during drawing
 (`traceLimit`/`intersectionParameter`), and backtracking (`arriveAt`). It stops there: there is no
@@ -107,4 +107,4 @@ not yet started; no region/symbol validator was found anywhere in `src/main`).
 - [SerGreen/TheWitnessPuzzles, Puzzle Rules Guide](https://github.com/SerGreen/TheWitnessPuzzles/blob/master/Puzzle%20Rules%20Guide/RulesGuide.md), "Lines may not cross." / "Lines will split panel into areas. Each area is isolated from other areas."
 - [Abel, Bosboom, Demaine et al., "Who witnesses The Witness? Finding witnesses in The Witness is hard and sometimes impossible" (FUN 2018)](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.FUN.2018.3), formal statement: "the goal is to draw a [simple] path in a rectangular grid graph from a start vertex to a destination vertex"; clue types and complexity results.
 - `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt`, `Node.kt`, `Graph.kt`, `Panel.kt`, this mod's data model.
-- `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolverDomain.kt`, `PuzzleSolverViewModels.kt`, this mod's solving/tracing logic.
+- `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt`, `PuzzleSolverViewModels.kt`, this mod's solving/tracing logic.

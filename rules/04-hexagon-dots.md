@@ -79,7 +79,7 @@ widget (`WPuzzleEditor.kt`) treats `Modifier.DOT` as a non-interactive modifier 
 state. The panel renderer (`PuzzlePanelRenderer.kt`) has an explicit `Modifier.DOT -> {}` branch
 for edges that draws nothing, and node rendering (`renderNode`) has no case for a `DOT` node
 modifier either, so a hexagon is not currently visually distinguished from a plain connector node.
-`PuzzleSolverDomain.kt` only implements the *drawing* mechanics (tracing the line, waypoint
+`PuzzleSolver.kt` only implements the *drawing* mechanics (tracing the line, waypoint
 snapping, collision with the line itself); it has no win-condition validation at all, so hexagons
 (colored or otherwise) are not checked against the solved path. Colored hexagons are entirely
 unmodelled, there's no per-node/edge color field and no second (mirrored) line to check them
@@ -93,5 +93,5 @@ against.
 - [Abel, Bosboom, Coulombe, Demaine et al., "Who witnesses The Witness?"](https://erikdemaine.org/papers/Witness_FUN2018/paper.pdf) (abstract/summary via search; confirms hexagons are formally a "forced edge"-style clue sufficient on their own for NP-hardness)
 - `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt`, `Node.kt`, `Panel.kt`
 - `src/main/kotlin/com/xfastgames/witness/items/renderer/PuzzlePanelRenderer.kt`
-- `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolverDomain.kt`
+- `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt`
 - `src/main/kotlin/com/xfastgames/witness/screens/widgets/WPuzzleEditor.kt`

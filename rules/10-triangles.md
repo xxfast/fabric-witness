@@ -82,8 +82,8 @@ flood-fill or union-find over cells is needed, just an edge-membership count per
 
 Not modelled. `Modifier` (`src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt`) only has
 `NONE, NORMAL, BREAK, DOT, START, END, HIDDEN`, no per-cell triangle annotation exists in the data
-model, and `PuzzleSolverDomain`
-(`src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolverDomain.kt`) only traces the
+model, and `PuzzleSolver`
+(`src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt`) only traces the
 line (movement, self-intersection, backtracking); it does not evaluate any region symbol, triangle
 included.
 

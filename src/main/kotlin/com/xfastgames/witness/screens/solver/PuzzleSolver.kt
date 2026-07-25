@@ -15,7 +15,7 @@ import kotlin.math.sqrt
 @Suppress("UnstableApiUsage")
 @FlowPreview
 @OptIn(ExperimentalCoroutinesApi::class)
-class PuzzleSolverDomain {
+class PuzzleSolver {
     private data class ActiveSegment(
         val target: Node,
         var progress: Float,

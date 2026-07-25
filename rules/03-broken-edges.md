@@ -85,7 +85,7 @@ through the panel graph, the composer editor, and rendering:
 - `WPuzzleEditor.drawBrokenLine` and `PuzzlePanelRenderer`'s `` `break`() `` draw the gap visually
   in the composer preview and on the physical panel.
 
-But `PuzzleSolverDomain.chooseSegment`, which decides which edges the player's trace is allowed to
+But `PuzzleSolver.chooseSegment`, which decides which edges the player's trace is allowed to
 extend onto, calls `panel.graph.adjacentNodes(current)` and filters candidates only by movement
 alignment and self-intersection; it never reads the edge's `Modifier` value at all. A `BREAK` edge
 is exactly as traversable as a `NORMAL` one during solving today. So the gap renders correctly but
@@ -101,6 +101,6 @@ solver yet, so the "doesn't close a region" edge case has nothing to plug into e
 - [GameFAQs: Environmental Puzzles](https://gamefaqs.gamespot.com/pc/969704-the-witness/faqs/82392/environmental-puzzles) and [Glass Factory area discussion](https://thewitness.fandom.com/wiki/Glass_Factory) (gaps introduced alongside symmetry lines; "dividers and breaks in the lines... forcing you to consider your path in both directions")
 - [Demaine et al., "Who witnesses The Witness?"](https://erikdemaine.org/papers/Witness_FUN2018/paper.pdf) (formal treatment of Witness-style constraints; consulted for terminology, not directly quotable from the fetched text)
 - This repo: `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt`,
-  `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolverDomain.kt`,
+  `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt`,
   `src/main/kotlin/com/xfastgames/witness/screens/composer/PuzzleComposerScreen.kt`,
   `src/main/kotlin/com/xfastgames/witness/screens/widgets/WPuzzleEditor.kt`

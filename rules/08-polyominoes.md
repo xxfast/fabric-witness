@@ -95,8 +95,8 @@ puzzles need the dancing-links approach.
 
 Not modelled. `Modifier` (`src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt`) only has
 `NONE, NORMAL, BREAK, DOT, START, END, HIDDEN`, no polyomino/region-symbol representation exists
-in the data model at all. `PuzzleSolverDomain`
-(`src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolverDomain.kt`) only implements
+in the data model at all. `PuzzleSolver`
+(`src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt`) only implements
 line-tracing mechanics (building the drawn path from pointer movement); it has no region
 extraction or clue-satisfaction validation of any kind yet, so there is nothing downstream that
 polyomino data could plug into without also adding region/clue validation in general.
@@ -113,5 +113,5 @@ polyomino data could plug into without also adding region/clue validation in gen
   boards for *The Witness*), consistent with the paper's formal "rotatable by any multiple of 90°"
   wording and used only to corroborate, not as a primary source.
 - `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt` and
-  `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolverDomain.kt`, checked directly
+  `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt`, checked directly
   to confirm current implementation status.

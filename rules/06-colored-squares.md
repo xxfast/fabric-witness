@@ -89,7 +89,7 @@ is just "count distinct colors per region."
 Not modelled. `Modifier` in `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt` is
 `{ NONE, NORMAL, BREAK, DOT, START, END, HIDDEN }`, purely a per-node/edge line modifier. `Node`
 (`items/data/Node.kt`) carries only `x`, `y`, and that `modifier`, no concept of a cell or a cell
-color. There is no region-partitioning step anywhere in `PuzzleSolverDomain.kt` either: solving
+color. There is no region-partitioning step anywhere in `PuzzleSolver.kt` either: solving
 today only traces the line and checks line-mechanics modifiers (start/end/break/dot), it never
 cuts the grid into regions or looks at cell contents. Region symbols as a category (this file,
 stars, polyominoes, negative polyominoes, triangles, eliminators) are all unimplemented.

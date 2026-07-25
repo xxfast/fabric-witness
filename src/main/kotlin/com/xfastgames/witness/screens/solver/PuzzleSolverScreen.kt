@@ -67,7 +67,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     private var panelScreenBasis: PanelScreenBasis? = null
     private var pendingCursorWarp: MousePosition? = null
 
-    private val domain = PuzzleSolverDomain()
+    private val solver = PuzzleSolver()
     private val clientInstance: MinecraftClient by lazy { requireNotNull(client) }
     private val mouse: Mouse by lazy { clientInstance.mouse }
 
@@ -93,7 +93,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         fill(context, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
         fill(context, 0, 0, BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
         fill(context, width - BORDER_WIDTH, 0, width, height, 255f, 255f, 255f, borderAlpha)
-        if (!domain.isSolving || DEBUG_SHOW_CURSOR_WHILE_TRACING) {
+        if (!solver.isSolving || DEBUG_SHOW_CURSOR_WHILE_TRACING) {
             circle(context, mouseX, mouseY, cursorShadowSize, 255f, 255f, 255f, .25f)
             circle(context, mouseX, mouseY, BORDER_WIDTH / 2, 255f, 255f, 255f, .9f)
         }
@@ -113,7 +113,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     }
 
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
-        if (!domain.isSolving) return
+        if (!solver.isSolving) return
 
         val blockEntity: PuzzleFrameBlockEntity = startedBlockEntity ?: return
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
@@ -128,9 +128,9 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val panelDelta: Pair<Float, Float> =
             basis.toPanelDelta(mouseX - previousMousePosition.x, mouseY - previousMousePosition.y)
                 ?: return
-        val line: Graph<Node> = domain.move(puzzle, panelDelta.first, panelDelta.second) ?: return
+        val line: Graph<Node> = solver.move(puzzle, panelDelta.first, panelDelta.second) ?: return
         updateLine(blockEntity, puzzle, line)
-        domain.tracingTip()?.let { tip -> lockCursorToLineTip(blockEntity, puzzle, tip, mousePosition) }
+        solver.tracingTip()?.let { tip -> lockCursorToLineTip(blockEntity, puzzle, tip, mousePosition) }
     }
 
     override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
@@ -144,7 +144,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         // Right-click cancels an active trace, then closes the solver if already idle.
         if (button == 1) {
-            if (domain.isSolving) {
+            if (solver.isSolving) {
                 stopTracing()
             } else {
                 client.closeScreen()
@@ -169,7 +169,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         overNode?.let {
             panelScreenBasis = calculatePanelScreenBasis(blockEntity, puzzlePanel, overNode)
                 ?: return missClick(player)
-            val line: Graph<Node>? = domain.startTracingLine(puzzlePanel, overNode)
+            val line: Graph<Node>? = solver.startTracingLine(puzzlePanel, overNode)
             if (line == null) return missClick(player)
             updateLine(blockEntity, puzzlePanel, line)
         }
@@ -180,7 +180,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
             startedBlockEntity = blockEntity
             tracingMousePosition = MousePosition(mouseX, mouseY)
-            domain.tracingTip()?.let { tip ->
+            solver.tracingTip()?.let { tip ->
                 lockCursorToLineTip(
                     blockEntity,
                     puzzlePanel,
@@ -202,7 +202,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     }
 
     private fun stopTracing() {
-        domain.stopTrace()
+        solver.stopTrace()
         FOCUS_MODE_DOING_INSTANCE.stop()
         startedBlockEntity = null
         tracingMousePosition = null
