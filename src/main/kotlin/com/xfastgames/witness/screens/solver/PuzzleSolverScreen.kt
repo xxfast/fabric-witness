@@ -1,6 +1,5 @@
 package com.xfastgames.witness.screens.solver
 
-import com.google.common.graph.EndpointPair
 import com.google.common.graph.Graph
 import com.google.common.graph.MutableGraph
 import com.xfastgames.witness.Witness
@@ -48,9 +47,15 @@ import net.minecraft.util.math.*
 import net.minecraft.world.RaycastContext
 import org.joml.Quaternionf
 import org.joml.Vector3f
+import org.lwjgl.glfw.GLFW.GLFW_CURSOR_HIDDEN
+import kotlin.math.hypot
 
 private const val BORDER_WIDTH = 14
 private const val CLICK_PADDING = 0.4f
+private const val CURSOR_STALL_LEASH_RADIUS = BORDER_WIDTH * 3.0
+private const val LINE_PROGRESS_EPSILON = 0.001f
+private const val WAYPOINT_REACHED_EPSILON = 0.01f
+private const val DEBUG_SHOW_CURSOR_WHILE_TRACING = true
 
 @Environment(EnvType.CLIENT)
 @OptIn(FlowPreview::class)
@@ -66,6 +71,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     private val borderAlpha = Interpolator(.0f, .8f) { it.value += .05f }
     private val cursorShadowSize = Interpolator(BORDER_WIDTH * 4, BORDER_WIDTH / 2) { it.value -= 2 }
     private var startedBlockEntity: PuzzleFrameBlockEntity? = null
+    private var tracingCursorAnchor: MousePosition? = null
+    private var lastTracingEnd: Node? = null
 
     private val domain = PuzzleSolverDomain()
     private val clientInstance: MinecraftClient by lazy { requireNotNull(client) }
@@ -79,6 +86,11 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
     override fun shouldPause(): Boolean = false
 
+    override fun renderBackground(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+        // The solver is an in-world focus mode, so keep the panel and its surroundings visible.
+        // Screen's default background blurs and darkens the world in newer Minecraft versions.
+    }
+
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
         borderAlpha.interpolate()
         cursorShadowSize.interpolate()
@@ -88,8 +100,10 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         fill(context, BORDER_WIDTH, height - BORDER_WIDTH, width - BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
         fill(context, 0, 0, BORDER_WIDTH, height, 255f, 255f, 255f, borderAlpha)
         fill(context, width - BORDER_WIDTH, 0, width, height, 255f, 255f, 255f, borderAlpha)
-        circle(context, mouseX, mouseY, cursorShadowSize, 255f, 255f, 255f, .25f)
-        circle(context, mouseX, mouseY, BORDER_WIDTH / 2, 255f, 255f, 255f, .9f)
+        if (!domain.isSolving || DEBUG_SHOW_CURSOR_WHILE_TRACING) {
+            circle(context, mouseX, mouseY, cursorShadowSize, 255f, 255f, 255f, .25f)
+            circle(context, mouseX, mouseY, BORDER_WIDTH / 2, 255f, 255f, 255f, .9f)
+        }
     }
 
     override fun keyPressed(input: KeyInput): Boolean {
@@ -125,8 +139,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val world: ClientWorld = requireNotNull(client?.world)
         val panelHitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
 
-        if (panelHitResult == null) return
-        if (panelHitResult.blockEntity != startedBlockEntity) return
+        if (panelHitResult == null) return restoreTracingCursor()
+        if (panelHitResult.blockEntity != startedBlockEntity) return restoreTracingCursor()
 
         val (clampedClickX, clampedClickY) = panelHitResult.position
 
@@ -136,7 +150,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val overNode: Node? = puzzle.graph.nearestNode(clampedClickX, clampedClickY, lastNode)
         val overEdgeResult: EdgeResult? = puzzle.graph.nearestEdge(clampedClickX, clampedClickY, lastNode)
-        val overEdge: EndpointPair<Node>? = overEdgeResult?.edge
         val updatedLine: MutableGraph<Node> = mutableGraph(previousLine)
 
         // If over an edge and there's an existing end
@@ -152,26 +165,31 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val updatedSolution: List<Node> = Traverser.forGraph(updatedLine).depthFirst(start)
         val updatedEnd: Node? = updatedSolution.firstOrNull { it.modifier == Modifier.END }
 
-        // TODO: Looks like this maybe broken after removing guava traverser,
-        //  but seems to work on standalone builds weirdly enough
         when {
-            // If over an node, and the node is not already part of solution
+            // Advance to a new waypoint and move the live end onto that waypoint.
             overNode != null &&
                     updatedEnd != null &&
                     overNode !in updatedLine.nodes() &&
-                    distance(updatedEnd, overNode) <= .2 &&
+                    distance(updatedEnd, overNode) <= WAYPOINT_REACHED_EPSILON &&
                     puzzle.graph.hasEdgeConnecting(lastNode, overNode) -> {
+                updatedLine.removeNode(updatedEnd)
                 updatedLine.addNode(overNode)
                 updatedLine.putEdge(overNode, lastNode)
+                val snappedEnd = Node(overNode.x, overNode.y, Modifier.END)
+                updatedLine.addNode(snappedEnd)
+                updatedLine.putEdge(snappedEnd, overNode)
             }
 
-            // If over an node, and the node is already part of solution
-            overNode != null &&
-                    overNode in updatedLine.nodes() &&
-                    overNode != lastNode &&
-                    overNode.modifier != Modifier.START -> {
-                updatedLine.removeNode(overNode)
+            // Retract one waypoint only after the live end reaches the preceding waypoint.
+            nodeBeforeLastNode != null &&
+                    updatedEnd != null &&
+                    overNode == nodeBeforeLastNode &&
+                    distance(updatedEnd, nodeBeforeLastNode) <= WAYPOINT_REACHED_EPSILON -> {
                 updatedLine.removeNode(lastNode)
+                updatedLine.removeNode(updatedEnd)
+                val snappedEnd = Node(nodeBeforeLastNode.x, nodeBeforeLastNode.y, Modifier.END)
+                updatedLine.addNode(snappedEnd)
+                updatedLine.putEdge(snappedEnd, nodeBeforeLastNode)
             }
         }
 
@@ -187,6 +205,16 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         nodesThatAreNotInSolution.forEach { node -> updatedLine.removeNode(node) }
 
         updateLine(blockEntity, puzzle, updatedLine)
+        val tracingEnd: Node? = updatedLine.nodes().firstOrNull { it.modifier == Modifier.END }
+        val previousTracingEnd: Node? = lastTracingEnd
+        if (tracingEnd != null &&
+            (previousTracingEnd == null || distance(previousTracingEnd, tracingEnd) > LINE_PROGRESS_EPSILON)
+        ) {
+            lastTracingEnd = tracingEnd
+            tracingCursorAnchor = MousePosition(mouseX, mouseY)
+        } else {
+            leashCursorToAnchor(mouseX, mouseY)
+        }
     }
 
     // TODO: Refactor this mess to a domain with a finite state
@@ -199,9 +227,13 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val mouseY: Double = click.y()
         val button: Int = click.button()
 
-        // If left button, close the screen
+        // Right-click cancels an active trace, then closes the solver if already idle.
         if (button == 1) {
-            client.closeScreen()
+            if (domain.isSolving) {
+                stopTracing()
+            } else {
+                client.closeScreen()
+            }
             return true
         }
 
@@ -229,6 +261,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             FOCUS_MODE_DOING_INSTANCE.stop()
             client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
             startedBlockEntity = blockEntity
+            lastTracingEnd = overNode
+            tracingCursorAnchor = MousePosition(mouseX, mouseY)
         } else missClick(player)
 
         return false
@@ -237,10 +271,43 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     override fun removed() {
         client?.options?.hudHidden = false
         client?.player?.playSound(WitnessSounds.FOCUS_MODE_EXIT, 0.5f, 1f)
-        domain.stopTrace()
-        FOCUS_MODE_DOING_INSTANCE.stop()
+        stopTracing()
         client?.mouse?.unlockCursor()
         super.removed()
+    }
+
+    private fun stopTracing() {
+        domain.stopTrace()
+        FOCUS_MODE_DOING_INSTANCE.stop()
+        startedBlockEntity = null
+        tracingCursorAnchor = null
+        lastTracingEnd = null
+    }
+
+    private fun leashCursorToAnchor(mouseX: Double, mouseY: Double) {
+        val anchor: MousePosition = tracingCursorAnchor ?: return
+        val deltaX: Double = mouseX - anchor.x
+        val deltaY: Double = mouseY - anchor.y
+        val distance: Double = hypot(deltaX, deltaY)
+        if (distance <= CURSOR_STALL_LEASH_RADIUS) return
+        val leashScale: Double = CURSOR_STALL_LEASH_RADIUS / distance
+        setTracingCursorPosition(
+            anchor.x + deltaX * leashScale,
+            anchor.y + deltaY * leashScale
+        )
+    }
+
+    private fun restoreTracingCursor() {
+        tracingCursorAnchor?.let { position -> setTracingCursorPosition(position.x, position.y) }
+    }
+
+    private fun setTracingCursorPosition(x: Double, y: Double) {
+        val window = clientInstance.window
+        mouse.setPosition(
+            x * window.width / window.scaledWidth,
+            y * window.height / window.scaledHeight,
+            GLFW_CURSOR_HIDDEN
+        )
     }
 
     private fun rayCastAtPanel(

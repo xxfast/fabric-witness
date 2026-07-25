@@ -155,5 +155,18 @@ class GraphTests {
             val expect = EdgeResult(.0f, .5f, EndpointPair.unordered(topRight, bottomRight))
             assertThat(actual).isEqualTo(expect)
         }
+
+        @Test
+        fun `Nearest edge is incident to the current node`() {
+            val actual: EdgeResult? = testGraph.nearestEdge(.9f, 1f, bottomRight)
+            val expect = EdgeResult(0f, 1f, EndpointPair.unordered(bottomRight, topRight))
+            assertThat(actual).isEqualTo(expect)
+        }
+
+        @Test
+        fun `Closest point is clamped to the edge segment`() {
+            val actual: Pair<Float, Float> = getClosest(bottomRight, topRight, Node(0f, 2f))
+            assertThat(actual).isEqualTo(0f to 1f)
+        }
     }
 }

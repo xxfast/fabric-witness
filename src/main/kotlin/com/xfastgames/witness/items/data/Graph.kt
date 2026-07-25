@@ -106,7 +106,10 @@ data class EdgeResult(val x: Float, val y: Float, val edge: EndpointPair<Node>)
 
 fun ValueGraph<Node, Edge>.nearestEdge(x: Float, y: Float, from: Node? = null): EdgeResult? {
     val imaginaryNode = Node(x, y)
-    val nearestEdge: EndpointPair<Node> = edges().minByOrNull { endpointPair ->
+    val candidateEdges: Set<EndpointPair<Node>> =
+        if (from != null && from in nodes()) incidentEdges(from)
+        else edges()
+    val nearestEdge: EndpointPair<Node> = candidateEdges.minByOrNull { endpointPair ->
         val u: Node = endpointPair.nodeU()
         val v: Node = endpointPair.nodeV()
         val sumDistance: Float = distance(u, imaginaryNode) + distance(imaginaryNode, v)
@@ -125,7 +128,6 @@ fun getClosest(a: Node, b: Node, p: Node): Pair<Float, Float> {
     val aToB = b.x - a.x to b.y - a.y
     val aToBSquared = aToB.first.pow(2) + aToB.second.pow(2)
     val aToPDotAtoB = aToP.first * aToB.first + aToP.second * aToB.second
-    val t: Float = aToPDotAtoB / aToBSquared
+    val t: Float = (aToPDotAtoB / aToBSquared).coerceIn(0f, 1f)
     return (a.x + aToB.first * t) to (a.y + aToB.second * t)
 }
-
