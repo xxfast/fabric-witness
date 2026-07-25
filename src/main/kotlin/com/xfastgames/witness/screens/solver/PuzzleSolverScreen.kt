@@ -6,7 +6,6 @@ import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Companion.PUZZLE_FRAME_SCALE
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
-import com.xfastgames.witness.screens.solver.PuzzleSolverScreen.Sounds.FOCUS_MODE_DOING_INSTANCE
 import com.xfastgames.witness.sounds.WitnessSounds
 import com.xfastgames.witness.sounds.LoopingSoundInstance
 import com.xfastgames.witness.utils.*
@@ -54,18 +53,13 @@ private const val PUZZLE_LINE_DEPTH_FROM_BLOCK_CENTER = 0.095
 @Suppress("UnstableApiUsage")
 class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
-    object Sounds {
-        val FOCUS_MODE_DOING_INSTANCE by lazy {
-            LoopingSoundInstance(WitnessSounds.FOCUS_MODE_DOING, SoundCategory.AMBIENT)
-        }
-    }
-
     private val borderAlpha = Interpolator(.0f, .8f) { it.value += .05f }
     private val cursorShadowSize = Interpolator(BORDER_WIDTH * 4, BORDER_WIDTH / 2) { it.value -= 2 }
     private var startedBlockEntity: PuzzleFrameBlockEntity? = null
     private var tracingMousePosition: MousePosition? = null
     private var panelScreenBasis: PanelScreenBasis? = null
     private var pendingCursorWarp: MousePosition? = null
+    private var tracingSound: LoopingSoundInstance? = null
 
     private val solver = PuzzleSolver()
     private val clientInstance: MinecraftClient by lazy { requireNotNull(client) }
@@ -182,8 +176,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         if (overNode != null) {
             player.playSound(WitnessSounds.PANEL_START_TRACING, 1f, 1f)
-            FOCUS_MODE_DOING_INSTANCE.stop()
-            client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
+            startTracingSound()
             startedBlockEntity = blockEntity
             tracingMousePosition = MousePosition(mouseX, mouseY)
             solver.tracingTip()?.let { tip ->
@@ -222,8 +215,15 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         releaseTracing()
     }
 
+    private fun startTracingSound() {
+        tracingSound?.stop()
+        tracingSound = LoopingSoundInstance(WitnessSounds.FOCUS_MODE_DOING, SoundCategory.AMBIENT, .5f)
+            .also { it.play() }
+    }
+
     private fun releaseTracing() {
-        FOCUS_MODE_DOING_INSTANCE.stop()
+        tracingSound?.stop()
+        tracingSound = null
         startedBlockEntity = null
         tracingMousePosition = null
         panelScreenBasis = null
