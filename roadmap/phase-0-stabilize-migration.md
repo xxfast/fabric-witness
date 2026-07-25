@@ -10,7 +10,8 @@ debt from the port. Ends with a clear-eyed read of what in the codebase actually
 Work the **"Still needs in-game verification"** checklist in `MIGRATION.md` first, so we fix what's
 actually broken rather than what we assume is. Run `./gradlew runClient` and confirm each:
 
-- [ ] Panel rendering in frames and the composer (command-queue path: geometry, lighting, z-fighting)
+- [x] Panel rendering in frames 
+- [ ] Panel rendering in the composer (command-queue path: geometry, lighting, z-fighting)
 - [ ] Composer end-to-end: slot-sync payload, dye tinting, editor clicks vs. the 2D preview
 - [ ] Solver: raycasting (JOML rewrite), line tracing, sounds, mouse hide/unlock
 - [ ] All four recipes: grid crafting (component JSON decode), panel dye, panel recycle, stonecutting
