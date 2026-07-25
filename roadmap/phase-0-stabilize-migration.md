@@ -12,7 +12,7 @@ actually broken rather than what we assume is. Run `./gradlew runClient` and con
 
 - [x] Panel rendering in frames 
 - [x] Panel rendering in the composer (command-queue path: geometry, lighting, z-fighting)
-- [ ] Composer end-to-end: slot-sync payload, dye tinting, editor clicks vs. the 2D preview
+- [x] Composer end-to-end: slot-sync payload, dye tinting, editor clicks vs. the 2D preview
 - [ ] Solver: raycasting (JOML rewrite), line tracing, sounds, mouse hide/unlock
 - [ ] All four recipes: grid crafting (component JSON decode and component-preserving upgrades),
   panel dye, panel recycle, stonecutting
