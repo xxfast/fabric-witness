@@ -1,8 +1,6 @@
 package com.xfastgames.witness.screens.solver
 
 import com.google.common.graph.Graph
-import com.google.common.graph.MutableGraph
-import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Companion.PUZZLE_FRAME_SCALE
@@ -13,9 +11,6 @@ import com.xfastgames.witness.sounds.WitnessSounds
 import com.xfastgames.witness.sounds.LoopingSoundInstance
 import com.xfastgames.witness.utils.*
 import com.xfastgames.witness.utils.Interpolator
-import com.xfastgames.witness.utils.guava.Traverser
-import com.xfastgames.witness.utils.guava.hasEdgeConnecting
-import com.xfastgames.witness.utils.guava.mutableGraph
 import kotlinx.coroutines.FlowPreview
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
@@ -37,9 +32,7 @@ import net.minecraft.entity.decoration.ItemFrameEntity
 import net.minecraft.entity.projectile.ProjectileUtil
 import net.minecraft.item.ItemStack
 import net.minecraft.sound.SoundCategory
-import net.minecraft.sound.SoundEvent
 import net.minecraft.state.property.Properties
-import net.minecraft.util.Identifier
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
@@ -51,11 +44,10 @@ import org.lwjgl.glfw.GLFW.GLFW_CURSOR_HIDDEN
 import kotlin.math.hypot
 
 private const val BORDER_WIDTH = 14
-private const val CLICK_PADDING = 0.4f
-private const val CURSOR_STALL_LEASH_RADIUS = BORDER_WIDTH * 3.0
-private const val LINE_PROGRESS_EPSILON = 0.001f
-private const val WAYPOINT_REACHED_EPSILON = 0.01f
-private const val DEBUG_SHOW_CURSOR_WHILE_TRACING = true
+private const val DEBUG_SHOW_CURSOR_WHILE_TRACING = false
+private const val CURSOR_WARP_EPSILON = 1.0
+// PuzzleFrameBlockRenderer (-0.034, -0.05) + PuzzlePanelRenderer line layer (-0.011).
+private const val PUZZLE_LINE_DEPTH_FROM_BLOCK_CENTER = 0.095
 
 @Environment(EnvType.CLIENT)
 @OptIn(FlowPreview::class)
@@ -71,8 +63,9 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     private val borderAlpha = Interpolator(.0f, .8f) { it.value += .05f }
     private val cursorShadowSize = Interpolator(BORDER_WIDTH * 4, BORDER_WIDTH / 2) { it.value -= 2 }
     private var startedBlockEntity: PuzzleFrameBlockEntity? = null
-    private var tracingCursorAnchor: MousePosition? = null
-    private var lastTracingEnd: Node? = null
+    private var tracingMousePosition: MousePosition? = null
+    private var panelScreenBasis: PanelScreenBasis? = null
+    private var pendingCursorWarp: MousePosition? = null
 
     private val domain = PuzzleSolverDomain()
     private val clientInstance: MinecraftClient by lazy { requireNotNull(client) }
@@ -123,101 +116,23 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         if (!domain.isSolving) return
 
         val blockEntity: PuzzleFrameBlockEntity = startedBlockEntity ?: return
-
-        // Only respond if the entity has an panel
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
-        val puzzle: Panel? = puzzleStack.panel
         if (puzzleStack.item !is PuzzlePanelItem) return
-        if (puzzle == null) return
-
-        // Only respond if there is a start
-        val start: Node? = puzzle.line.nodes().firstOrNull { it.modifier == Modifier.START }
-        if (start == null) return
-
-        val previousLine: Graph<Node> = puzzle.line
-
-        val world: ClientWorld = requireNotNull(client?.world)
-        val panelHitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
-
-        if (panelHitResult == null) return restoreTracingCursor()
-        if (panelHitResult.blockEntity != startedBlockEntity) return restoreTracingCursor()
-
-        val (clampedClickX, clampedClickY) = panelHitResult.position
-
-        val line: List<Node> = Traverser.forGraph(previousLine).depthFirst(start).toList()
-        val lastNode: Node = line.last { it.modifier != Modifier.END }
-        val nodeBeforeLastNode: Node? = lastNode.let { line.getOrNull(line.indexOf(lastNode) - 1) }
-
-        val overNode: Node? = puzzle.graph.nearestNode(clampedClickX, clampedClickY, lastNode)
-        val overEdgeResult: EdgeResult? = puzzle.graph.nearestEdge(clampedClickX, clampedClickY, lastNode)
-        val updatedLine: MutableGraph<Node> = mutableGraph(previousLine)
-
-        // If over an edge and there's an existing end
-        if (overEdgeResult != null) {
-            // Remove the previous end
-            val previousEnd: Node? = line.firstOrNull { it.modifier == Modifier.END }
-            previousEnd?.let { end -> updatedLine.removeNode(end) }
-            val newEnd = Node(x = overEdgeResult.x, y = overEdgeResult.y, Modifier.END)
-            updatedLine.addNode(newEnd)
-            updatedLine.putEdge(newEnd, lastNode)
-        }
-
-        val updatedSolution: List<Node> = Traverser.forGraph(updatedLine).depthFirst(start)
-        val updatedEnd: Node? = updatedSolution.firstOrNull { it.modifier == Modifier.END }
-
-        when {
-            // Advance to a new waypoint and move the live end onto that waypoint.
-            overNode != null &&
-                    updatedEnd != null &&
-                    overNode !in updatedLine.nodes() &&
-                    distance(updatedEnd, overNode) <= WAYPOINT_REACHED_EPSILON &&
-                    puzzle.graph.hasEdgeConnecting(lastNode, overNode) -> {
-                updatedLine.removeNode(updatedEnd)
-                updatedLine.addNode(overNode)
-                updatedLine.putEdge(overNode, lastNode)
-                val snappedEnd = Node(overNode.x, overNode.y, Modifier.END)
-                updatedLine.addNode(snappedEnd)
-                updatedLine.putEdge(snappedEnd, overNode)
-            }
-
-            // Retract one waypoint only after the live end reaches the preceding waypoint.
-            nodeBeforeLastNode != null &&
-                    updatedEnd != null &&
-                    overNode == nodeBeforeLastNode &&
-                    distance(updatedEnd, nodeBeforeLastNode) <= WAYPOINT_REACHED_EPSILON -> {
-                updatedLine.removeNode(lastNode)
-                updatedLine.removeNode(updatedEnd)
-                val snappedEnd = Node(nodeBeforeLastNode.x, nodeBeforeLastNode.y, Modifier.END)
-                updatedLine.addNode(snappedEnd)
-                updatedLine.putEdge(snappedEnd, nodeBeforeLastNode)
-            }
-        }
-
-        val solution: List<Node> =
-            if (updatedLine.nodes().contains(start))
-                Traverser.forGraph(updatedLine).depthFirst(start).toList()
-            else emptyList()
-
-        // Remove nodes that are not a part of the main line
-        val nodesThatAreNotInSolution: List<Node> =
-            updatedLine.nodes().filter { node -> node !in solution }
-
-        nodesThatAreNotInSolution.forEach { node -> updatedLine.removeNode(node) }
-
-        updateLine(blockEntity, puzzle, updatedLine)
-        val tracingEnd: Node? = updatedLine.nodes().firstOrNull { it.modifier == Modifier.END }
-        val previousTracingEnd: Node? = lastTracingEnd
-        if (tracingEnd != null &&
-            (previousTracingEnd == null || distance(previousTracingEnd, tracingEnd) > LINE_PROGRESS_EPSILON)
-        ) {
-            lastTracingEnd = tracingEnd
-            tracingCursorAnchor = MousePosition(mouseX, mouseY)
-        } else {
-            leashCursorToAnchor(mouseX, mouseY)
-        }
+        val puzzle: Panel = puzzleStack.panel ?: return
+        val mousePosition = MousePosition(mouseX, mouseY)
+        if (consumePendingCursorWarp(mousePosition)) return
+        val previousMousePosition: MousePosition =
+            tracingMousePosition ?: mousePosition.also { tracingMousePosition = it }
+        tracingMousePosition = mousePosition
+        val basis: PanelScreenBasis = panelScreenBasis ?: return
+        val panelDelta: Pair<Float, Float> =
+            basis.toPanelDelta(mouseX - previousMousePosition.x, mouseY - previousMousePosition.y)
+                ?: return
+        val line: Graph<Node> = domain.move(puzzle, panelDelta.first, panelDelta.second) ?: return
+        updateLine(blockEntity, puzzle, line)
+        domain.tracingTip()?.let { tip -> lockCursorToLineTip(blockEntity, puzzle, tip, mousePosition) }
     }
 
-    // TODO: Refactor this mess to a domain with a finite state
     override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
         val client: MinecraftClient = requireNotNull(client)
         val player: ClientPlayerEntity = requireNotNull(client.player)
@@ -246,11 +161,14 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val thickness = 0.25f
         val overNode: Node? = puzzlePanel.graph.nodes().find { node ->
-            clickX in (node.x - thickness)..(node.x + thickness) &&
+            node.modifier == Modifier.START &&
+                    clickX in (node.x - thickness)..(node.x + thickness) &&
                     clickY in (node.y - thickness)..(node.y + thickness)
         }
 
         overNode?.let {
+            panelScreenBasis = calculatePanelScreenBasis(blockEntity, puzzlePanel, overNode)
+                ?: return missClick(player)
             val line: Graph<Node>? = domain.startTracingLine(puzzlePanel, overNode)
             if (line == null) return missClick(player)
             updateLine(blockEntity, puzzlePanel, line)
@@ -261,8 +179,15 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             FOCUS_MODE_DOING_INSTANCE.stop()
             client.soundManager.play(FOCUS_MODE_DOING_INSTANCE)
             startedBlockEntity = blockEntity
-            lastTracingEnd = overNode
-            tracingCursorAnchor = MousePosition(mouseX, mouseY)
+            tracingMousePosition = MousePosition(mouseX, mouseY)
+            domain.tracingTip()?.let { tip ->
+                lockCursorToLineTip(
+                    blockEntity,
+                    puzzlePanel,
+                    tip,
+                    MousePosition(mouseX, mouseY)
+                )
+            }
         } else missClick(player)
 
         return false
@@ -280,33 +205,113 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         domain.stopTrace()
         FOCUS_MODE_DOING_INSTANCE.stop()
         startedBlockEntity = null
-        tracingCursorAnchor = null
-        lastTracingEnd = null
+        tracingMousePosition = null
+        panelScreenBasis = null
+        pendingCursorWarp = null
     }
 
-    private fun leashCursorToAnchor(mouseX: Double, mouseY: Double) {
-        val anchor: MousePosition = tracingCursorAnchor ?: return
-        val deltaX: Double = mouseX - anchor.x
-        val deltaY: Double = mouseY - anchor.y
-        val distance: Double = hypot(deltaX, deltaY)
-        if (distance <= CURSOR_STALL_LEASH_RADIUS) return
-        val leashScale: Double = CURSOR_STALL_LEASH_RADIUS / distance
-        setTracingCursorPosition(
-            anchor.x + deltaX * leashScale,
-            anchor.y + deltaY * leashScale
+    private fun consumePendingCursorWarp(position: MousePosition): Boolean {
+        val pending: MousePosition = pendingCursorWarp ?: return false
+        pendingCursorWarp = null
+        if (hypot(position.x - pending.x, position.y - pending.y) > CURSOR_WARP_EPSILON) return false
+        tracingMousePosition = position
+        return true
+    }
+
+    private fun lockCursorToLineTip(
+        blockEntity: PuzzleFrameBlockEntity,
+        puzzle: Panel,
+        tip: Node,
+        currentPosition: MousePosition
+    ) {
+        val lineTipPosition: MousePosition =
+            projectPanelPosition(blockEntity, puzzle, tip.x, tip.y) ?: return
+        tracingMousePosition = lineTipPosition
+        if (hypot(
+                currentPosition.x - lineTipPosition.x,
+                currentPosition.y - lineTipPosition.y
+            ) <= CURSOR_WARP_EPSILON
+        ) {
+            pendingCursorWarp = null
+            return
+        }
+
+        pendingCursorWarp = lineTipPosition
+        val window = clientInstance.window
+        mouse.setPosition(
+            lineTipPosition.x * window.width / window.scaledWidth,
+            lineTipPosition.y * window.height / window.scaledHeight,
+            GLFW_CURSOR_HIDDEN
         )
     }
 
-    private fun restoreTracingCursor() {
-        tracingCursorAnchor?.let { position -> setTracingCursorPosition(position.x, position.y) }
+    private data class PanelScreenBasis(
+        val xAxisX: Double,
+        val xAxisY: Double,
+        val yAxisX: Double,
+        val yAxisY: Double
+    ) {
+        fun toPanelDelta(screenX: Double, screenY: Double): Pair<Float, Float>? {
+            val determinant: Double = xAxisX * yAxisY - yAxisX * xAxisY
+            if (!determinant.isFinite() || kotlin.math.abs(determinant) < 0.0001) return null
+            val panelX: Double = (screenX * yAxisY - yAxisX * screenY) / determinant
+            val panelY: Double = (xAxisX * screenY - screenX * xAxisY) / determinant
+            return panelX.toFloat() to panelY.toFloat()
+        }
     }
 
-    private fun setTracingCursorPosition(x: Double, y: Double) {
+    private fun calculatePanelScreenBasis(
+        blockEntity: PuzzleFrameBlockEntity,
+        puzzle: Panel,
+        origin: Node
+    ): PanelScreenBasis? {
+        val screenOrigin: MousePosition = projectPanelPosition(blockEntity, puzzle, origin.x, origin.y) ?: return null
+        val screenX: MousePosition =
+            projectPanelPosition(blockEntity, puzzle, origin.x + 1f, origin.y) ?: return null
+        val screenY: MousePosition =
+            projectPanelPosition(blockEntity, puzzle, origin.x, origin.y + 1f) ?: return null
+        return PanelScreenBasis(
+            xAxisX = screenX.x - screenOrigin.x,
+            xAxisY = screenX.y - screenOrigin.y,
+            yAxisX = screenY.x - screenOrigin.x,
+            yAxisY = screenY.y - screenOrigin.y
+        )
+    }
+
+    private fun projectPanelPosition(
+        blockEntity: PuzzleFrameBlockEntity,
+        puzzle: Panel,
+        panelX: Float,
+        panelY: Float
+    ): MousePosition? {
+        val scale: Int = maxOf(puzzle.width, puzzle.height)
+        val blockX: Double = 0.5 + PUZZLE_FRAME_SCALE * (panelX / scale - 0.5)
+        val blockY: Double = 0.5 + PUZZLE_FRAME_SCALE * (panelY / scale - 0.5)
+        val facing: Direction = blockEntity.cachedState[Properties.HORIZONTAL_FACING]
+        val localPosition: Vec3d = when (facing) {
+            Direction.EAST ->
+                Vec3d(0.5 - PUZZLE_LINE_DEPTH_FROM_BLOCK_CENTER, blockY, 1.0 - blockX)
+            Direction.WEST ->
+                Vec3d(0.5 + PUZZLE_LINE_DEPTH_FROM_BLOCK_CENTER, blockY, blockX)
+            Direction.NORTH ->
+                Vec3d(1.0 - blockX, blockY, 0.5 + PUZZLE_LINE_DEPTH_FROM_BLOCK_CENTER)
+            Direction.SOUTH ->
+                Vec3d(blockX, blockY, 0.5 - PUZZLE_LINE_DEPTH_FROM_BLOCK_CENTER)
+            else -> return null
+        }
+        val blockPos: BlockPos = blockEntity.pos
+        val projected: Vec3d = clientInstance.gameRenderer.project(
+            Vec3d(
+                blockPos.x + localPosition.x,
+                blockPos.y + localPosition.y,
+                blockPos.z + localPosition.z
+            )
+        )
+        if (!projected.x.isFinite() || !projected.y.isFinite()) return null
         val window = clientInstance.window
-        mouse.setPosition(
-            x * window.width / window.scaledWidth,
-            y * window.height / window.scaledHeight,
-            GLFW_CURSOR_HIDDEN
+        return MousePosition(
+            (projected.x + 1.0) * window.scaledWidth / 2.0,
+            (1.0 - projected.y) * window.scaledHeight / 2.0
         )
     }
 
