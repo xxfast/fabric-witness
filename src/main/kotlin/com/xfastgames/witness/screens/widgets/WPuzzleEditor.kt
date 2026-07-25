@@ -115,6 +115,10 @@ class WPuzzleEditor(
                 node.modifier == Modifier.START ->
                     drawCircle(context, px(node.x), py(node.y), lineThickness * 2, solution = false)
 
+                // Rounds off the tip of an end point's nub; its edge draws like any other.
+                node.modifier == Modifier.END ->
+                    drawCircle(context, px(node.x), py(node.y), lineThickness, solution = false)
+
                 visibleEdges > 1 ->
                     drawCircle(context, px(node.x), py(node.y), lineThickness, solution = false)
 

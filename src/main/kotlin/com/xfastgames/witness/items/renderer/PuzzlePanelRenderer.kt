@@ -73,6 +73,8 @@ object PuzzlePanelRenderer {
 
     private fun RenderContext.renderNode(graph: ValueGraph<Node, Edge>, node: Node): Unit = when {
         node.modifier == Modifier.START -> circle(Vector3f(node.x, node.y, 0f), 4.pc)
+        // The nub's edge is drawn like any other; the node just rounds off its tip.
+        node.modifier == Modifier.END -> circle(Vector3f(node.x, node.y, 0f), 2.pc)
         numberOfEdgesVisible(graph, node) > 1 -> circle(Vector3f(node.x, node.y, 0f), 2.pc)
         numberOfEdgesVisible(graph, node) == 1 -> square(Vector3f(node.x - 2.pc, node.y - 2.pc, 0f), 4.pc)
         else -> Unit

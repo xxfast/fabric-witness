@@ -68,17 +68,28 @@ the traversal itself.
 
 ## Status in this mod
 
-Partially modelled. `Modifier.END` exists on `Node` (`items/data/Edge.kt`), is placed in the
-composer (`PuzzleComposerScreen.kt`, `WPuzzleEditor.kt`) and rendered as a nub
-(`PuzzlePanelRenderer.kt`). `PuzzleSolver` traces a line live and stops advancing once the
-current node is `Modifier.END` with no active segment (`buildLine()`), so reaching an end point
-correctly halts the drawn line.
+Partially modelled. `Modifier.END` exists on `Node` (`items/data/Edge.kt`).
+
+Authoring: the composer's end toggle (`PuzzleComposerScreen`, `EndIcon`) places one. Clicking a
+border node with it selected hangs a nub off that node via `Panel.withEndPointToggled`
+(`items/data/EndPoints.kt`): a new `END` node `END_POINT_LENGTH` (one line thickness) outside the
+lattice, joined by a `NORMAL` edge. Clicking the same node again advances it through
+`Panel.endPointOrientations`: an edge node has one way to point, so that's a plain on/off toggle,
+while a corner cycles diagonal (the default), then squared off along each of its two borders, then
+bare. Clicking the nub itself removes it. Interior nodes are refused. Existing nubs are excluded
+when measuring the lattice bounds, so one nub doesn't move the border for the next edit.
+
+Rendering: the nub's edge draws like any other edge; `PuzzlePanelRenderer.renderNode` and
+`WPuzzleEditor.drawGraph` round off its tip with a half-thickness disc.
+
+Solving: `PuzzleSolver` traces along the nub's edge like any other and stops advancing once the
+current node is `Modifier.END` with no active segment (`buildLine`), and `isValidSolution` requires
+the last node of a submitted path to be `END` (see [00-line-and-path.md](00-line-and-path.md)).
 
 What's not modelled yet: there is no region computation and no symbol validation at all in this
 mod (regions, hexagons-on-edges, squares, stars, polyominoes, triangles, eliminators are all
-unimplemented), and the `SolutionSubmitted` / `SolutionAccepted` / `SolutionRejected` states in
-`PuzzleSolverViewModels.kt` are declared but nothing currently transitions into them. So end points
-work as a drawing terminator today, not yet as a decision point that changes puzzle outcome.
+unimplemented). So which end point you use terminates the line and decides accept/reject on the
+line rule alone, it can't yet change the outcome through the symbols in the regions it forms.
 
 ## Sources
 

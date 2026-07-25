@@ -169,6 +169,18 @@ class PuzzleComposerScreenDescription(
         )
     }
 
+    /** Writes an edited panel to the output slot, keeping the input stack's other components. */
+    private fun commit(updatedPuzzle: Panel) {
+        val outputPuzzle: Panel = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: return
+        if (updatedPuzzle == outputPuzzle) return
+        val inputStack: ItemStack = blockInventory.getStack(PUZZLE_INPUT_SLOT_INDEX)
+        if (inputStack.isEmpty) return
+        updateInventory(
+            PUZZLE_OUTPUT_SLOT_INDEX,
+            inputStack.copy().apply { panel = updatedPuzzle }
+        )
+    }
+
     init {
         setRootPanel(root)
         inputSlot.setInputFilter { itemStack -> itemStack.item is PuzzlePanelItem }
@@ -208,12 +220,17 @@ class PuzzleComposerScreenDescription(
 
             val selectedToggle: WRadioImageButton? = toggleGroup.selected
 
+            // An end point is a nub hanging off a border node, not a flag on the node itself,
+            // so it edits the graph rather than a modifier (rules/02-end-points.md).
+            if (selectedToggle == endButton) {
+                if (node == null) return@setClickListener
+                commit(outputPuzzle.withEndPointToggled(node) ?: return@setClickListener)
+                return@setClickListener
+            }
+
             val updatedNodeModifier: Modifier = when {
                 selectedToggle == startButton && node != null ->
                     node.modifier.nextIn(Modifier.START, Modifier.NORMAL)
-
-                selectedToggle == endButton && node != null ->
-                    node.modifier.nextIn(Modifier.END, Modifier.NORMAL)
 
                 node?.modifier != null -> node.modifier
                 else -> Modifier.NONE
@@ -261,19 +278,10 @@ class PuzzleComposerScreenDescription(
                 is Panel.Freeform -> outputPuzzle.copy(graph = updatedGraph)
             }
 
-            // If nothing is changed, ignore
-            if (updatedPuzzle == outputPuzzle) return@setClickListener
-
-            val inputStack: ItemStack = blockInventory.getStack(PUZZLE_INPUT_SLOT_INDEX)
-            val inputPanel: Panel = inputStack.panel ?: return@setClickListener
-            if (updatedPuzzle == inputPanel) return@setClickListener
-
-            val outputStack: ItemStack = inputStack.copy().apply { panel = updatedPuzzle }
-            updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, outputStack)
+            commit(updatedPuzzle)
         }
 
         // TODO: Re-enable once this is implemented
-        endButton.isEnabled = false
         hexagonDotButton.isEnabled = false
         addButton.isEnabled = false
         removeButton.isEnabled = false
