@@ -3,7 +3,6 @@ package com.xfastgames.witness.items.renderer
 import com.google.common.graph.EndpointPair
 import com.google.common.graph.Graph
 import com.google.common.graph.ValueGraph
-import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.utils.*
 import com.xfastgames.witness.utils.guava.edgeValueOf
@@ -13,9 +12,7 @@ import net.minecraft.client.render.command.OrderedRenderCommandQueue
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
 import net.minecraft.util.DyeColor
-import net.minecraft.util.Identifier
 import org.joml.Vector3f
-import java.util.*
 import kotlin.math.*
 
 /**
@@ -30,16 +27,6 @@ import kotlin.math.*
  */
 @Suppress("UnstableApiUsage")
 object PuzzlePanelRenderer {
-
-    private val lineFillTexture = Identifier.of(Witness.IDENTIFIER, "textures/entity/puzzle_panel_line_fill.png")
-    private val solutionFillTexture =
-        Identifier.of(Witness.IDENTIFIER, "textures/entity/puzzle_panel_solution_fill.png")
-
-    private fun getBackdropTexture(color: DyeColor): Identifier =
-        Identifier.of(
-            Witness.IDENTIFIER,
-            "textures/entity/puzzle_panel_backdrop_${color.name.lowercase(Locale.getDefault())}.png"
-        )
 
     fun renderPanel(
         stack: ItemStack,
@@ -72,7 +59,7 @@ object PuzzlePanelRenderer {
         overlay: Int
     ) {
         matrices.push()
-        val backdropTexture: Identifier = getBackdropTexture(dyeColor)
+        val backdropTexture = PuzzlePanelTextures.backdrop(dyeColor)
         queue.submitCustom(matrices, RenderLayers.beaconBeam(backdropTexture, false)) { entry, consumer ->
             consumer.square(entry, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
         }
@@ -117,7 +104,7 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.01)
 
-        queue.submitCustom(matrices, RenderLayers.beaconBeam(lineFillTexture, false)) { entry, consumer ->
+        queue.submitCustom(matrices, RenderLayers.beaconBeam(PuzzlePanelTextures.lineFill, false)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 graph.nodes().forEach { node -> renderNode(graph, node) }
                 graph.edges().forEach { side -> renderEdge(graph, side) }
@@ -144,7 +131,7 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.011)
 
-        queue.submitCustom(matrices, RenderLayers.beaconBeam(solutionFillTexture, false)) { entry, consumer ->
+        queue.submitCustom(matrices, RenderLayers.beaconBeam(PuzzlePanelTextures.solutionFill, false)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 line.nodes().forEach { node ->
                     if (node.modifier == Modifier.START) circle(Vector3f(node.x, node.y, 0f), 4.pc)

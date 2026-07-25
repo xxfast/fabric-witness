@@ -2,6 +2,7 @@ package com.xfastgames.witness.items
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.PanelComponents
 import com.xfastgames.witness.items.data.cost
 import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.renderer.PuzzlePanelSpecialModelRenderer
@@ -27,7 +28,10 @@ class PuzzlePanelItem(settings: Settings) : Item(settings), Clientside {
 
     companion object {
         val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "puzzle_panel")
-        val ITEM: Item = registerItem(IDENTIFIER, PuzzlePanelItem(itemSettings(IDENTIFIER)))
+        val ITEM: Item = registerItem(
+            IDENTIFIER,
+            PuzzlePanelItem(itemSettings(IDENTIFIER).component(PanelComponents.PANEL, Panel.DEFAULT))
+        )
     }
 
     override fun onClient() {

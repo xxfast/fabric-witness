@@ -11,7 +11,7 @@ Work the **"Still needs in-game verification"** checklist in `MIGRATION.md` firs
 actually broken rather than what we assume is. Run `./gradlew runClient` and confirm each:
 
 - [x] Panel rendering in frames 
-- [ ] Panel rendering in the composer (command-queue path: geometry, lighting, z-fighting)
+- [x] Panel rendering in the composer (command-queue path: geometry, lighting, z-fighting)
 - [ ] Composer end-to-end: slot-sync payload, dye tinting, editor clicks vs. the 2D preview
 - [ ] Solver: raycasting (JOML rewrite), line tracing, sounds, mouse hide/unlock
 - [ ] All four recipes: grid crafting (component JSON decode), panel dye, panel recycle, stonecutting
@@ -29,10 +29,10 @@ Deliberately **excludes item 2** (pre-1.20.5 save compat) — a `GOALS.md` non-g
   component now renders in GUI, first-/third-person, and ground contexts. The old custom arm pose
   was not restored; the vanilla item-holding pose is retained. *(Pillar 2: puzzles as diegetic
   blocks.)*
-- [ ] **#3 — Composer editor preview is 2D-flat.** Decide: (a) render the real textured panel into
-  the GUI via the 1.21.6+ pipeline, or (b) keep the 2D painter but make it faithful (node/edge/
-  modifier styling that matches the frame renderer). Recommendation: (b) short-term, revisit (a)
-  only if the flat preview proves confusing in playtesting. *(Pillar 2.)*
+- [x] **#3 — Composer editor preview is 2D-flat.** Chose (b): the click-aligned 2D painter remains,
+  but now shares the frame renderer's dyed backdrop and graph/solution textures, and mirrors its
+  junction, endpoint, start, break, hidden, and solution styling. Revisit a real 3D GUI render only
+  if the faithful flat preview proves confusing in playtesting. *(Pillar 2.)*
 - [ ] **#4 — Recipe-book entries missing for dye/recycle.** Inherent to `SpecialCraftingRecipe`.
   Fix = surface them another way (a JSON `crafting_special_*` display recipe, or a custom recipe-book
   category) or consciously accept parity with vanilla firework behavior and close it. Decide, don't

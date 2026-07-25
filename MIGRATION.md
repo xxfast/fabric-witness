@@ -109,8 +109,6 @@ Notes:
 2. **Old worlds don't keep crafted panel data.** Pre-1.20.5 stack NBT is migrated by vanilla
    into `minecraft:custom_data`, not the `witness:panel` component — panels crafted before the
    migration lose their puzzle when loaded in the new version. Blocks/world state are fine.
-3. **Composer editor preview is 2D-flat** (light-gray line drawing instead of the textured 3D
-   panel) — see the LibGui section above for why.
 4. **Recipe-book entries are gone for dye/recycle recipes** — inherent to special recipes
    (vanilla behaves the same way for e.g. firework recipes).
 5. **`OakLeavesRunners` item tint dropped** (`ColorProviderRegistry.ITEM` no longer exists;
@@ -126,6 +124,10 @@ Notes:
   renders each stack's live `witness:panel` component in GUI, first-/third-person, and ground
   contexts. The custom pre-migration arm renderer remains gone; the vanilla item-holding pose is
   used.
+- **Composer editor preview made faithful.** Kept the click-aligned 2D painter, but it now shares
+  the world renderer's dyed backdrop and graph/solution textures and mirrors its node, endpoint,
+  start, break, hidden, and solution styling. A real 3D GUI render is deferred unless playtesting
+  shows that the faithful flat view is confusing.
 - **Frozen-registry crash on panel click** (`Registry is already frozen ... witness:pointless_click`):
   sound events were registered lazily from `object`s nested in `PuzzleSolverScreen` /
   `IronPuzzleFrameBlock`, which only classload on first use — legal in 1.17, a crash since

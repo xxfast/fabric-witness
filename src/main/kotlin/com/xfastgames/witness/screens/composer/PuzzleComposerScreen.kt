@@ -130,7 +130,43 @@ class PuzzleComposerScreenDescription(
         val inventory: Inventory = blockInventory
         require(inventory is BlockInventory)
         require(inventory.owner is PuzzleComposerBlockEntity)
-        if (inventory.owner.world?.isClient == true) inventory.owner.syncInventorySlotTag(slotIndex, itemStack)
+        if (inventory.owner.world?.isClient == true) {
+            // Editor widget clicks only happen client-side, so send those changes to the server.
+            inventory.owner.syncInventorySlotTag(slotIndex, itemStack)
+        } else {
+            // WItemSlot change listeners run on the authoritative server ScreenHandler.
+            // Update its backing inventory directly; vanilla slot sync sends the result to the client.
+            inventory.setStack(slotIndex, itemStack)
+        }
+    }
+
+    private fun updateOutputFrom(inputStack: ItemStack) {
+        if (inputStack.isEmpty) {
+            updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, ItemStack.EMPTY)
+            return
+        }
+
+        val outputStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
+        if (outputStack.isNotEmpty) return
+
+        val dyeStack: ItemStack = blockInventory.getStack(PUZZLE_BACKGROUND_DYE_SLOT_INDEX)
+        val dyeItem: Item = dyeStack.item
+        // Plain stacks (notably old creative-menu stacks) predate the item's default panel
+        // component. Treat them exactly like the renderer does instead of showing a blank editor.
+        val inputPanel: Panel = inputStack.panel ?: Panel.DEFAULT
+        val updatedColor: DyeColor =
+            if (dyeStack.isEmpty || dyeItem !is DyeItem) inputPanel.backgroundColor else dyeItem.color
+
+        val tintedPanel: Panel = when (inputPanel) {
+            is Panel.Grid -> inputPanel.copy(backgroundColor = updatedColor)
+            is Panel.Tree -> inputPanel.copy(backgroundColor = updatedColor)
+            is Panel.Freeform -> inputPanel.copy(backgroundColor = updatedColor)
+        }
+
+        updateInventory(
+            PUZZLE_OUTPUT_SLOT_INDEX,
+            inputStack.copy().apply { panel = tintedPanel }
+        )
     }
 
     init {
@@ -141,35 +177,9 @@ class PuzzleComposerScreenDescription(
         outputSlot.setModifiable(false)
         outputSlot.setTakingAllowed(true)
 
-        inputSlot.addChangeListener { _, inventory, index, changedItemStack ->
-            // if empty remove the output
-            if (changedItemStack.isEmpty) {
-                updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, ItemStack.EMPTY)
-                return@addChangeListener
-            }
-
+        inputSlot.addChangeListener { _, _, index, changedItemStack ->
             if (index != PUZZLE_INPUT_SLOT_INDEX) return@addChangeListener
-
-            // Stack is used to distinguish changes from the screen load
-            val outputStack: ItemStack = inventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
-            if (!outputStack.isEmpty && !changedItemStack.isEmpty) return@addChangeListener
-
-            val dyeItemStack: ItemStack = inventory.getStack(PUZZLE_BACKGROUND_DYE_SLOT_INDEX)
-            val dyeStackItem: Item = dyeItemStack.item
-            val updatedColor: DyeColor =
-                if (dyeItemStack.isEmpty || dyeStackItem !is DyeItem)
-                    changedItemStack.panel?.backgroundColor ?: return@addChangeListener
-                else dyeStackItem.color
-
-            val updatedPanel: Panel = changedItemStack.panel ?: return@addChangeListener
-            val tintedPanel: Panel = when (updatedPanel) {
-                is Panel.Grid -> updatedPanel.copy(backgroundColor = updatedColor)
-                is Panel.Tree -> updatedPanel.copy(backgroundColor = updatedColor)
-                is Panel.Freeform -> updatedPanel.copy(backgroundColor = updatedColor)
-            }
-
-            val updatedStack: ItemStack = changedItemStack.copy().apply { panel = tintedPanel }
-            updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, updatedStack)
+            updateOutputFrom(changedItemStack)
         }
 
         outputSlot.addChangeListener { slot, inventory, index, changedItemStack ->
@@ -267,6 +277,11 @@ class PuzzleComposerScreenDescription(
         hexagonDotButton.isEnabled = false
         addButton.isEnabled = false
         removeButton.isEnabled = false
+
+        val composerInventory = blockInventory as? BlockInventory
+        if (composerInventory?.owner?.world?.isClient == false) {
+            updateOutputFrom(composerInventory.getStack(PUZZLE_INPUT_SLOT_INDEX))
+        }
 
         layout()
         context.run { world, pos -> if (world.isClient) addPainters() }
