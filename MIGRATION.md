@@ -106,11 +106,6 @@ Notes:
 
 ## Known broken / not ported
 
-1. **Custom in-hand puzzle panel rendering is not ported.** `BuiltinItemRendererRegistry` was
-   removed in the 1.21.4 item-model rework. Puzzle panels show their static sprite in hand and
-   on the ground; they still render live inside frames and the composer. Porting requires a
-   data-driven `special` item model + `SpecialModelRenderer`. The custom first-person arm pose
-   is gone with it. See `TODO(migration)` in `PuzzlePanelItem.kt` / `PuzzlePanelRenderer`.
 2. **Old worlds don't keep crafted panel data.** Pre-1.20.5 stack NBT is migrated by vanilla
    into `minecraft:custom_data`, not the `witness:panel` component — panels crafted before the
    migration lose their puzzle when loaded in the new version. Blocks/world state are fine.
@@ -126,6 +121,11 @@ Notes:
 
 ## Fixed issues found in play-testing
 
+- **Custom puzzle-panel item rendering restored.** A `SpecialItemModel` installed through Fabric's
+  item-model bake hook now delegates to `PuzzlePanelSpecialModelRenderer`, which snapshots and
+  renders each stack's live `witness:panel` component in GUI, first-/third-person, and ground
+  contexts. The custom pre-migration arm renderer remains gone; the vanilla item-holding pose is
+  used.
 - **Frozen-registry crash on panel click** (`Registry is already frozen ... witness:pointless_click`):
   sound events were registered lazily from `object`s nested in `PuzzleSolverScreen` /
   `IronPuzzleFrameBlock`, which only classload on first use — legal in 1.17, a crash since

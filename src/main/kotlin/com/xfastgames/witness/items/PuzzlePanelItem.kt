@@ -4,9 +4,13 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.cost
 import com.xfastgames.witness.items.data.panel
+import com.xfastgames.witness.items.renderer.PuzzlePanelSpecialModelRenderer
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.itemSettings
 import com.xfastgames.witness.utils.registerItem
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelModifier
+import net.minecraft.client.render.item.model.SpecialItemModel
 import net.minecraft.component.type.TooltipDisplayComponent
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -27,10 +31,21 @@ class PuzzlePanelItem(settings: Settings) : Item(settings), Clientside {
     }
 
     override fun onClient() {
-        // TODO(migration): The old BuiltinItemRendererRegistry (custom in-hand/GUI item renderer) was
-        // removed in the 1.21.4 item-model rework. Rendering the live puzzle onto the held/GUI item now
-        // requires a data-driven `special` item model + SpecialModelRenderer. Until that is authored the
-        // item falls back to its static model (textures/item/puzzle_panel.png). Needs in-game work.
+        ModelLoadingPlugin.register { pluginContext ->
+            pluginContext.modifyItemModelBeforeBake().register(
+                ModelModifier.OVERRIDE_PHASE,
+                ModelModifier.BeforeBakeItem { model, context ->
+                    if (context.itemId() == IDENTIFIER) {
+                        SpecialItemModel.Unbaked(
+                            Identifier.of(Witness.IDENTIFIER, "item/puzzle_panel_item"),
+                            PuzzlePanelSpecialModelRenderer.Unbaked
+                        )
+                    } else {
+                        model
+                    }
+                }
+            )
+        }
     }
 
     // TODO: Use localised strings here

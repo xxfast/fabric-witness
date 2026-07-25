@@ -1,6 +1,3 @@
 {
-  "parent": "builtin/entity",
-  "textures": {
-    "layer0": "witness:item/puzzle_panel"
-  }
+  "parent": "witness:item/puzzle_panel_item"
 }

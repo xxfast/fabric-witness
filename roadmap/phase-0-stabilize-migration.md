@@ -23,9 +23,11 @@ open fix tasks below.
 ## 0.2 — Fix known breakages (`MIGRATION.md` "Known broken / not ported")
 Deliberately **excludes item 2** (pre-1.20.5 save compat) — a `GOALS.md` non-goal.
 
-- [ ] **#1 — In-hand / on-ground puzzle-panel rendering.** Port to a data-driven `special` item
-  model + `SpecialModelRenderer` (the `BuiltinItemRendererRegistry` path is gone since 1.21.4).
-  Restore the custom first-person arm pose if feasible. *(Pillar 2: puzzles as diegetic blocks.)*
+- [x] **#1 — In-hand / on-ground puzzle-panel rendering.** Restored with a `SpecialItemModel` and
+  `SpecialModelRenderer` installed through Fabric's item-model bake hook. The live `witness:panel`
+  component now renders in GUI, first-/third-person, and ground contexts. The old custom arm pose
+  was not restored; the vanilla item-holding pose is retained. *(Pillar 2: puzzles as diegetic
+  blocks.)*
 - [ ] **#3 — Composer editor preview is 2D-flat.** Decide: (a) render the real textured panel into
   the GUI via the 1.21.6+ pipeline, or (b) keep the 2D painter but make it faithful (node/edge/
   modifier styling that matches the frame renderer). Recommendation: (b) short-term, revisit (a)
