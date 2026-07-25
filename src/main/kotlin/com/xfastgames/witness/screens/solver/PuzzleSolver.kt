@@ -110,15 +110,35 @@ class PuzzleSolver {
      */
     fun submit(panel: Panel): Graph<Node>? {
         if (!isSolving) return null
+        val segment: ActiveSegment? = activeSegment
         activeSegment = null
         stateFlow.value = PuzzleSolverData.SolutionSubmitted
-        if (isValidSolution(panel)) {
+        if (finishLine(segment) && isValidSolution(panel)) {
             stateFlow.value = PuzzleSolverData.SolutionAccepted
             return buildLine()
         }
         path.clear()
         stateFlow.value = PuzzleSolverData.SolutionRejected
         return buildLine()
+    }
+
+    /**
+     * Resolves a submit made part way along an edge, returning whether the line is finished.
+     *
+     * An end point is a nub one line thickness long (`EndPoints.END_POINT_LENGTH`) and the tip is
+     * drawn with a half thickness round cap, so the line covers the nub well before the tip
+     * arrives. Committing onto a nub therefore finishes the line and snaps the tip onto the end
+     * point (rules/00-line-and-path.md), rather than failing a line that visibly reaches it.
+     *
+     * Releasing part way along any other edge is not a finished line, including backing out of an
+     * end point: the rendered line has already retracted off it.
+     */
+    private fun finishLine(segment: ActiveSegment?): Boolean {
+        if (segment == null) return true
+        if (segment.target.modifier != Modifier.END) return false
+        if (segment.target in path) return false
+        path.add(segment.target)
+        return true
     }
 
     /**

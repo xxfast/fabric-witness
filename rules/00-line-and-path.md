@@ -78,8 +78,8 @@ would cross or touch the existing line, so self-intersection is geometrically im
 rather than something checked after submission.
 
 Validating "is this a legal complete solution": the path must start at a node whose modifier is
-`START` and end at a node whose modifier is `END` (or on the tip of a segment leading to one, see
-`tracingTip`). Region-based symbol validation (squares, stars, polyominoes, triangles) is not yet
+`START` and end at a node whose modifier is `END` (or on the tip of the segment leading into one,
+see `finishLine`). Region-based symbol validation (squares, stars, polyominoes, triangles) is not yet
 implemented in this mod (see below), but the standard approach is: build the region graph by
 flood-filling grid cells through un-traversed cell-adjacencies (two cells belong to the same region
 iff no drawn line segment or panel border separates them), then check each region's symbols
@@ -100,8 +100,12 @@ prevention during drawing (`traceLimit`/`intersectionParameter`), node-revisit r
 (`arriveAt`), and backtracking.
 
 `PuzzleSolver.submit` validates the line rule only: at least one edge, first node `START`, last
-node `END`, no repeated node, every consecutive pair joined by an existing traversable edge. It
-moves the state through `SolutionSubmitted` to `SolutionAccepted` or `SolutionRejected`
+node `END`, no repeated node, every consecutive pair joined by an existing traversable edge.
+Submitting part way along an edge is resolved first (`finishLine`): a tip that has committed onto an
+end point nub counts as having reached it, since the nub is one line thickness long and the tip's
+round cap covers it well before the tip arrives, so a line that visibly reaches the end point is not
+failed on the last fraction of the nub. A tip part way along any other edge is not a finished line,
+including one backing out of an end point. It moves the state through `SolutionSubmitted` to `SolutionAccepted` or `SolutionRejected`
 (`PuzzleSolverViewModels.kt`) and returns the line to render, empty on rejection.
 `PuzzleSolverScreen` submits on left-click while tracing. There is still no region flood-fill and
 no symbol validation, so a panel carrying symbols is accepted on the line rule alone.

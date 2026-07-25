@@ -195,6 +195,31 @@ class PuzzleSolverTests {
     }
 
     @Test
+    fun `Accepts a line that has committed onto the end point without reaching it`() {
+        solver.startTracingLine(panel, start)
+        solver.move(panel, 1f, 0f)
+        solver.move(panel, 0f, 0.5f)
+
+        val submitted: Graph<Node> = requireNotNull(solver.submit(panel))
+
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionAccepted::class.java)
+        assertThat(submitted.nodes()).containsExactly(start, corner, finish)
+    }
+
+    @Test
+    fun `Rejects a line that has backed out of the end point`() {
+        solver.startTracingLine(panel, start)
+        solver.move(panel, 1f, 0f)
+        solver.move(panel, 0f, 1f)
+        solver.move(panel, 0f, -0.5f)
+
+        val submitted: Graph<Node> = requireNotNull(solver.submit(panel))
+
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionRejected::class.java)
+        assertThat(submitted.nodes()).isEmpty()
+    }
+
+    @Test
     fun `Rejects a path that stops short of an end point`() {
         solver.startTracingLine(panel, start)
         solver.move(panel, 0.5f, 0f)
