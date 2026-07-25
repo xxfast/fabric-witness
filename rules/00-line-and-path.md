@@ -93,14 +93,18 @@ and `Node.kt`/`Graph.kt`/`Panel.kt` (`Panel.Grid`, `Panel.Tree`, `Panel.Freeform
 backed by a Guava `ValueGraph<Node, Edge>`).
 
 `src/main/kotlin/com/xfastgames/witness/screens/solver/PuzzleSolver.kt` implements live line
-tracing: starting from a `START` node, extending along edges toward the movement direction
-(`chooseSegment`, edge alignment scoring), self-collision prevention during drawing
-(`traceLimit`/`intersectionParameter`), and backtracking (`arriveAt`). It stops there: there is no
-region flood-fill and no acceptance/rejection logic wired to symbols yet.
-`PuzzleSolverData.SolutionSubmitted` / `SolutionAccepted` / `SolutionRejected` exist as states in
-`PuzzleSolverViewModels.kt`, but nothing in the codebase currently transitions into
-`SolutionAccepted` or `SolutionRejected` (unverified whether this is planned elsewhere or simply
-not yet started; no region/symbol validator was found anywhere in `src/main`).
+tracing: starting from a `START` node only, extending along edges toward the movement direction
+(`chooseSegment`, edge alignment scoring; `NONE` edges are unusable and `BREAK` edges can only be
+entered as far as the gap, see [03-broken-edges.md](03-broken-edges.md)), self-collision
+prevention during drawing (`traceLimit`/`intersectionParameter`), node-revisit rejection
+(`arriveAt`), and backtracking.
+
+`PuzzleSolver.submit` validates the line rule only: at least one edge, first node `START`, last
+node `END`, no repeated node, every consecutive pair joined by an existing traversable edge. It
+moves the state through `SolutionSubmitted` to `SolutionAccepted` or `SolutionRejected`
+(`PuzzleSolverViewModels.kt`) and returns the line to render, empty on rejection.
+`PuzzleSolverScreen` submits on left-click while tracing. There is still no region flood-fill and
+no symbol validation, so a panel carrying symbols is accepted on the line rule alone.
 
 ## Sources
 

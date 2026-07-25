@@ -60,8 +60,12 @@ Modelled. `Modifier.START` in `src/main/kotlin/com/xfastgames/witness/items/data
   `PuzzleSolver.startTracingLine(panel, start)` to begin the trace, so multiple start points
   per panel are already supported: any of them can be clicked to start.
 - `PuzzleSolver` treats the chosen start like any other node once tracing begins; it doesn't
-  special-case `START` beyond the initial pickup (`startTracingLine` only checks the node exists in
-  the graph).
+  special-case `START` beyond the initial pickup (`startTracingLine` rejects a node that isn't in
+  the graph or isn't tagged `START`), so passing through a second, unused start point mid-path is
+  allowed, subject to the usual no-revisit rule. Only the start point the line was picked up from
+  is filled in the line colour (`PuzzlePanelRenderer.renderLine` sizes the disc off the node's
+  degree in the line: 0 or 1 means it's the pickup); a start the line only travels over is covered
+  by the line width alone and stays visible either side of it, as in the game.
 - The composer (`PuzzleComposerScreen`, `WPuzzleEditor`) lets an author cycle a node's modifier to
   `START`, so authoring multiple start points on one panel is possible today.
 - Symmetry (a second, simultaneous line from its own start) is not modelled; see

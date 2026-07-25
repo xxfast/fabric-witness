@@ -134,8 +134,11 @@ object PuzzlePanelRenderer {
         queue.submitCustom(matrices, RenderLayers.beaconBeam(PuzzlePanelTextures.solutionFill, false)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 line.nodes().forEach { node ->
-                    if (node.modifier == Modifier.START) circle(Vector3f(node.x, node.y, 0f), 4.pc)
-                    else circle(Vector3f(node.x, node.y, 0f), 2.pc)
+                    // Only the start point the line was picked up from fills its whole circle. A
+                    // start the line merely travels over keeps its own disc and is covered by the
+                    // line width alone, so it stays visible either side of the line.
+                    val pickedUp: Boolean = node.modifier == Modifier.START && line.degree(node) <= 1
+                    circle(Vector3f(node.x, node.y, 0f), if (pickedUp) 4.pc else 2.pc)
                 }
 
                 line.edges().forEach { side ->

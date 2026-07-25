@@ -152,6 +152,12 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             return true
         }
 
+        // Left-click while tracing releases the line and submits it for validation.
+        if (solver.isSolving) {
+            submitTrace(player)
+            return true
+        }
+
         val panelHitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
         if (panelHitResult == null) return missClick(player)
 
@@ -201,8 +207,22 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         super.removed()
     }
 
+    private fun submitTrace(player: ClientPlayerEntity) {
+        val blockEntity: PuzzleFrameBlockEntity = startedBlockEntity ?: return stopTracing()
+        val puzzle: Panel = blockEntity.inventory.getStack(0).panel ?: return stopTracing()
+        val line: Graph<Node> = solver.submit(puzzle) ?: return stopTracing()
+        updateLine(blockEntity, puzzle, line)
+        if (solver.state.value is PuzzleSolverData.SolutionRejected) missClick(player)
+        // The verdict stays on the solver's state; only the screen's tracing state is dropped.
+        releaseTracing()
+    }
+
     private fun stopTracing() {
         solver.stopTrace()
+        releaseTracing()
+    }
+
+    private fun releaseTracing() {
         FOCUS_MODE_DOING_INSTANCE.stop()
         startedBlockEntity = null
         tracingMousePosition = null

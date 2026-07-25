@@ -140,11 +140,79 @@ class PuzzleSolverTests {
         assertThat(distanceToCrossing).isWithin(0.0001f).of(0.25f)
     }
 
+    @Test
+    fun `Refuses to start a trace on a node that is not a start point`() {
+        assertThat(solver.startTracingLine(panel, corner)).isNull()
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.PreSolution::class.java)
+    }
+
+    @Test
+    fun `Traces into a broken edge up to the gap but never across it`() {
+        val brokenPanel: Panel = Panel.Grid(
+            line = emptyGraph(),
+            graph = MutableValueGraphBuilder().apply {
+                putEdgeValue(start, corner, Modifier.BREAK)
+            },
+            backgroundColor = DyeColor.WHITE,
+            width = 1,
+            height = 1
+        )
+        solver.startTracingLine(brokenPanel, start)
+
+        val stub: Graph<Node> = requireNotNull(solver.move(brokenPanel, 1f, 0f))
+
+        // Half the edge, less one line thickness for the gap and the line's round tip.
+        assertThat(stub.nodes()).doesNotContain(corner)
+        assertThat(solver.tracingTip()).isEqualTo(Node(0.25f, 0f, Modifier.END))
+
+        solver.move(brokenPanel, 1f, 0f)
+        assertThat(solver.tracingTip()).isEqualTo(Node(0.25f, 0f, Modifier.END))
+    }
+
+    @Test
+    fun `Backs out of a broken edge stub`() {
+        val brokenPanel: Panel = panelOf(
+            Triple(start, corner, Modifier.BREAK),
+            Triple(corner, finish, Modifier.NORMAL)
+        )
+        solver.startTracingLine(brokenPanel, start)
+        solver.move(brokenPanel, 1f, 0f)
+        solver.move(brokenPanel, -1f, 0f)
+
+        assertThat(solver.tracingTip()).isEqualTo(Node(0f, 0f, Modifier.END))
+    }
+
+    @Test
+    fun `Accepts a path that reaches an end point`() {
+        solver.startTracingLine(panel, start)
+        solver.move(panel, 1f, 0f)
+        solver.move(panel, 0f, 1f)
+
+        val submitted: Graph<Node> = requireNotNull(solver.submit(panel))
+
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionAccepted::class.java)
+        assertThat(submitted.nodes()).containsExactly(start, corner, finish)
+    }
+
+    @Test
+    fun `Rejects a path that stops short of an end point`() {
+        solver.startTracingLine(panel, start)
+        solver.move(panel, 0.5f, 0f)
+
+        val submitted: Graph<Node> = requireNotNull(solver.submit(panel))
+
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionRejected::class.java)
+        assertThat(submitted.nodes()).isEmpty()
+    }
+
     private fun Graph<Node>.end(): Node? = nodes().firstOrNull { it.modifier == Modifier.END }
 
-    private fun panelOf(vararg edges: Pair<Node, Node>): Panel {
+    private fun panelOf(vararg edges: Pair<Node, Node>): Panel =
+        panelOf(*edges.map { (from, to) -> Triple(from, to, Modifier.NORMAL) }.toTypedArray())
+
+    private fun panelOf(vararg edges: Triple<Node, Node, Edge>): Panel {
         val graph: MutableValueGraph<Node, Edge> = MutableValueGraphBuilder()
-        edges.forEach { (from, to) -> graph.putEdgeValue(from, to, Modifier.NORMAL) }
+        edges.forEach { (from, to, modifier) -> graph.putEdgeValue(from, to, modifier) }
         return Panel.Grid(
             line = emptyGraph(),
             graph = graph,

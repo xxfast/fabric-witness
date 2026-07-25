@@ -76,7 +76,7 @@ that.
 
 ## Status in this mod
 
-Declared but not enforced by the solver. `Modifier.BREAK` exists in
+Enforced during tracing. `Modifier.BREAK` exists in
 `src/main/kotlin/com/xfastgames/witness/items/data/Edge.kt`
 (`enum class Modifier { NONE, NORMAL, BREAK, DOT, START, END, HIDDEN }`), and it round-trips
 through the panel graph, the composer editor, and rendering:
@@ -85,14 +85,16 @@ through the panel graph, the composer editor, and rendering:
 - `WPuzzleEditor.drawBrokenLine` and `PuzzlePanelRenderer`'s `` `break`() `` draw the gap visually
   in the composer preview and on the physical panel.
 
-But `PuzzleSolver.chooseSegment`, which decides which edges the player's trace is allowed to
-extend onto, calls `panel.graph.adjacentNodes(current)` and filters candidates only by movement
-alignment and self-intersection; it never reads the edge's `Modifier` value at all. A `BREAK` edge
-is exactly as traversable as a `NORMAL` one during solving today. So the gap renders correctly but
-does not currently block the line; enforcing it requires `chooseSegment` (or a graph built ahead
-of it) to exclude edges whose `graph.edgeValueOrDefault(current, candidate, ...)` is `BREAK` before
-alignment/self-collision filtering runs. There's also no region-partitioning step anywhere in the
-solver yet, so the "doesn't close a region" edge case has nothing to plug into either.
+`PuzzleSolver` takes neither of the two strategies above literally: rather than dropping the edge
+from adjacency, `PuzzleSolver.edgeLimit` caps how far down a `BREAK` edge the tip may travel, at
+half the edge less one line thickness (`LINE_THICKNESS`, the `4.pc` the renderer draws with). That
+matches the game, where the line can be pushed into the dead-end stub until it meets the gap and no
+further. `traceLimit` takes the minimum of that cap and the self-collision cap, so the tip never
+reaches the far node and the edge can never appear in a submitted path (`isValidSolution` rejects
+`BREAK` outright, as does `Modifier.NONE`).
+
+There's still no region-partitioning step anywhere in the solver, so the "doesn't close a region"
+edge case has nothing to plug into.
 
 ## Sources
 
