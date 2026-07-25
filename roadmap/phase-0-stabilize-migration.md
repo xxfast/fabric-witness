@@ -33,10 +33,11 @@ Deliberately **excludes item 2** (pre-1.20.5 save compat) — a `GOALS.md` non-g
   but now shares the frame renderer's dyed backdrop and graph/solution textures, and mirrors its
   junction, endpoint, start, break, hidden, and solution styling. Revisit a real 3D GUI render only
   if the faithful flat preview proves confusing in playtesting. *(Pillar 2.)*
-- [ ] **#4 — Recipe-book entries missing for dye/recycle.** Inherent to `SpecialCraftingRecipe`.
-  Fix = surface them another way (a JSON `crafting_special_*` display recipe, or a custom recipe-book
-  category) or consciously accept parity with vanilla firework behavior and close it. Decide, don't
-  leave dangling.
+- [x] **#4 — Recipe-book entries missing for dye/recycle.** Kept the component-preserving
+  `SpecialCraftingRecipe` implementations, but opted them into the 1.21 recipe-display API with
+  explicit placement ingredients and shapeless displays. Both unlock when the player obtains a
+  puzzle panel; dye cycles through all dye inputs, while recycle displays the default four-tablet
+  return (the crafted count still follows the panel's stored cost). *(Migration-parity fix.)*
 - [ ] **#5 — `OakLeavesRunners` item tint dropped; `PinkCedarLeaves` has no leaf-fall particles.**
   Move the tint to a `tintindex` + tint source in the item model JSON; wire leaf particles via the
   block's `randomDisplayTick`. *(Migration-parity fix for existing decoration blocks.)*

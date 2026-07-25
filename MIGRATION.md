@@ -109,8 +109,6 @@ Notes:
 2. **Old worlds don't keep crafted panel data.** Pre-1.20.5 stack NBT is migrated by vanilla
    into `minecraft:custom_data`, not the `witness:panel` component — panels crafted before the
    migration lose their puzzle when loaded in the new version. Blocks/world state are fine.
-4. **Recipe-book entries are gone for dye/recycle recipes** — inherent to special recipes
-   (vanilla behaves the same way for e.g. firework recipes).
 5. **`OakLeavesRunners` item tint dropped** (`ColorProviderRegistry.ITEM` no longer exists;
    needs a tint source in the item model JSON). `PinkCedarLeaves` has no leaf-fall particles.
 6. Minor behavior swaps: solver raycast uses `player.blockInteractionRange` (the
@@ -119,6 +117,10 @@ Notes:
 
 ## Fixed issues found in play-testing
 
+- **Dye/recycle recipes are visible in the recipe book.** Their component-aware crafting remains
+  implemented as special recipes, but both now provide 1.21 recipe displays and placement
+  ingredients and unlock when the player obtains a puzzle panel. The recycle display shows the
+  default four-tablet return; crafting still uses the panel's stored `witness:cost`.
 - **Custom puzzle-panel item rendering restored.** A `SpecialItemModel` installed through Fabric's
   item-model bake hook now delegates to `PuzzlePanelSpecialModelRenderer`, which snapshots and
   renders each stack's live `witness:panel` component in GUI, first-/third-person, and ground

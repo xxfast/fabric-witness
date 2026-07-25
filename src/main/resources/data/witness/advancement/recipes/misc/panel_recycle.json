@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_puzzle_panel": {
+      "conditions": {
+        "items": [
+          {
+            "items": "witness:puzzle_panel"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "witness:panel_recycle"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_puzzle_panel"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "witness:panel_recycle"
+    ]
+  }
+}
