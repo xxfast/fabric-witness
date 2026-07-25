@@ -14,7 +14,8 @@ actually broken rather than what we assume is. Run `./gradlew runClient` and con
 - [x] Panel rendering in the composer (command-queue path: geometry, lighting, z-fighting)
 - [ ] Composer end-to-end: slot-sync payload, dye tinting, editor clicks vs. the 2D preview
 - [ ] Solver: raycasting (JOML rewrite), line tracing, sounds, mouse hide/unlock
-- [ ] All four recipes: grid crafting (component JSON decode), panel dye, panel recycle, stonecutting
+- [ ] All four recipes: grid crafting (component JSON decode and component-preserving upgrades),
+  panel dye, panel recycle, stonecutting
 - [ ] Worldgen JSONs validate on datapack load (inert until injected)
 - [ ] Dedicated-server boot (`./gradlew runServer`) — client/server split, handler registration timing
 
@@ -38,6 +39,13 @@ Deliberately **excludes item 2** (pre-1.20.5 save compat) — a `GOALS.md` non-g
   explicit placement ingredients and shapeless displays. Both unlock when the player obtains a
   puzzle panel; dye cycles through all dye inputs, while recycle displays the default four-tablet
   return (the crafted count still follows the panel's stored cost). *(Migration-parity fix.)*
+- [x] **#7 — Grid upgrade recipes used NbtCrafting expressions in vanilla component JSON.** Vanilla
+  can decode literal `witness:cost` values only; it cannot evaluate the old `$ iN.cost + N`
+  expressions or copy a source panel's tint. Replaced the upgrade variants with one
+  component-aware special recipe that accepts the legacy layouts, requires the expected grid size
+  and cost component, rebuilds the target grid, preserves the source background colour and other
+  stack components, and adds the consumed tablet count to the cost. The base-grid recipes remain
+  ordinary shaped JSON. *(Migration-parity regression.)*
 - [ ] **#5 — `OakLeavesRunners` item tint dropped; `PinkCedarLeaves` has no leaf-fall particles.**
   Move the tint to a `tintindex` + tint source in the item model JSON; wire leaf particles via the
   block's `randomDisplayTick`. *(Migration-parity fix for existing decoration blocks.)*

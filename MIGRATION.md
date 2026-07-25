@@ -44,7 +44,11 @@ Notes:
   panel + any dye → same panel with the new background color, all component data preserved.
 - `puzzle_panel_grid_recycle(_compat)` → `witness:panel_recycle` special recipe: lone panel →
   puzzle tablets × `witness:cost` (default 4).
-- ~30 shaped `puzzle_panel_grid_*` recipes: nbtcrafting `data` blobs → vanilla `components`.
+- The 9 literal “tablets → new grid” `puzzle_panel_grid_*` recipes use vanilla shaped
+  `components`. The 29 grid-upgrade variants now share `witness:panel_grid_upgrade`, a
+  component-aware special recipe that restores NbtCrafting's input-size/cost checks, preserves
+  the source tint and stack components, rebuilds the target grid, and adds the consumed tablets
+  to `witness:cost`.
 - Vanilla JSON modernization: `{"item": X}` → `"X"` ingredients, `result.item` → `result.id`,
   stonecutting result object form. `test_recipe.json` (nbtcrafting bug repro) deleted.
 - Datapack folder renames (MC 1.21 silently ignores the old names): `recipes/` → `recipe/`,
@@ -117,6 +121,11 @@ Notes:
 
 ## Fixed issues found in play-testing
 
+- **Grid-upgrade recipes load and preserve their dynamic components.** The initial migration left
+  NbtCrafting expressions such as `$ i0.cost + 1` inside vanilla `witness:cost` component JSON,
+  which only accepts an integer; it also dropped the old input-grid constraints and component-copy
+  behavior. The 29 upgrade variants are now handled by one special recipe covering the legacy
+  layouts, while the 9 literal base-grid recipes remain vanilla shaped recipes.
 - **Dye/recycle recipes are visible in the recipe book.** Their component-aware crafting remains
   implemented as special recipes, but both now provide 1.21 recipe displays and placement
   ingredients and unlock when the player obtains a puzzle panel. The recycle display shows the
