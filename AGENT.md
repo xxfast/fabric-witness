@@ -17,6 +17,29 @@ Java 21 is pinned via `org.gradle.java.home` in `gradle.properties` — no JAVA_
 - `./gradlew test` — unit tests only (pure JVM: puzzle graph/panel logic, no Minecraft bootstrap)
 - `./gradlew test --tests "com.xfastgames.witness.items.data.GraphTests"` — single test class
 
+## Optional development aids
+
+The project has an IntelliJ run configuration named **`Minecraft Client`**. When the IntelliJ IDEA
+MCP is connected, useful tools include:
+
+- `build_project` for compiler errors from IntelliJ's project model.
+- `lint_files` and `get_file_problems` for IDE inspections.
+- `execute_run_configuration` for launching `Minecraft Client` and capturing its build/runtime
+  output. The repository root can be supplied as `projectPath` if IntelliJ has multiple projects
+  open.
+
+For tasks that need the existing play-test world, its display name is **`WitnessPlayground`** and
+its save-directory identifier is **`New World`**. Minecraft's quick-play flag takes the directory
+identifier:
+
+```shell
+./gradlew runClient --args='--quickPlaySingleplayer "New World"'
+```
+
+The save is at `run/saves/New World`. In-game F2 screenshots are written to `run/screenshots/` and
+can be inspected directly. On macOS, F2 can optionally be sent to the active Minecraft window with
+System Events (`key code 120`) when GUI automation permission is available.
+
 Versions live in `buildSrc/src/main/kotlin/Dependencies.kt` (mod version/metadata in `Info.kt`),
 **except** plugin versions, which are inlined in `build.gradle.kts`'s `plugins {}` block — Gradle 9
 can't read buildSrc constants there. Keep the two Kotlin versions in sync (plugin block vs.
