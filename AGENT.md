@@ -67,12 +67,15 @@ of `Node`s (`items/data/Graph.kt`, `Node.kt`) — the grid, the drawn line, and 
 wraps the legacy NBT serialization (`toPanel()`/`toNbt()`), and recipe JSONs embed the same shape
 under `components` — the NBT readers tolerate dynamic-ops numeric types for this reason.
 
+**Puzzle rules.** `rules/` catalogs the Witness line-puzzle rules this mod replicates, one file per
+rule, indexed by `rules/README.md`. Check it before touching puzzle logic.
+
 **Puzzle flow across the mod:**
 - `PuzzlePanelItem` stacks carry the component → placed in a `PuzzleFrameBlockEntity`
   (`IronPuzzleFrameBlock`) → rendered live by `PuzzleFrameBlockRenderer`.
 - Solving: clicking a frame opens `screens/solver/PuzzleSolverScreen` (a full-screen overlay, not a
-  ScreenHandler screen) which raycasts back at the physical panel, traces the line on the graph, and
-  validates via `PuzzleSolverDomain`.
+  ScreenHandler screen) which raycasts back at the physical panel and traces the line on the graph
+  via `PuzzleSolverDomain` (tracing only, no solution validation yet).
 - Composing: `PuzzleComposerBlock` opens a LibGui `SyncedGuiDescription`
   (`screens/composer/`, `WPuzzleEditor` widget) with slot changes synced C2S via
   `SynchronizePuzzleSlotPayload` (typed `CustomPayload`).
