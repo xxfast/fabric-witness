@@ -136,17 +136,14 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val mouseY: Double = click.y()
         val button: Int = click.button()
 
-        // Right-click cancels an active trace, then closes the solver if already idle.
-        if (button == 1) {
-            if (solver.isSolving) {
-                stopTracing()
-            } else {
-                client.closeScreen()
-            }
+        // Right-click closes the solver while idle. During a trace it releases and submits the
+        // line, just like left-click, so both buttons accept only valid solutions.
+        if (button == 1 && !solver.isSolving) {
+            client.closeScreen()
             return true
         }
 
-        // Left-click while tracing releases the line and submits it for validation.
+        // Left- or right-click while tracing releases the line and submits it for validation.
         if (solver.isSolving) {
             submitTrace(player)
             return true

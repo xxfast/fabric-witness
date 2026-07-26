@@ -107,7 +107,7 @@ round cap covers it well before the tip arrives, so a line that visibly reaches 
 failed on the last fraction of the nub. A tip part way along any other edge is not a finished line,
 including one backing out of an end point. It moves the state through `SolutionSubmitted` to `SolutionAccepted` or `SolutionRejected`
 (`PuzzleSolverViewModels.kt`) and returns the line to render, empty on rejection.
-`PuzzleSolverScreen` submits on left-click while tracing. There is still no region flood-fill and
+`PuzzleSolverScreen` submits on left- or right-click while tracing. There is still no region flood-fill and
 no symbol validation, so a panel carrying symbols is accepted on the line rule alone.
 
 ## Sources
