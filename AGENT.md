@@ -67,8 +67,10 @@ of `Node`s (`items/data/Graph.kt`, `Node.kt`) — the grid, the drawn line, and 
 wraps the legacy NBT serialization (`toPanel()`/`toNbt()`), and recipe JSONs embed the same shape
 under `components` — the NBT readers tolerate dynamic-ops numeric types for this reason.
 
-**Puzzle rules.** `rules/` catalogs the Witness line-puzzle rules this mod replicates, one file per
-rule, indexed by `rules/README.md`. Check it before touching puzzle logic.
+**Puzzle rules.** `rules/witness/` catalogs the Witness line-puzzle rules this mod replicates, one
+file per rule, indexed by `rules/witness/README.md`. Check it before touching puzzle logic.
+`rules/minecraft/` documents the mod's crafting rules (panel grid recipes, upgrade, dye, recycle);
+`rules/README.md` indexes both.
 
 **Puzzle flow across the mod:**
 - `PuzzlePanelItem` stacks carry the component → placed in a `PuzzleFrameBlockEntity`

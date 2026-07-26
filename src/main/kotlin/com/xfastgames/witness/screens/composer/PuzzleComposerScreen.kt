@@ -221,7 +221,7 @@ class PuzzleComposerScreenDescription(
             val selectedToggle: WRadioImageButton? = toggleGroup.selected
 
             // An end point is a nub hanging off a border node, not a flag on the node itself,
-            // so it edits the graph rather than a modifier (rules/02-end-points.md).
+            // so it edits the graph rather than a modifier (rules/witness/02-end-points.md).
             if (selectedToggle == endButton) {
                 if (node == null) return@setClickListener
                 commit(outputPuzzle.withEndPointToggled(node) ?: return@setClickListener)

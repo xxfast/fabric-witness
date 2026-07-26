@@ -32,7 +32,7 @@ class PuzzleSolver {
 
     /**
      * Begins a trace at [start]. Only `START` nodes are valid origins
-     * (rules/00-line-and-path.md, rules/01-start-points.md).
+     * (rules/witness/00-line-and-path.md, rules/witness/01-start-points.md).
      */
     fun startTracingLine(panel: Panel, start: Node): Graph<Node>? {
         if (!panel.graph.nodes().contains(start)) return null
@@ -128,7 +128,7 @@ class PuzzleSolver {
      * An end point is a nub one line thickness long (`EndPoints.END_POINT_LENGTH`) and the tip is
      * drawn with a half thickness round cap, so the line covers the nub well before the tip
      * arrives. Committing onto a nub therefore finishes the line and snaps the tip onto the end
-     * point (rules/00-line-and-path.md), rather than failing a line that visibly reaches it.
+     * point (rules/witness/00-line-and-path.md), rather than failing a line that visibly reaches it.
      *
      * Releasing part way along any other edge is not a finished line, including backing out of an
      * end point: the rendered line has already retracted off it.
@@ -269,7 +269,7 @@ class PuzzleSolver {
     /**
      * How far down an edge the tip may travel, ignoring the already traced line.
      *
-     * A broken edge can never be crossed (rules/03-broken-edges.md), but the line can be pushed
+     * A broken edge can never be crossed (rules/witness/03-broken-edges.md), but the line can be pushed
      * into the stub until it meets the gap, like in the game. `PuzzlePanelRenderer` draws that gap
      * one line thickness wide, centred on the edge, and caps the traced line with a half thickness
      * round tip, so the tip stops one full line thickness short of the midpoint.
@@ -285,7 +285,7 @@ class PuzzleSolver {
 
     /**
      * Extends the path to [target], or unwinds one step when backtracking. Returns false when the
-     * move would revisit a node: every node is visited at most once (rules/00-line-and-path.md).
+     * move would revisit a node: every node is visited at most once (rules/witness/00-line-and-path.md).
      */
     private fun arriveAt(target: Node): Boolean {
         val previous: Node? = path.getOrNull(path.lastIndex - 1)

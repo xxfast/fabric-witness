@@ -9,7 +9,7 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
- * End points (rules/02-end-points.md).
+ * End points (rules/witness/02-end-points.md).
  *
  * An end point is a short nub protruding from the lattice: its own `END` node, connected to a
  * border node by one ordinary edge. It is not a flag on the border node itself, so the final
