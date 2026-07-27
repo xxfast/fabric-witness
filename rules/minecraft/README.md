@@ -64,7 +64,8 @@ place invested cost can drift below the resulting cell count.
 Unlike [../witness/](../witness/README.md) (mostly unmodelled puzzle logic), all crafting here is
 **implemented and live**. The three special recipes register their serializers through
 `PanelDyeRecipe.init()` before datapacks load; the two static recipe groups are plain JSON. The one
-open limitation is the upgrade's hardcoded 4×4 ceiling ([02](02-grid-upgrade.md#limits-worth-knowing)).
+open limitation is that the upgrade still ships its pre-generalisation whitelist, so it stops at 4×4
+([02](02-grid-upgrade.md#status-in-this-mod)).
 
 ## Sources
 

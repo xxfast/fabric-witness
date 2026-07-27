@@ -15,6 +15,7 @@ import net.minecraft.network.RegistryByteBuf
 import net.minecraft.network.codec.PacketCodec
 import net.minecraft.network.codec.PacketCodecs
 import net.minecraft.util.DyeColor
+import kotlin.math.roundToInt
 
 private const val KEY_WIDTH = "width"
 private const val KEY_HEIGHT = "height"
@@ -42,17 +43,33 @@ sealed class Panel(val type: Type) {
     ) : Panel(Type.Grid) {
 
         companion object {
+            /**
+             * Per-axis ceiling in nodes, which is 8 cells. Bounded by what stays legible in the
+             * solver, what fits in one stack when recycled, and what is sane to sync on an itemstack.
+             */
+            const val MAX_NODES: Int = 9
+
             fun ofSize(size: Int): Grid = generatePanel(size, size)
             fun ofSize(width: Int, height: Int): Grid = generatePanel(width, height)
+
+            /**
+             * Distance from the origin to node index `0` on each axis. A grid is centred inside the
+             * square its longest side describes, so the offsets change with the aspect ratio and any
+             * copy between two sizes has to go through them rather than reuse raw coordinates.
+             */
+            fun gridOffsets(width: Int, height: Int): Pair<Float, Float> {
+                var xOffset = 0.5f
+                if (width < height) xOffset += 0.5f * (height - width)
+                var yOffset = 0.5f
+                if (height < width) yOffset += 0.5f * (width - height)
+                return xOffset to yOffset
+            }
 
             @Suppress("UnstableApiUsage")
             fun generateGrid(width: Int, height: Int): ValueGraph<Node, Edge> {
                 val graph: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected().build()
 
-                var xOffset = 0.5f
-                if (width < height) xOffset += 0.5f * (height - width)
-                var yOffset = 0.5f
-                if (height < width) yOffset += 0.5f * (width - height)
+                val (xOffset: Float, yOffset: Float) = gridOffsets(width, height)
 
                 val previousRow: MutableList<Node> = mutableListOf()
                 repeat(width) { x ->
@@ -97,10 +114,72 @@ sealed class Panel(val type: Type) {
             }
         }
 
+        /**
+         * A copy [width] × [height] nodes in size, with this panel's nodes and edges transplanted
+         * into it at index offset ([offsetX], [offsetY]). Modifiers survive, so growing a composed
+         * puzzle keeps its start points, ends, hexagons and broken edges; the drawn [line] does not,
+         * since a partial line on a resized grid is meaningless.
+         *
+         * Node index `(0, 0)` is the low corner of both axes: `+x` runs right and `+y` runs up on the
+         * rendered panel, so a caller working from the crafting grid (whose y runs *down*) has to flip
+         * the y offset.
+         */
+        @Suppress("UnstableApiUsage")
+        fun expandTo(width: Int, height: Int, offsetX: Int = 0, offsetY: Int = 0): Grid {
+            if (width < this.width || height < this.height) return this
+            if (width == this.width && height == this.height && offsetX == 0 && offsetY == 0) return this
+
+            val (sourceXOffset: Float, sourceYOffset: Float) = gridOffsets(this.width, this.height)
+            val (targetXOffset: Float, targetYOffset: Float) = gridOffsets(width, height)
+
+            val sourceNodes: Map<Pair<Int, Int>, Node> = graph.nodes().associateBy { node ->
+                (node.x - sourceXOffset).roundToInt() to (node.y - sourceYOffset).roundToInt()
+            }
+
+            /** The source node that ends up at target index ([x], [y]), if any. */
+            fun sourceAt(x: Int, y: Int): Node? = sourceNodes[x - offsetX to y - offsetY]
+
+            val target: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected().build()
+            val targetNodes: MutableMap<Pair<Int, Int>, Node> = mutableMapOf()
+
+            repeat(width) { x ->
+                repeat(height) { y ->
+                    val node = Node(
+                        x = x + targetXOffset,
+                        y = y + targetYOffset,
+                        modifier = sourceAt(x, y)?.modifier ?: Modifier.NONE
+                    )
+                    targetNodes[x to y] = node
+                    target.addNode(node)
+                }
+            }
+
+            repeat(width) { x ->
+                repeat(height) { y ->
+                    val node: Node = targetNodes.getValue(x to y)
+                    listOf(x - 1 to y, x to y - 1).forEach { neighbourIndex ->
+                        val neighbour: Node = targetNodes[neighbourIndex] ?: return@forEach
+                        val from: Node? = sourceAt(x, y)
+                        val to: Node? = sourceAt(neighbourIndex.first, neighbourIndex.second)
+                        val edge: Edge = when {
+                            // Both ends came from the source: carry its edge over, and honour a
+                            // deliberately missing one by leaving the pair unconnected.
+                            from != null && to != null ->
+                                graph.edgeValue(from, to).orElse(null) ?: return@forEach
+
+                            else -> Modifier.NORMAL
+                        }
+                        target.putEdgeValue(neighbour, node, edge)
+                    }
+                }
+            }
+
+            return copy(line = emptyGraph(), graph = target, width = width, height = height)
+        }
+
         private fun grow(by: Int): Grid {
             if (by <= 0) return this
-            // TODO Implement this
-            return copy()
+            return expandTo(width + by, height + by)
         }
 
         private fun shrink(by: Int): Grid {

@@ -51,8 +51,7 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
     override fun craft(input: CraftingRecipeInput, registries: RegistryWrapper.WrapperLookup): ItemStack {
         val upgrade: Upgrade = upgrade(input) ?: return ItemStack.EMPTY
         return upgrade.source.copyWithCount(1).apply {
-            panel = Panel.Grid.ofSize(upgrade.width, upgrade.height)
-                .copy(backgroundColor = upgrade.panel.backgroundColor)
+            panel = upgrade.panel.expandTo(upgrade.width, upgrade.height, upgrade.offsetX, upgrade.offsetY)
             cost = upgrade.cost
         }
     }
@@ -107,18 +106,28 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
         val panel: Panel.Grid = source.stack.panel as? Panel.Grid ?: return null
         val previousCost: Int = source.stack.cost ?: return null
         val bounds: Bounds = Bounds.of(occupied) ?: return null
+        val sourceX: Int = source.x - bounds.minX
+        val sourceY: Int = source.y - bounds.minY
         val target: Pair<Int, Int> = PanelGridUpgradeLayouts.target(
             panel.width,
             panel.height,
             tablets.size,
             bounds.width,
             bounds.height,
-            source.x - bounds.minX,
-            source.y - bounds.minY,
+            sourceX,
+            sourceY,
             bounds.isFilledBy(occupied),
         ) ?: return null
 
-        return Upgrade(source.stack, panel, target.first, target.second, previousCost + tablets.size)
+        return Upgrade(
+            source = source.stack,
+            panel = panel,
+            width = target.first,
+            height = target.second,
+            cost = previousCost + tablets.size,
+            offsetX = PanelGridUpgradeLayouts.anchorOffset(bounds.width, sourceX),
+            offsetY = PanelGridUpgradeLayouts.anchorOffset(bounds.height, sourceY),
+        )
     }
 
     internal data class Upgrade(
@@ -127,6 +136,8 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
         val width: Int,
         val height: Int,
         val cost: Int,
+        val offsetX: Int,
+        val offsetY: Int,
     )
 
     private data class OccupiedSlot(val x: Int, val y: Int, val stack: ItemStack)
@@ -150,8 +161,14 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
     }
 }
 
-/** Pure legacy-layout table, kept separate so it can be regression-tested without Minecraft bootstrap. */
+/** Pure layout maths, kept separate so it can be regression-tested without Minecraft bootstrap. */
 internal object PanelGridUpgradeLayouts {
+
+    /**
+     * Representative layouts for the recipe book and JEI, not an exhaustive list: [target] accepts
+     * any filled rectangle, which is infinite. The first fourteen are the pre-formula whitelist, kept
+     * so nothing vanishes from the recipe book; the rest show that larger sources work the same way.
+     */
     val displays: List<DisplayLayout> = listOf(
         DisplayLayout(2, 2, 1, 2, 2, 3),
         DisplayLayout(2, 2, 2, 1, 3, 2),
@@ -167,8 +184,31 @@ internal object PanelGridUpgradeLayouts {
         DisplayLayout(3, 4, 2, 1, 4, 4),
         DisplayLayout(4, 3, 1, 2, 4, 4),
         DisplayLayout(2, 2, 3, 3, 4, 4, sourceX = 1, sourceY = 1),
+        DisplayLayout(4, 4, 2, 1, 5, 4),
+        DisplayLayout(5, 4, 1, 2, 5, 5),
+        DisplayLayout(6, 6, 3, 3, 8, 8, sourceX = 1, sourceY = 1),
     )
 
+    /**
+     * Where the source lands inside the result, on one axis: the number of new rows or columns that
+     * go *before* it in node-index order.
+     *
+     * Both axes are mirrored between the two coordinate systems, so both get the same flip. Verified
+     * in game rather than derived: tablets placed to the right of the panel have to grow the panel to
+     * the right, and tablets above it have to grow it upwards, in the frame and in the item icon
+     * alike.
+     */
+    fun anchorOffset(footprint: Int, sourcePosition: Int): Int = footprint - 1 - sourcePosition
+
+    /**
+     * The crafting grid is a schematic: the panel slot is the panel you have, every tablet slot next
+     * to it is one more row or column of cells.  So each axis grows by one node per extra slot along
+     * it, whatever the source size, which is why this is arithmetic rather than the old whitelist.
+     *
+     * [sourceX] and [sourceY] say which sides grow, and so where the source's content lands in the
+     * result.  Nothing reads them yet: [PanelGridUpgradeRecipe.craft] still rebuilds a blank grid.
+     */
+    @Suppress("UNUSED_PARAMETER")
     fun target(
         sourceWidth: Int,
         sourceHeight: Int,
@@ -180,37 +220,18 @@ internal object PanelGridUpgradeLayouts {
         isFilledRectangle: Boolean,
     ): Pair<Int, Int>? {
         if (!isFilledRectangle) return null
-        return when (tabletCount) {
-            1 -> singleTabletTarget(sourceWidth, sourceHeight, layoutWidth, layoutHeight)
-            3 -> if (sourceWidth == 3 && sourceHeight == 3 && layoutWidth == 2 && layoutHeight == 2) 4 to 4 else null
-            8 -> if (
-                sourceWidth == 2 && sourceHeight == 2 &&
-                layoutWidth == 3 && layoutHeight == 3 &&
-                sourceX == 1 && sourceY == 1
-            ) 4 to 4 else null
-            else -> null
-        }
-    }
 
-    private fun singleTabletTarget(
-        width: Int,
-        height: Int,
-        layoutWidth: Int,
-        layoutHeight: Int,
-    ): Pair<Int, Int>? = when {
-        width == 2 && height == 2 && layoutWidth == 1 && layoutHeight == 2 -> 2 to 3
-        width == 2 && height == 2 && layoutWidth == 2 && layoutHeight == 1 -> 3 to 2
-        width == 2 && height == 3 && layoutWidth == 1 && layoutHeight == 2 -> 2 to 4
-        width == 2 && height == 3 && layoutWidth == 2 && layoutHeight == 1 -> 3 to 3
-        width == 3 && height == 2 && layoutWidth == 1 && layoutHeight == 2 -> 3 to 3
-        width == 3 && height == 2 && layoutWidth == 2 && layoutHeight == 1 -> 4 to 2
-        width == 2 && height == 4 && layoutWidth == 2 && layoutHeight == 1 -> 3 to 4
-        width == 4 && height == 2 && layoutWidth == 1 && layoutHeight == 2 -> 4 to 3
-        width == 3 && height == 3 && layoutWidth == 1 && layoutHeight == 2 -> 3 to 4
-        width == 3 && height == 3 && layoutWidth == 2 && layoutHeight == 1 -> 4 to 3
-        width == 3 && height == 4 && layoutWidth == 2 && layoutHeight == 1 -> 4 to 4
-        width == 4 && height == 3 && layoutWidth == 1 && layoutHeight == 2 -> 4 to 4
-        else -> null
+        // No tablets is a lone panel, which belongs to PanelRecycleRecipe.
+        if (tabletCount < 1) return null
+
+        // The footprint is the source's slot plus one slot per tablet, so anything else is a gap.
+        if (tabletCount != layoutWidth * layoutHeight - 1) return null
+
+        val width: Int = sourceWidth + layoutWidth - 1
+        val height: Int = sourceHeight + layoutHeight - 1
+        if (width > Panel.Grid.MAX_NODES || height > Panel.Grid.MAX_NODES) return null
+
+        return width to height
     }
 
     internal data class DisplayLayout(

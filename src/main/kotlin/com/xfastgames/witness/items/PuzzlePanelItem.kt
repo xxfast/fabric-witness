@@ -66,6 +66,11 @@ class PuzzlePanelItem(settings: Settings) : Item(settings), Clientside {
         val typeString: String =
             puzzle.type.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
 
+        // Crafting can't explain a failed upgrade, so the tooltip is the only place a player can
+        // learn the grid won't grow any further.
+        val maxedOut: Boolean = puzzle is Panel.Grid &&
+            (puzzle.width >= Panel.Grid.MAX_NODES || puzzle.height >= Panel.Grid.MAX_NODES)
+
         val sizeString = when (puzzle) {
             is Panel.Grid -> "${puzzle.width - 1} x ${puzzle.height - 1}"
             is Panel.Tree -> "${puzzle.height - 1} Tall"
@@ -84,6 +89,7 @@ class PuzzlePanelItem(settings: Settings) : Item(settings), Clientside {
         if (type.isAdvanced) {
             textConsumer.accept(Text.of("($sizeString $colorString $typeString)"))
             textConsumer.accept(Text.of(cost))
+            if (maxedOut) textConsumer.accept(Text.of("Maximum size"))
         }
     }
 }

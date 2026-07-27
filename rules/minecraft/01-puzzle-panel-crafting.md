@@ -47,7 +47,8 @@ edge of the blank grid, the `backgroundColor` (0 = white), and `cost` = tablet c
 ## Status in this mod
 
 Implemented as datapack JSON — no code involved. Note the base-grid ceiling is 3×3 cells (4×4
-nodes); larger panels only exist via the upgrade recipe.
+nodes), and it is permanent: a crafting pattern is at most 3×3 slots. Larger panels only exist via
+the upgrade recipe ([02](02-grid-upgrade.md)).
 
 ## Sources
 
