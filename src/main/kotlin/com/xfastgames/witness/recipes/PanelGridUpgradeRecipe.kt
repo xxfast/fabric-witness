@@ -23,12 +23,15 @@ import net.minecraft.util.Identifier
 import net.minecraft.world.World
 
 /**
- * Replaces the nbtcrafting-backed grid-expansion recipes.
+ * The one recipe that builds and grows every puzzle panel.
  *
- * Vanilla recipe JSON can assign a literal data component, but cannot express the old
- * `input.cost + tablets` calculation or copy the input panel's background colour.  The legacy
- * recipes accepted the layouts handled by [upgrade] below; keeping that table here makes the
- * dynamic part explicit while the nine base-grid recipes remain ordinary shaped JSON recipes.
+ * The crafting grid is a schematic: one slot is the source, every other slot adds a row or column of
+ * cells.  A tablet *is* a 1×1-cell panel that cost 1 tablet, so a grid of nothing but tablets builds
+ * a panel from scratch through the same arithmetic that grows one, and the nine hardcoded
+ * `puzzle_panel_grid_*.json` base recipes it replaced are just its single-craft cases.
+ *
+ * It lives in code rather than JSON because the result depends on the source panel's own data (size,
+ * colour, cost), which a static shaped recipe can't read.
  */
 class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCraftingRecipe(category) {
 
@@ -44,13 +47,27 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
 
         /** Referenced from common init to register this serializer before datapacks load. */
         fun init() {}
+
+        /** What a tablet is worth as a source: one tablet, spent. */
+        private const val SEED_COST: Int = 1
+
+        /**
+         * A tablet standing in as a source panel: blank, 1×1 cell, 2×2 nodes.
+         *
+         * Built fresh per craft rather than cached, because [Panel.Grid.expandTo] hands the instance
+         * straight back for a 1×1 footprint and a shared graph would then be live on the crafted
+         * itemstack.
+         */
+        private fun seedPanel(): Panel.Grid = Panel.Grid.ofSize(2, 2)
     }
 
     override fun matches(input: CraftingRecipeInput, world: World): Boolean = upgrade(input) != null
 
     override fun craft(input: CraftingRecipeInput, registries: RegistryWrapper.WrapperLookup): ItemStack {
         val upgrade: Upgrade = upgrade(input) ?: return ItemStack.EMPTY
-        return upgrade.source.copyWithCount(1).apply {
+        // Copying the source stack carries its other components forward; a seed has none to carry.
+        val result: ItemStack = upgrade.source?.copyWithCount(1) ?: ItemStack(PuzzlePanelItem.ITEM)
+        return result.apply {
             panel = upgrade.panel.expandTo(upgrade.width, upgrade.height, upgrade.offsetX, upgrade.offsetY)
             cost = upgrade.cost
         }
@@ -60,8 +77,26 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
 
     override fun isIgnoredInRecipeBook(): Boolean = false
 
-    /** One display for each distinct old layout; input stacks show the required source dimensions. */
-    override fun getDisplays(): List<RecipeDisplay> = PanelGridUpgradeLayouts.displays.map { layout ->
+    /**
+     * Representative layouts for the recipe book and JEI. The seed layouts come first because they
+     * are the entry point, and they stand in for the nine deleted `puzzle_panel_grid_*.json` recipes
+     * so nothing vanishes from the book.
+     */
+    override fun getDisplays(): List<RecipeDisplay> = seedDisplays() + growthDisplays()
+
+    /** A footprint of nothing but tablets, and the panel it builds from scratch. */
+    private fun seedDisplays(): List<RecipeDisplay> = PanelGridUpgradeLayouts.seedFootprints.map { (cellsWide, cellsHigh) ->
+        ShapedCraftingRecipeDisplay(
+            cellsWide,
+            cellsHigh,
+            List(cellsWide * cellsHigh) { TABLET_INGREDIENT.toDisplay() },
+            SlotDisplay.StackSlotDisplay(panelStack(cellsWide + 1, cellsHigh + 1, cellsWide * cellsHigh)),
+            SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)
+        )
+    }
+
+    /** One display per growth layout; input stacks show the required source dimensions. */
+    private fun growthDisplays(): List<RecipeDisplay> = PanelGridUpgradeLayouts.displays.map { layout ->
         ShapedCraftingRecipeDisplay(
             layout.layoutWidth,
             layout.layoutHeight,
@@ -85,8 +120,13 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
     }
 
     /**
-     * Returns the legacy expansion selected by [input], or null when its shape, source panel, or
-     * component data does not match one of the old NbtCrafting recipes.
+     * Returns the panel [input] describes, or null when its shape, source panel, or component data
+     * doesn't satisfy the rule.
+     *
+     * One slot is the source and every other slot pays for a row or column.  When no panel is
+     * present a tablet takes the source's place as a blank 1×1-cell panel costing 1, which is what
+     * makes building from scratch the same arithmetic as growing.  All the tablets in that case are
+     * interchangeable, so which one is picked cannot affect the result.
      */
     internal fun upgrade(input: CraftingRecipeInput): Upgrade? {
         val occupied: List<OccupiedSlot> = buildList {
@@ -99,39 +139,52 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
             }
         }
 
-        val source: OccupiedSlot = occupied.singleOrNull { it.stack.item is PuzzlePanelItem } ?: return null
+        val panels: List<OccupiedSlot> = occupied.filter { it.stack.item is PuzzlePanelItem }
+        if (panels.size > 1) return null
         val tablets: List<OccupiedSlot> = occupied.filter { it.stack.item is AncientPuzzleTablet }
-        if (occupied.size != tablets.size + 1) return null
+        // Anything that is neither a panel nor a tablet is a stray item.
+        if (occupied.size != tablets.size + panels.size) return null
 
-        val panel: Panel.Grid = source.stack.panel as? Panel.Grid ?: return null
-        val previousCost: Int = source.stack.cost ?: return null
+        val sourceSlot: OccupiedSlot = panels.singleOrNull() ?: tablets.firstOrNull() ?: return null
+        val sourceIsPanel: Boolean = panels.isNotEmpty()
+
+        val panel: Panel.Grid =
+            if (!sourceIsPanel) seedPanel() else sourceSlot.stack.panel as? Panel.Grid ?: return null
+        val previousCost: Int =
+            if (!sourceIsPanel) SEED_COST else sourceSlot.stack.cost ?: return null
+
         val bounds: Bounds = Bounds.of(occupied) ?: return null
-        val sourceX: Int = source.x - bounds.minX
-        val sourceY: Int = source.y - bounds.minY
+        val sourceX: Int = sourceSlot.x - bounds.minX
+        val sourceY: Int = sourceSlot.y - bounds.minY
+        // The source occupies one slot whether it is a panel or the seed tablet, so everything else
+        // in the footprint is what was paid.
+        val paid: Int = occupied.size - 1
         val target: Pair<Int, Int> = PanelGridUpgradeLayouts.target(
             panel.width,
             panel.height,
-            tablets.size,
+            paid,
             bounds.width,
             bounds.height,
             sourceX,
             sourceY,
             bounds.isFilledBy(occupied),
+            sourceIsPanel,
         ) ?: return null
 
         return Upgrade(
-            source = source.stack,
+            source = sourceSlot.stack.takeIf { sourceIsPanel },
             panel = panel,
             width = target.first,
             height = target.second,
-            cost = previousCost + tablets.size,
+            cost = previousCost + paid,
             offsetX = PanelGridUpgradeLayouts.anchorOffset(bounds.width, sourceX),
             offsetY = PanelGridUpgradeLayouts.anchorOffset(bounds.height, sourceY),
         )
     }
 
     internal data class Upgrade(
-        val source: ItemStack,
+        /** The panel being grown, or null when this craft seeds a new one from tablets alone. */
+        val source: ItemStack?,
         val panel: Panel.Grid,
         val width: Int,
         val height: Int,
@@ -165,9 +218,24 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
 internal object PanelGridUpgradeLayouts {
 
     /**
-     * Representative layouts for the recipe book and JEI, not an exhaustive list: [target] accepts
-     * any filled rectangle, which is infinite. The first fourteen are the pre-formula whitelist, kept
-     * so nothing vanishes from the recipe book; the rest show that larger sources work the same way.
+     * Every footprint of pure tablets a 3×3 crafting grid can hold, in cells. These are the nine
+     * base-grid recipes that used to be hardcoded JSON, and they are the complete set of panels
+     * reachable in a single craft from nothing.
+     */
+    val seedFootprints: List<Pair<Int, Int>> = listOf(
+        1 to 1,
+        1 to 2, 2 to 1,
+        1 to 3, 3 to 1,
+        2 to 2,
+        2 to 3, 3 to 2,
+        3 to 3,
+    )
+
+    /**
+     * Representative growth layouts for the recipe book and JEI, not an exhaustive list: [target]
+     * accepts any filled rectangle, which is infinite. The first fourteen are the pre-formula
+     * whitelist, kept so nothing vanishes from the recipe book; the rest show that larger sources
+     * work the same way.
      */
     val displays: List<DisplayLayout> = listOf(
         DisplayLayout(2, 2, 1, 2, 2, 3),
@@ -206,7 +274,12 @@ internal object PanelGridUpgradeLayouts {
      * it, whatever the source size, which is why this is arithmetic rather than the old whitelist.
      *
      * [sourceX] and [sourceY] say which sides grow, and so where the source's content lands in the
-     * result.  Nothing reads them yet: [PanelGridUpgradeRecipe.craft] still rebuilds a blank grid.
+     * result.  This function doesn't read them; [PanelGridUpgradeRecipe.upgrade] turns them into the
+     * anchor offsets via [anchorOffset].
+     *
+     * [tabletCount] is what was *paid*, i.e. the occupied slots minus the source's own.  When
+     * [sourceIsPanel] is false the source is a seed tablet, so one fewer tablet is charged than the
+     * footprint holds.
      */
     @Suppress("UNUSED_PARAMETER")
     fun target(
@@ -218,11 +291,13 @@ internal object PanelGridUpgradeLayouts {
         sourceX: Int,
         sourceY: Int,
         isFilledRectangle: Boolean,
+        sourceIsPanel: Boolean = true,
     ): Pair<Int, Int>? {
         if (!isFilledRectangle) return null
 
-        // No tablets is a lone panel, which belongs to PanelRecycleRecipe.
-        if (tabletCount < 1) return null
+        // A panel with nothing added is a lone panel, which belongs to PanelRecycleRecipe. A seed has
+        // no equivalent case: a 1×1 footprint is the single-tablet craft that makes a 1×1-cell panel.
+        if (sourceIsPanel && tabletCount < 1) return null
 
         // The footprint is the source's slot plus one slot per tablet, so anything else is a gap.
         if (tabletCount != layoutWidth * layoutHeight - 1) return null

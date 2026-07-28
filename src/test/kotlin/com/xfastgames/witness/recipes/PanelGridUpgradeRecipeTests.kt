@@ -27,6 +27,69 @@ class PanelGridUpgradeRecipeTests {
         cases.forEach { case -> assertThat(target(case)).isEqualTo(case.target) }
     }
 
+    /**
+     * The nine deleted `puzzle_panel_grid_*.json` base recipes, asserted against the formula that
+     * replaced them. A tablet is a 1×1-cell (2×2-node) panel costing 1, so a footprint of pure
+     * tablets spends all but one of them growing that seed, and lands on the size the footprint
+     * describes. Targets here are the `width`/`height` the old JSON hardcoded.
+     */
+    @Test
+    fun `a footprint of pure tablets builds the panel the old base recipes did`() {
+        val cases = listOf(
+            // footprint cells, tablets in the grid, target nodes
+            Triple(1 to 1, 1, 2 to 2),
+            Triple(1 to 2, 2, 2 to 3),
+            Triple(2 to 1, 2, 3 to 2),
+            Triple(1 to 3, 3, 2 to 4),
+            Triple(3 to 1, 3, 4 to 2),
+            Triple(2 to 2, 4, 3 to 3),
+            Triple(2 to 3, 6, 3 to 4),
+            Triple(3 to 2, 6, 4 to 3),
+            Triple(3 to 3, 9, 4 to 4),
+        )
+
+        cases.forEach { (footprint, tabletsInGrid, target) ->
+            val (layoutWidth, layoutHeight) = footprint
+            assertThat(
+                PanelGridUpgradeLayouts.target(
+                    sourceWidth = 2,
+                    sourceHeight = 2,
+                    tabletCount = tabletsInGrid - 1,
+                    layoutWidth = layoutWidth,
+                    layoutHeight = layoutHeight,
+                    sourceX = 0,
+                    sourceY = 0,
+                    isFilledRectangle = true,
+                    sourceIsPanel = false,
+                )
+            ).isEqualTo(target)
+
+            // ...and the seed's own tablet plus what it paid is the old recipe's hardcoded cost.
+            assertThat(1 + (tabletsInGrid - 1)).isEqualTo(layoutWidth * layoutHeight)
+        }
+
+        assertThat(PanelGridUpgradeLayouts.seedFootprints).containsExactlyElementsIn(cases.map { it.first })
+    }
+
+    @Test
+    fun `a seed accepts a lone tablet where a panel would be sent to recycle`() {
+        // Same footprint and tablet count, opposite verdicts: a 1x1 footprint paying nothing is the
+        // single-tablet craft when it is a seed, and a lone panel awaiting recycle when it is not.
+        val seed = PanelGridUpgradeLayouts.target(2, 2, 0, 1, 1, 0, 0, true, sourceIsPanel = false)
+        assertThat(seed).isEqualTo(2 to 2)
+        assertThat(PanelGridUpgradeLayouts.target(2, 2, 0, 1, 1, 0, 0, true)).isNull()
+    }
+
+    @Test
+    fun `a seed is capped like any other source`() {
+        // 3x3 is the largest footprint a crafting grid holds, so a seed can never approach the cap.
+        assertThat(PanelGridUpgradeLayouts.target(2, 2, 8, 3, 3, 0, 0, true, sourceIsPanel = false))
+            .isEqualTo(4 to 4)
+        // Gaps are rejected on the seed path too.
+        assertThat(PanelGridUpgradeLayouts.target(2, 2, 2, 2, 2, 0, 0, true, sourceIsPanel = false))
+            .isNull()
+    }
+
     @Test
     fun `expansion continues past the old 4x4 ceiling`() {
         // One tablet adds one row or column, whatever the source size.

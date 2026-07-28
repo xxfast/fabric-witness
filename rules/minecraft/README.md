@@ -15,16 +15,15 @@ they cannot read or transform an existing item's data.
 | # | Recipe | File | Kind |
 |---|--------|------|------|
 | 00 | Ancient puzzle tablet | [00-ancient-puzzle-tablet.md](00-ancient-puzzle-tablet.md) | shapeless — the currency |
-| 01 | Puzzle panel crafting (base grids) | [01-puzzle-panel-crafting.md](01-puzzle-panel-crafting.md) | 9 shaped recipes, 1×1–3×3 cells |
 
 **Special recipes**: `SpecialCraftingRecipe` subclasses in Kotlin. They read the input panel's
 `witness:panel` / `witness:cost` components and compute the result — impossible to express in JSON.
 
 | # | Recipe | File | Reads from input |
 |---|--------|------|------------------|
-| 02 | Grid upgrade | [02-grid-upgrade.md](02-grid-upgrade.md) | size, colour, cost |
-| 03 | Panel dye | [03-panel-dye.md](03-panel-dye.md) | whole panel, sets colour |
-| 04 | Panel recycle | [04-panel-recycle.md](04-panel-recycle.md) | cost |
+| 01 | Puzzle panel crafting | [01-puzzle-panel-crafting.md](01-puzzle-panel-crafting.md) | size, colour, cost |
+| 02 | Panel dye | [02-panel-dye.md](02-panel-dye.md) | whole panel, sets colour |
+| 03 | Panel recycle | [03-panel-recycle.md](03-panel-recycle.md) | cost |
 
 ## Cells, nodes, and cost
 
@@ -33,39 +32,39 @@ reading any file:
 
 | Term | Meaning | A "2×2-cell" grid |
 |------|---------|-------------------|
-| **Cells** | Drawable squares. Recipe *filenames* (`grid_2x2`) and JEI use this. | 2×2 = 4 cells |
+| **Cells** | Drawable squares. What the player sees and what JEI shows. | 2×2 = 4 cells |
 | **Nodes** | Line intersections. The `Panel.Grid` `width`/`height` fields. | 3×3 nodes |
 | **Cost** | Tablets invested. The `witness:cost` component. | 4 |
 
-The relationships are fixed per axis:
+Nodes are fixed per axis:
 
 ```
 nodes = cells + 1
-cost  = cells = tablets invested = (width_nodes − 1) × (height_nodes − 1)
 ```
 
-So a *W×H-cell* panel is stored as `(W+1)×(H+1)` nodes and costs `W×H`. The one place `cost` stops
-equalling cell count is the multi-tablet grid upgrade — see [02](02-grid-upgrade.md#cost-rule).
+Cost is **not** a function of size. It counts tablets actually invested, which depends on the route
+taken, so a panel built in one craft can cost more than the same panel grown one axis at a time. See
+[the convenience premium](01-puzzle-panel-crafting.md#the-convenience-premium). The only invariant
+is that cost never exceeds what was spent, which is what makes recycling safe.
 
 ## How the tablet economy composes
 
 1. `ancient_debris` → **9** tablets ([00](00-ancient-puzzle-tablet.md)).
-2. Tablets → a fresh base panel, `cost = cells` ([01](01-puzzle-panel-crafting.md)).
-3. Panel + tablets → a **bigger** panel, colour kept, `cost += tablets` ([02](02-grid-upgrade.md)).
-4. Panel + dye → the **same** panel recoloured ([03](03-panel-dye.md)).
-5. Panel → **`cost`** tablets back ([04](04-panel-recycle.md)).
+2. Tablets → a panel, or panel + tablets → a **bigger** panel, colour kept, `cost += tablets placed`
+   ([01](01-puzzle-panel-crafting.md)). One rule, because a tablet is a 1×1-cell panel costing 1.
+3. Panel + dye → the **same** panel recoloured ([02](02-panel-dye.md)).
+4. Panel → **`cost`** tablets back ([03](03-panel-recycle.md)).
 
-Steps 2 and 5 are inverses, so the economy is conservative: recycling returns exactly what was
-invested. The upgrade path (3) is the only source of panels larger than 3×3 cells, and the only
-place invested cost can drift below the resulting cell count.
+Steps 2 and 4 are inverses on every route, so the economy is conservative: recycling returns exactly
+what was invested, never more.
 
 ## Where the mod stands
 
 Unlike [../witness/](../witness/README.md) (mostly unmodelled puzzle logic), all crafting here is
 **implemented and live**. The three special recipes register their serializers through
-`PanelDyeRecipe.init()` before datapacks load; the two static recipe groups are plain JSON. The one
-open limitation is that the upgrade still ships its pre-generalisation whitelist, so it stops at 4×4
-([02](02-grid-upgrade.md#status-in-this-mod)).
+`PanelDyeRecipe.init()` before datapacks load; the tablet recipe is plain JSON. Open limitations are
+economy and legibility questions rather than mechanics, listed in
+[01](01-puzzle-panel-crafting.md#not-done).
 
 ## Sources
 
@@ -73,5 +72,6 @@ open limitation is that the upgrade still ships its pre-generalisation whitelist
 - `src/main/kotlin/com/xfastgames/witness/recipes/PanelDyeRecipe.kt` (holds both `PanelDyeRecipe`
   and `PanelRecycleRecipe`)
 - `src/main/kotlin/com/xfastgames/witness/items/data/Panel.kt` (`Panel.Grid`, node geometry)
-- `src/main/resources/data/witness/recipe/` (the nine `puzzle_panel_grid_*` files, the four
-  `type: witness:*` special-recipe stubs, and `ancient_puzzle_tablet.json`)
+- `src/main/resources/data/witness/recipe/` (the `type: witness:*` special-recipe stubs and
+  `ancient_puzzle_tablet.json`; the nine hardcoded `puzzle_panel_grid_*` files are gone, folded into
+  `PanelGridUpgradeRecipe`)

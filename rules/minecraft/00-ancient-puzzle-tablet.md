@@ -3,7 +3,7 @@
 **Category:** ingredient (static recipe)
 
 The raw currency of every panel recipe. Panels are built out of tablets, grown with more tablets,
-and [recycled](04-panel-recycle.md) back into them, so a panel's whole economy is denominated in
+and [recycled](03-panel-recycle.md) back into them, so a panel's whole economy is denominated in
 tablets.
 
 ## Rule
@@ -14,15 +14,16 @@ is the only source; there is no reverse recipe from tablets back to debris.
 ## Edge cases
 
 - Tablets are a plain stackable item — no data components, no per-stack state.
-- The 1 → 9 ratio sets the exchange rate for the whole system: a 3×3-cell panel costs 9 tablets,
-  i.e. exactly one ancient debris' worth.
+- The 1 → 9 ratio sets the exchange rate for the whole system: one debris buys a 3×3-cell panel
+  built in a single craft, or an 8×8 one grown carefully with 6 tablets to spare. See
+  [the convenience premium](01-puzzle-panel-crafting.md#the-convenience-premium).
 
 ## Cost accounting
 
 Everything downstream measures value in tablets, tracked on a panel by its `witness:cost` component.
 See [the shared cost model](README.md#cells-nodes-and-cost) for how tablets, cells, and nodes line
 up. In short: a panel's `cost` is the number of tablets invested to build it, and
-[recycle](04-panel-recycle.md) hands that many back.
+[recycle](03-panel-recycle.md) hands that many back.
 
 ## Status in this mod
 

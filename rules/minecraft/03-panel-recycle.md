@@ -16,17 +16,17 @@ the panel's `witness:cost`. Panels that predate the `cost` component (legacy / c
 - Match requires exactly one non-empty slot, and it must be a `PuzzlePanelItem`.
 - **Inverse of the build rate.** A panel built for *N* tablets recycles to *N*, so building then
   recycling is a no-op on your tablet count — see [the cost model](README.md#cells-nodes-and-cost).
-- **The one non-conservative case** is the multi-tablet [grid upgrade](02-grid-upgrade.md): its
-  `cost` counts tablets *placed*, which can be fewer than the resulting panel's cell count, so an
-  upgraded panel recycles to its (lower) invested cost — never an exploit, just a discount on
-  building large.
+- **Cost is path-dependent**, so two identical-looking panels can pay out different amounts: see
+  [the convenience premium](01-puzzle-panel-crafting.md#the-convenience-premium). Recycle doesn't
+  care. It refunds what was invested on whichever route was taken, which is what keeps every route
+  conservative. The most any legal panel can be worth is 28, so a refund always fits in one stack.
 - The default-4 fallback means recycling a legacy panel can under- or over-pay relative to its true
   size; only affects panels created before the `cost` component existed.
 
 ## Status in this mod
 
 Implemented and registered (serializer forced live via `PanelDyeRecipe.init()`). Lives in the same
-file as [panel dye](03-panel-dye.md).
+file as [panel dye](02-panel-dye.md).
 
 ## Sources
 
