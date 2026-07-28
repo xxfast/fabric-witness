@@ -48,7 +48,7 @@ class PanelDyeRecipe(category: CraftingRecipeCategory) : SpecialCraftingRecipe(c
         /** Referenced from mod init to force registration of the recipe serializers. */
         fun init() {
             PanelRecycleRecipe.SERIALIZER
-            PanelGridUpgradeRecipe.SERIALIZER
+            PanelGridRecipe.SERIALIZER
         }
     }
 

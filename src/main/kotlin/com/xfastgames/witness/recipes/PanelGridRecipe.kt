@@ -33,16 +33,16 @@ import net.minecraft.world.World
  * It lives in code rather than JSON because the result depends on the source panel's own data (size,
  * colour, cost), which a static shaped recipe can't read.
  */
-class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCraftingRecipe(category) {
+class PanelGridRecipe(category: CraftingRecipeCategory) : SpecialCraftingRecipe(category) {
 
     companion object {
         private val TABLET_INGREDIENT: Ingredient = Ingredient.ofItem(AncientPuzzleTablet.ITEM)
 
-        val IDENTIFIER: Identifier = Identifier.of(Witness.IDENTIFIER, "panel_grid_upgrade")
-        val SERIALIZER: RecipeSerializer<PanelGridUpgradeRecipe> = Registry.register(
+        val IDENTIFIER: Identifier = Identifier.of(Witness.IDENTIFIER, "panel_grid")
+        val SERIALIZER: RecipeSerializer<PanelGridRecipe> = Registry.register(
             Registries.RECIPE_SERIALIZER,
             IDENTIFIER,
-            SpecialRecipeSerializer(::PanelGridUpgradeRecipe)
+            SpecialRecipeSerializer(::PanelGridRecipe)
         )
 
         /** Referenced from common init to register this serializer before datapacks load. */
@@ -61,15 +61,15 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
         private fun seedPanel(): Panel.Grid = Panel.Grid.ofSize(2, 2)
     }
 
-    override fun matches(input: CraftingRecipeInput, world: World): Boolean = upgrade(input) != null
+    override fun matches(input: CraftingRecipeInput, world: World): Boolean = plan(input) != null
 
     override fun craft(input: CraftingRecipeInput, registries: RegistryWrapper.WrapperLookup): ItemStack {
-        val upgrade: Upgrade = upgrade(input) ?: return ItemStack.EMPTY
+        val planned: Plan = plan(input) ?: return ItemStack.EMPTY
         // Copying the source stack carries its other components forward; a seed has none to carry.
-        val result: ItemStack = upgrade.source?.copyWithCount(1) ?: ItemStack(PuzzlePanelItem.ITEM)
+        val result: ItemStack = planned.source?.copyWithCount(1) ?: ItemStack(PuzzlePanelItem.ITEM)
         return result.apply {
-            panel = upgrade.panel.expandTo(upgrade.width, upgrade.height, upgrade.offsetX, upgrade.offsetY)
-            cost = upgrade.cost
+            panel = planned.panel.expandTo(planned.width, planned.height, planned.offsetX, planned.offsetY)
+            cost = planned.cost
         }
     }
 
@@ -85,7 +85,7 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
     override fun getDisplays(): List<RecipeDisplay> = seedDisplays() + growthDisplays()
 
     /** A footprint of nothing but tablets, and the panel it builds from scratch. */
-    private fun seedDisplays(): List<RecipeDisplay> = PanelGridUpgradeLayouts.seedFootprints.map { (cellsWide, cellsHigh) ->
+    private fun seedDisplays(): List<RecipeDisplay> = PanelGridLayouts.seedFootprints.map { (cellsWide, cellsHigh) ->
         ShapedCraftingRecipeDisplay(
             cellsWide,
             cellsHigh,
@@ -96,7 +96,7 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
     }
 
     /** One display per growth layout; input stacks show the required source dimensions. */
-    private fun growthDisplays(): List<RecipeDisplay> = PanelGridUpgradeLayouts.displays.map { layout ->
+    private fun growthDisplays(): List<RecipeDisplay> = PanelGridLayouts.displays.map { layout ->
         ShapedCraftingRecipeDisplay(
             layout.layoutWidth,
             layout.layoutHeight,
@@ -128,7 +128,7 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
      * makes building from scratch the same arithmetic as growing.  All the tablets in that case are
      * interchangeable, so which one is picked cannot affect the result.
      */
-    internal fun upgrade(input: CraftingRecipeInput): Upgrade? {
+    internal fun plan(input: CraftingRecipeInput): Plan? {
         val occupied: List<OccupiedSlot> = buildList {
             for (y in 0 until input.height) {
                 for (x in 0 until input.width) {
@@ -159,7 +159,7 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
         // The source occupies one slot whether it is a panel or the seed tablet, so everything else
         // in the footprint is what was paid.
         val paid: Int = occupied.size - 1
-        val target: Pair<Int, Int> = PanelGridUpgradeLayouts.target(
+        val target: Pair<Int, Int> = PanelGridLayouts.target(
             panel.width,
             panel.height,
             paid,
@@ -171,18 +171,18 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
             sourceIsPanel,
         ) ?: return null
 
-        return Upgrade(
+        return Plan(
             source = sourceSlot.stack.takeIf { sourceIsPanel },
             panel = panel,
             width = target.first,
             height = target.second,
             cost = previousCost + paid,
-            offsetX = PanelGridUpgradeLayouts.anchorOffset(bounds.width, sourceX),
-            offsetY = PanelGridUpgradeLayouts.anchorOffset(bounds.height, sourceY),
+            offsetX = PanelGridLayouts.anchorOffset(bounds.width, sourceX),
+            offsetY = PanelGridLayouts.anchorOffset(bounds.height, sourceY),
         )
     }
 
-    internal data class Upgrade(
+    internal data class Plan(
         /** The panel being grown, or null when this craft seeds a new one from tablets alone. */
         val source: ItemStack?,
         val panel: Panel.Grid,
@@ -215,7 +215,7 @@ class PanelGridUpgradeRecipe(category: CraftingRecipeCategory) : SpecialCrafting
 }
 
 /** Pure layout maths, kept separate so it can be regression-tested without Minecraft bootstrap. */
-internal object PanelGridUpgradeLayouts {
+internal object PanelGridLayouts {
 
     /**
      * Every footprint of pure tablets a 3×3 crafting grid can hold, in cells. These are the nine
@@ -274,7 +274,7 @@ internal object PanelGridUpgradeLayouts {
      * it, whatever the source size, which is why this is arithmetic rather than the old whitelist.
      *
      * [sourceX] and [sourceY] say which sides grow, and so where the source's content lands in the
-     * result.  This function doesn't read them; [PanelGridUpgradeRecipe.upgrade] turns them into the
+     * result.  This function doesn't read them; [PanelGridRecipe.plan] turns them into the
      * anchor offsets via [anchorOffset].
      *
      * [tabletCount] is what was *paid*, i.e. the occupied slots minus the source's own.  When

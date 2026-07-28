@@ -69,7 +69,7 @@ under `components` — the NBT readers tolerate dynamic-ops numeric types for th
 
 **Puzzle rules.** `rules/witness/` catalogs the Witness line-puzzle rules this mod replicates, one
 file per rule, indexed by `rules/witness/README.md`. Check it before touching puzzle logic.
-`rules/minecraft/` documents the mod's crafting rules (panel grid recipes, upgrade, dye, recycle);
+`rules/minecraft/` documents the mod's crafting rules (panel grid crafting, dye, recycle);
 `rules/README.md` indexes both.
 
 **Puzzle flow across the mod:**

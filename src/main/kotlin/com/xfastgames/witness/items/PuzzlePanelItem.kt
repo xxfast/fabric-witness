@@ -66,7 +66,7 @@ class PuzzlePanelItem(settings: Settings) : Item(settings), Clientside {
         val typeString: String =
             puzzle.type.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
 
-        // Crafting can't explain a failed upgrade, so the tooltip is the only place a player can
+        // Crafting can't explain a failed craft, so the tooltip is the only place a player can
         // learn the grid won't grow any further.
         val maxedOut: Boolean = puzzle is Panel.Grid &&
             (puzzle.width >= Panel.Grid.MAX_NODES || puzzle.height >= Panel.Grid.MAX_NODES)

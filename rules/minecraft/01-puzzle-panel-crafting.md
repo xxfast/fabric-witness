@@ -222,7 +222,7 @@ fighting the renderer.
 ## Status in this mod
 
 Implemented and registered (serializer forced live via `PanelDyeRecipe.init()`).
-`PanelGridUpgradeLayouts.target()` is the formula plus the cap, `Panel.Grid.expandTo()` transplants
+`PanelGridLayouts.target()` is the formula plus the cap, `Panel.Grid.expandTo()` transplants
 the source's nodes and edges into the larger grid at the anchor, and `craft()` calls it.
 
 The whole rule lives in code rather than JSON because the result depends on the source panel's own
@@ -270,7 +270,7 @@ $\text{result} = \text{source} + (\text{footprint} - 1)$ on each axis, including
 | 2×2 | 1×1 | 3×3 | 3×3 | 4×4 ✓ |
 
 (The remaining rows are mirrors of these.) All 14 are still asserted verbatim in
-`PanelGridUpgradeRecipeTests` as a regression net. What the whitelist did that the rule dropped:
+`PanelGridRecipeTests` as a regression net. What the whitelist did that the rule dropped:
 
 - Topped out at 4×4 nodes.
 - Rejected some source/side combinations arbitrarily, e.g. a 2×4 grew only on its 2-wide side, and a
@@ -288,10 +288,10 @@ therefore a hard vanilla ceiling, and cost can only ever be counted in slots.
 
 ## How matching works
 
-`upgrade()` in `PanelGridUpgradeRecipe.kt` collects the occupied slots, requires **at most one**
+`plan()` in `PanelGridRecipe.kt` collects the occupied slots, requires **at most one**
 `PuzzlePanelItem` (whose panel must be a `Panel.Grid` with a `witness:cost` component), requires
 everything else to be an `AncientPuzzleTablet`, and checks `Bounds.isFilledBy` for the filled
-rectangle. It then asks `PanelGridUpgradeLayouts.target()` for the result size, which is the formula,
+rectangle. It then asks `PanelGridLayouts.target()` for the result size, which is the formula,
 the `Panel.Grid.MAX_NODES` cap, and a `tabletCount == layoutWidth * layoutHeight - 1` check so the
 footprint has no holes.
 
@@ -312,7 +312,7 @@ Two traps live here:
   suggests `+x` should draw right in a frame, and it does not. **Do not re-derive this from the
   matrices, it gives the wrong answer.** It was settled by crafting the four cases in game, in a
   frame and in the item icon, and the results are pinned in
-  `PanelGridUpgradeRecipeTests.the anchor grows the panel towards the tablets`.
+  `PanelGridRecipeTests.the anchor grows the panel towards the tablets`.
 
 ## Not done
 
@@ -334,12 +334,12 @@ Two traps live here:
 
 ## Sources
 
-- `src/main/kotlin/com/xfastgames/witness/recipes/PanelGridUpgradeRecipe.kt` — `upgrade()`,
-  `craft()`, `getDisplays()`, and the `PanelGridUpgradeLayouts` maths.
-- `src/test/kotlin/com/xfastgames/witness/recipes/PanelGridUpgradeRecipeTests.kt` — accepted layouts
+- `src/main/kotlin/com/xfastgames/witness/recipes/PanelGridRecipe.kt` — `plan()`,
+  `craft()`, `getDisplays()`, and the `PanelGridLayouts` maths.
+- `src/test/kotlin/com/xfastgames/witness/recipes/PanelGridRecipeTests.kt` — accepted layouts
   and their targets.
 - `src/main/kotlin/com/xfastgames/witness/items/data/Panel.kt` — `Panel.Grid.ofSize`, `expandTo`,
   `gridOffsets`, node geometry.
 - `src/main/kotlin/com/xfastgames/witness/recipes/PanelDyeRecipe.kt` — `PanelRecycleRecipe`.
 - `net.minecraft.screen.slot.CraftingResultSlot#onTakeItem` — the one-tablet-per-slot constraint.
-- `src/main/resources/data/witness/recipe/puzzle_panel_grid_upgrade.json` — the recipe stub.
+- `src/main/resources/data/witness/recipe/puzzle_panel_grid.json` — the recipe stub.

@@ -68,10 +68,10 @@ economy and legibility questions rather than mechanics, listed in
 
 ## Sources
 
-- `src/main/kotlin/com/xfastgames/witness/recipes/PanelGridUpgradeRecipe.kt`
+- `src/main/kotlin/com/xfastgames/witness/recipes/PanelGridRecipe.kt`
 - `src/main/kotlin/com/xfastgames/witness/recipes/PanelDyeRecipe.kt` (holds both `PanelDyeRecipe`
   and `PanelRecycleRecipe`)
 - `src/main/kotlin/com/xfastgames/witness/items/data/Panel.kt` (`Panel.Grid`, node geometry)
 - `src/main/resources/data/witness/recipe/` (the `type: witness:*` special-recipe stubs and
   `ancient_puzzle_tablet.json`; the nine hardcoded `puzzle_panel_grid_*` files are gone, folded into
-  `PanelGridUpgradeRecipe`)
+  `PanelGridRecipe`)

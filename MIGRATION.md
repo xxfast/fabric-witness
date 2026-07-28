@@ -45,7 +45,7 @@ Notes:
 - `puzzle_panel_grid_recycle(_compat)` → `witness:panel_recycle` special recipe: lone panel →
   puzzle tablets × `witness:cost` (default 4).
 - The 9 literal “tablets → new grid” `puzzle_panel_grid_*` recipes use vanilla shaped
-  `components`. The 29 grid-upgrade variants now share `witness:panel_grid_upgrade`, a
+  `components`. The 29 grid-upgrade variants now share `witness:panel_grid`, a
   component-aware special recipe that restores NbtCrafting's input-size/cost checks, preserves
   the source tint and stack components, rebuilds the target grid, and adds the consumed tablets
   to `witness:cost`.
