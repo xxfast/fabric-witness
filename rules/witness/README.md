@@ -10,26 +10,24 @@ edge cases that bite, and where it stands in this mod.
 
 **Line mechanics**: properties of the grid and the path itself. They constrain how you draw.
 
-| # | Rule | File | Status in this mod |
-|---|------|------|--------------------|
-| 00 | Line and path basics | [00-line-and-path.md](00-line-and-path.md) | Tracing works, no solution validation |
-| 01 | Start points | [01-start-points.md](01-start-points.md) | Modelled, multiple starts supported |
-| 02 | End points | [02-end-points.md](02-end-points.md) | Terminates the line, not a decision point |
-| 03 | Broken edges (gaps) | [03-broken-edges.md](03-broken-edges.md) | **Declared but not enforced** |
-| 04 | Hexagon dots | [04-hexagon-dots.md](04-hexagon-dots.md) | Data model only, not rendered or checked |
-| 05 | Symmetry lines | [05-symmetry.md](05-symmetry.md) | Not modelled |
+- [x] **00** [Line and path basics](00-line-and-path.md): tracing + line rule validated on submit
+- [x] **01** [Start points](01-start-points.md): authored, multiple starts, only `START` picks up
+- [x] **02** [End points](02-end-points.md): authored as nubs, terminates and validates the line
+- [x] **03** [Broken edges (gaps)](03-broken-edges.md): traceable to the gap, never across
+- [ ] **04** [Hexagon dots](04-hexagon-dots.md): data model only, not rendered or checked
+- [ ] **05** [Symmetry lines](05-symmetry.md): not modelled
 
 **Region symbols**: drawn inside cells. The finished line partitions the grid into regions, and
 each symbol is validated against the region that contains it.
 
-| # | Rule | File | Status in this mod |
-|---|------|------|--------------------|
-| 06 | Colored squares | [06-colored-squares.md](06-colored-squares.md) | Not modelled |
-| 07 | Stars | [07-stars.md](07-stars.md) | Not modelled |
-| 08 | Polyominoes | [08-polyominoes.md](08-polyominoes.md) | Not modelled |
-| 09 | Negative polyominoes | [09-negative-polyominoes.md](09-negative-polyominoes.md) | Not modelled |
-| 10 | Triangles | [10-triangles.md](10-triangles.md) | Not modelled |
-| 11 | Eliminators | [11-eliminators.md](11-eliminators.md) | Not modelled |
+None are modelled. All of them are blocked on region flood-fill, except triangles.
+
+- [ ] **06** [Colored squares](06-colored-squares.md)
+- [ ] **07** [Stars](07-stars.md)
+- [ ] **08** [Polyominoes](08-polyominoes.md)
+- [ ] **09** [Negative polyominoes](09-negative-polyominoes.md)
+- [ ] **10** [Triangles](10-triangles.md)
+- [ ] **11** [Eliminators](11-eliminators.md)
 
 Triangles are the odd one out: filed under region symbols because they are drawn in cells, but
 validated per cell against their own four edges, ignoring the region partition entirely.
@@ -47,18 +45,19 @@ validated per cell against their own four edges, ignoring the region partition e
 
 ## Where the mod actually stands
 
-`PuzzleSolver` implements live line tracing only: segment selection, geometric
-self-collision prevention, backtracking. There is no region flood-fill and no symbol validation
-anywhere in `src/main`. `SolutionAccepted` / `SolutionRejected` exist in `PuzzleSolverViewModels`
-but nothing transitions into them.
+The line mechanics that don't need regions (00 through 03) are done. `PuzzleSolver` traces from a
+`START` node with segment selection, geometric self-collision prevention, backtracking and
+`BREAK` stubs (`edgeLimit`), and `submit` validates the line rule via `isValidSolution`, moving the
+state into `SolutionAccepted` / `SolutionRejected` (`PuzzleSolverViewModels`). Covered by
+`PuzzleSolverTests`.
 
-Two concrete gaps worth acting on:
+What's left is everything that needs the grid partitioned:
 
-- **`Modifier.BREAK` is not enforced.** `chooseSegment` filters candidates via
-  `panel.graph.adjacentNodes(current)` and never reads the edge modifier, so the line traces
-  straight through a gap. Details in [03-broken-edges.md](03-broken-edges.md).
 - **Region flood-fill is the shared blocker.** Every region symbol (06 through 09, 11) needs it,
-  and none of them can be started without it.
+  and none of them can be started without it. There is no flood-fill and no symbol validation
+  anywhere in `src/main`, so a panel carrying symbols is accepted on the line rule alone.
+- **Hexagons (04) and symmetry (05)** are the remaining line mechanics. Hexagons are in the data
+  model but neither rendered nor checked; symmetry isn't modelled at all.
 
 ## Open questions
 
