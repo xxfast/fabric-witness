@@ -129,18 +129,12 @@ class WPuzzleEditor(
 
         graph.edges().forEach { side ->
             when (val edge: Edge = graph.edgeValueOf(side) ?: return@forEach) {
-                Modifier.NORMAL -> drawLine(context, side, px, py, lineThickness, PuzzlePanelTextures.lineFill)
-                Modifier.BREAK -> drawBrokenLine(context, side, px, py, lineThickness)
-                Modifier.START -> {
+                // A start point is a node role, never an edge value. A legacy panel that stored one
+                // on an edge draws as a plain segment (rules/witness/01-start-points.md).
+                Modifier.NORMAL, Modifier.START ->
                     drawLine(context, side, px, py, lineThickness, PuzzlePanelTextures.lineFill)
-                    drawCircle(
-                        context,
-                        (px(side.nodeU().x) + px(side.nodeV().x)) / 2,
-                        (py(side.nodeU().y) + py(side.nodeV().y)) / 2,
-                        lineThickness * 2,
-                        solution = false
-                    )
-                }
+
+                Modifier.BREAK -> drawBrokenLine(context, side, px, py, lineThickness)
 
                 Modifier.NONE, Modifier.DOT, Modifier.END, Modifier.HIDDEN -> Unit
             }

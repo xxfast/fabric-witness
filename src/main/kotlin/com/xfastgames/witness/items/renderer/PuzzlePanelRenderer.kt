@@ -196,23 +196,16 @@ object PuzzlePanelRenderer {
             }
         }
 
-        fun RenderContext.start(
-            start: Vector3f,
-            end: Vector3f
-        ) {
-            line(start, end, thickness)
-            val midpoint: Vector3f = (start + end) / 2f
-            circle(midpoint, thickness)
-        }
-
         when (edge) {
             Modifier.NONE -> {
             }
-            Modifier.NORMAL -> line(start, end, thickness)
+            // A start point is a node role, never an edge value. A legacy panel that stored one on
+            // an edge draws as a plain segment: the disc goes, the segment stays, and it traces
+            // like any other (rules/witness/01-start-points.md).
+            Modifier.NORMAL, Modifier.START -> line(start, end, thickness)
             Modifier.BREAK -> `break`(start, end)
             Modifier.DOT -> {
             }
-            Modifier.START -> start(start, end)
             Modifier.END -> {
             }
             Modifier.HIDDEN -> {

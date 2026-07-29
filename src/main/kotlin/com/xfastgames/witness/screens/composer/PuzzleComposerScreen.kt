@@ -255,10 +255,9 @@ class PuzzleComposerScreenDescription(
                 }
             }
 
+            // The start tool only marks nodes. A start point is a node role, so clicking a segment
+            // with it selected does nothing (rules/witness/01-start-points.md).
             val updatedEdge: Modifier? = when {
-                selectedToggle == startButton && edge != null ->
-                    edge.nextIn(Modifier.START, Modifier.NORMAL)
-
                 selectedToggle == breakButton && edge != null ->
                     edge.nextIn(Modifier.BREAK, Modifier.NORMAL)
 
