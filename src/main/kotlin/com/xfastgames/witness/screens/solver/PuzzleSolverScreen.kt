@@ -332,6 +332,10 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         )
     }
 
+    private fun toPanelCoordinate(blockHit: Double, scale: Int): Float =
+        (scale * ((blockHit - 0.5) / PUZZLE_FRAME_SCALE + 0.5)).toFloat()
+            .coerceIn(0f, scale.toFloat())
+
     private fun rayCastAtPanel(
         world: ClientWorld,
         mouseX: Double,
@@ -463,17 +467,10 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
         val scale: Int = maxOf(puzzlePanel.width, puzzlePanel.height)
 
-        // TODO: Sweet spot width seems to be between 3 and 4 sizes, anything bigger or smaller seems to be slightly off
-        val scaledClickX: Double = (scale * blockHitX) / PUZZLE_FRAME_SCALE
-        val scaledClickY: Double = (scale * blockHitY) / PUZZLE_FRAME_SCALE
-
-        val clampedClickX: Float = (scaledClickX.toFloat() - (PUZZLE_FRAME_SCALE / 2))
-            .coerceAtLeast(0f)
-            .coerceAtMost(scale.toFloat())
-
-        val clampedClickY: Float = (scaledClickY.toFloat() - (PUZZLE_FRAME_SCALE / 2))
-            .coerceAtLeast(0f)
-            .coerceAtMost(scale.toFloat())
+        // Inverse of [projectPanelPosition]: the panel is drawn centred on the block face at
+        // PUZZLE_FRAME_SCALE, so block = 0.5 + PUZZLE_FRAME_SCALE * (panel / scale - 0.5).
+        val clampedClickX: Float = toPanelCoordinate(blockHitX, scale)
+        val clampedClickY: Float = toPanelCoordinate(blockHitY, scale)
 
         val position: Pair<Float, Float> = clampedClickX to clampedClickY
 
