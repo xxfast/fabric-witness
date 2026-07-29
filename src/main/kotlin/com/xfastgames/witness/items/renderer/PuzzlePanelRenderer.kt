@@ -28,6 +28,12 @@ import kotlin.math.*
 @Suppress("UnstableApiUsage")
 object PuzzlePanelRenderer {
 
+    /**
+     * Centre to point, so a hexagon is 3.pc across corners against the 4.pc line it marks. Narrower
+     * than the line on purpose; see the open question in rules/witness/04-hexagon-dots.md.
+     */
+    private val HEXAGON_RADIUS: Float = 1.5f.pc
+
     fun renderPanel(
         stack: ItemStack,
         matrices: MatrixStack,
@@ -49,6 +55,64 @@ object PuzzlePanelRenderer {
         renderBackground(puzzle.backgroundColor, matrices, queue, light, overlay)
         renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, light, overlay)
         renderLine(puzzle.line, puzzle.width, puzzle.height, matrices, queue, light, overlay)
+        // Symbols go in front of both, so a hexagon stays visible once the line covers it: that is
+        // the only way a player can tell it was crossed (rules/witness/04-hexagon-dots.md).
+        renderSymbols(
+            puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
+            matrices, queue, light, overlay
+        )
+    }
+
+    /**
+     * Draws each hexagon in the panel's backdrop colour, so it reads as a notch punched through
+     * whatever covers it.
+     *
+     * A hexagon is drawn narrower than the line it marks, since at full width it would sever the
+     * line and read as a broken edge. See the open question in rules/witness/04-hexagon-dots.md:
+     * this is not settled, and it is the one number to change when it is.
+     */
+    fun renderSymbols(
+        graph: ValueGraph<Node, Edge>,
+        backgroundColor: DyeColor,
+        width: Int,
+        height: Int,
+        matrices: MatrixStack,
+        queue: OrderedRenderCommandQueue,
+        light: Int,
+        overlay: Int
+    ) {
+        val hexagons: List<Vector3f> = symbolPositions(graph)
+        if (hexagons.isEmpty()) return
+        val maxDimension: Int = maxOf(width, height)
+        val maxScale: Float = 1f / maxDimension
+
+        matrices.push()
+        matrices.scale(maxScale, maxScale, 1f)
+        matrices.translate(.0, .0, -.012)
+
+        val backdrop = PuzzlePanelTextures.backdrop(backgroundColor)
+        queue.submitCustom(matrices, RenderLayers.beaconBeam(backdrop, false)) { entry, consumer ->
+            withRenderContext(entry, consumer, light, overlay) {
+                hexagons.forEach { position -> hexagon(position, HEXAGON_RADIUS) }
+            }
+        }
+
+        matrices.pop()
+    }
+
+    /** Where every hexagon on [graph] sits: on its node, or at the midpoint of its edge. */
+    private fun symbolPositions(graph: ValueGraph<Node, Edge>): List<Vector3f> {
+        val nodes: List<Vector3f> = graph.nodes()
+            .filter { node -> node.symbol == Symbol.HEXAGON }
+            .map { node -> Vector3f(node.x, node.y, 0f) }
+        val edges: List<Vector3f> = graph.edges()
+            .filter { side -> graph.edgeValueOf(side)?.symbol == Symbol.HEXAGON }
+            .map { side ->
+                val u: Node = side.nodeU()
+                val v: Node = side.nodeV()
+                Vector3f((u.x + v.x) / 2, (u.y + v.y) / 2, 0f)
+            }
+        return nodes + edges
     }
 
     fun renderBackground(
@@ -68,7 +132,7 @@ object PuzzlePanelRenderer {
 
     private fun numberOfEdgesVisible(graph: ValueGraph<Node, Edge>, node: Node): Int =
         graph.incidentEdges(node).count { endpointPair ->
-            graph.edgeValueOf(endpointPair) !in listOf(Edge.NONE, Edge.HIDDEN)
+            graph.edgeValueOf(endpointPair)?.modifier !in listOf(Modifier.NONE, Modifier.HIDDEN)
         }
 
     private fun RenderContext.renderNode(graph: ValueGraph<Node, Edge>, node: Node): Unit = when {
@@ -148,7 +212,7 @@ object PuzzlePanelRenderer {
                     val endNode: Node = side.nodeV()
                     val start = Vector3f(startNode.x, startNode.y, 0f)
                     val end = Vector3f(endNode.x, endNode.y, 0f)
-                    edge(start, end, 4.pc, Modifier.NORMAL)
+                    edge(start, end, 4.pc, Edge.NORMAL)
                 }
             }
         }
@@ -196,7 +260,7 @@ object PuzzlePanelRenderer {
             }
         }
 
-        when (edge) {
+        when (edge.modifier) {
             Modifier.NONE -> {
             }
             // A start point is a node role, never an edge value. A legacy panel that stored one on

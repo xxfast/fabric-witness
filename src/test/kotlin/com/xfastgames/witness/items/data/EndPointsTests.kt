@@ -19,7 +19,7 @@ class EndPointsTests {
 
         assertThat(nub).isEqualTo(Node(1.5f, 0.5f - END_POINT_LENGTH, Modifier.END))
         assertThat(updated.graph.adjacentNodes(nub)).containsExactly(bottomEdge)
-        assertThat(updated.graph.edgeValue(bottomEdge, nub).get()).isEqualTo(Modifier.NORMAL)
+        assertThat(updated.graph.edgeValue(bottomEdge, nub).get()).isEqualTo(Edge.NORMAL)
     }
 
     @Test

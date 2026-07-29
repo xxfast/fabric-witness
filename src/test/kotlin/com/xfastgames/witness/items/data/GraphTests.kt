@@ -22,10 +22,10 @@ class GraphTests {
 
     private val testGraph: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected()
         .build<Node, Edge>().apply {
-            putEdgeValue(bottomRight, topRight, Modifier.NORMAL)
-            putEdgeValue(topRight, topLeft, Modifier.NORMAL)
-            putEdgeValue(topLeft, bottomLeft, Modifier.NORMAL)
-            putEdgeValue(bottomLeft, bottomRight, Modifier.NORMAL)
+            putEdgeValue(bottomRight, topRight, Edge.NORMAL)
+            putEdgeValue(topRight, topLeft, Edge.NORMAL)
+            putEdgeValue(topLeft, bottomLeft, Edge.NORMAL)
+            putEdgeValue(bottomLeft, bottomRight, Edge.NORMAL)
         }
 
     @Test
@@ -50,10 +50,10 @@ class GraphTests {
                     val topLeft = Node(1.5f, 0.5f)
                     val topRight = Node(1.5f, 1.5f)
 
-                    putEdgeValue(bottomLeft, bottomRight, Modifier.NORMAL)
-                    putEdgeValue(topLeft, bottomLeft, Modifier.NORMAL)
-                    putEdgeValue(topRight, topLeft, Modifier.NORMAL)
-                    putEdgeValue(topRight, bottomRight, Modifier.NORMAL)
+                    putEdgeValue(bottomLeft, bottomRight, Edge.NORMAL)
+                    putEdgeValue(topLeft, bottomLeft, Edge.NORMAL)
+                    putEdgeValue(topRight, topLeft, Edge.NORMAL)
+                    putEdgeValue(topRight, bottomRight, Edge.NORMAL)
                 }
 
             assertThat(actual).isEqualTo(expected)
@@ -76,18 +76,18 @@ class GraphTests {
                     val topMiddle = Node(2.5f, 1.5f)
                     val topRight = Node(2.5f, 2.5f)
 
-                    putEdgeValue(bottomLeft, bottomMiddle, Modifier.NORMAL)
-                    putEdgeValue(bottomMiddle, bottomRight, Modifier.NORMAL)
-                    putEdgeValue(middleLeft, middleMiddle, Modifier.NORMAL)
-                    putEdgeValue(middleMiddle, middleRight, Modifier.NORMAL)
-                    putEdgeValue(topLeft, topMiddle, Modifier.NORMAL)
-                    putEdgeValue(topMiddle, topRight, Modifier.NORMAL)
-                    putEdgeValue(topLeft, middleLeft, Modifier.NORMAL)
-                    putEdgeValue(middleLeft, bottomLeft, Modifier.NORMAL)
-                    putEdgeValue(topMiddle, middleMiddle, Modifier.NORMAL)
-                    putEdgeValue(middleMiddle, bottomMiddle, Modifier.NORMAL)
-                    putEdgeValue(topRight, middleRight, Modifier.NORMAL)
-                    putEdgeValue(middleRight, bottomRight, Modifier.NORMAL)
+                    putEdgeValue(bottomLeft, bottomMiddle, Edge.NORMAL)
+                    putEdgeValue(bottomMiddle, bottomRight, Edge.NORMAL)
+                    putEdgeValue(middleLeft, middleMiddle, Edge.NORMAL)
+                    putEdgeValue(middleMiddle, middleRight, Edge.NORMAL)
+                    putEdgeValue(topLeft, topMiddle, Edge.NORMAL)
+                    putEdgeValue(topMiddle, topRight, Edge.NORMAL)
+                    putEdgeValue(topLeft, middleLeft, Edge.NORMAL)
+                    putEdgeValue(middleLeft, bottomLeft, Edge.NORMAL)
+                    putEdgeValue(topMiddle, middleMiddle, Edge.NORMAL)
+                    putEdgeValue(middleMiddle, bottomMiddle, Edge.NORMAL)
+                    putEdgeValue(topRight, middleRight, Edge.NORMAL)
+                    putEdgeValue(middleRight, bottomRight, Edge.NORMAL)
                 }
 
             assertThat(actual).isEqualTo(expected)

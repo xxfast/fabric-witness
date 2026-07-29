@@ -6,6 +6,7 @@ import com.xfastgames.witness.items.data.Edge
 import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.unsatisfiedHexagons
 import com.xfastgames.witness.utils.guava.mutableGraph
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -143,17 +144,20 @@ class PuzzleSolver {
 
     /**
      * Rule 00: a solution is a single simple path along existing, traversable edges, from a `START`
-     * node to an `END` node. Region and symbol validation (rules 04 onwards) is not implemented, so
-     * a panel whose only rule is the line rule is solved by reaching an end point.
+     * node to an `END` node, and rule 04: it must cover every hexagon. Region symbol validation
+     * (rules 06 onwards) is not implemented, so those are still accepted unchecked.
      */
     private fun isValidSolution(panel: Panel): Boolean {
         if (path.size < 2) return false
         if (path.first().modifier != Modifier.START) return false
         if (path.last().modifier != Modifier.END) return false
         if (path.distinct().size != path.size) return false
-        return path.zipWithNext().all { (from, to) ->
-            panel.graph.hasEdgeConnecting(from, to) && panel.edgeModifier(from, to) !in IMPASSABLE_EDGES
+        val connected: Boolean = path.zipWithNext().all { (from, to) ->
+            panel.graph.hasEdgeConnecting(from, to) &&
+                panel.edgeBetween(from, to).modifier !in IMPASSABLE_EDGES
         }
+        if (!connected) return false
+        return panel.unsatisfiedHexagons(path).isEmpty()
     }
 
     fun stopTrace() {
@@ -263,8 +267,8 @@ class PuzzleSolver {
     private fun cross(aX: Float, aY: Float, bX: Float, bY: Float): Float =
         aX * bY - aY * bX
 
-    private fun Panel.edgeModifier(from: Node, to: Node): Edge =
-        graph.edgeValueOrDefault(from, to, Modifier.NONE) ?: Modifier.NONE
+    private fun Panel.edgeBetween(from: Node, to: Node): Edge =
+        graph.edgeValueOrDefault(from, to, Edge.NONE) ?: Edge.NONE
 
     /**
      * How far down an edge the tip may travel, ignoring the already traced line.
@@ -275,9 +279,12 @@ class PuzzleSolver {
      * round tip, so the tip stops one full line thickness short of the midpoint.
      *
      * `HIDDEN` edges are drawn invisible but are still part of the grid, so they trace normally.
+     *
+     * Only the edge's traversal state is consulted. A symbol on an edge never changes how the line
+     * moves along it (rules/witness/04-hexagon-dots.md).
      */
     private fun Panel.edgeLimit(from: Node, to: Node, edgeLength: Float): Float =
-        when (edgeModifier(from, to)) {
+        when (edgeBetween(from, to).modifier) {
             Modifier.NONE -> 0f
             Modifier.BREAK -> (edgeLength / 2 - LINE_THICKNESS).coerceAtLeast(0f)
             else -> edgeLength
@@ -332,6 +339,6 @@ class PuzzleSolver {
         /** Panel space width of a drawn line, `4.pc` in `PuzzlePanelRenderer`. */
         const val LINE_THICKNESS = 0.25f
         const val SELF_COLLISION_CLEARANCE = LINE_THICKNESS
-        val IMPASSABLE_EDGES: Set<Edge> = setOf(Modifier.NONE, Modifier.BREAK)
+        val IMPASSABLE_EDGES: Set<Modifier> = setOf(Modifier.NONE, Modifier.BREAK)
     }
 }

@@ -1,6 +1,7 @@
 package com.xfastgames.witness.utils
 
 import net.minecraft.client.gui.DrawContext
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -51,10 +52,36 @@ fun circle(
     }
 }
 
+/**
+ * Draws a filled regular hexagon centred on ([centerX], [centerY]), point up, [diameter] pixels from
+ * point to point. Scanlines, like [circle], so it sits correctly in an exact box at small sizes.
+ *
+ * Point up matches the game's hexagon dots and means a hexagon on a horizontal edge is as wide as
+ * the line it sits on rather than wider (rules/witness/04-hexagon-dots.md).
+ */
 fun hexagon(
-    context: DrawContext, centerX: Int, centerY: Int, size: Int,
+    context: DrawContext, centerX: Int, centerY: Int, diameter: Int,
     r: Float, g: Float, b: Float, a: Float,
+) = hexagon(context, centerX, centerY, diameter, argb(r, g, b, a))
+
+/** As above, taking a packed ARGB colour, for callers that already have one (a panel's dye). */
+fun hexagon(
+    context: DrawContext, centerX: Int, centerY: Int, diameter: Int, color: Int
 ) {
-    // Matches the old placeholder implementation, which just drew a filled square.
-    context.fill(centerX, centerY, centerX + size, centerY + size, argb(r, g, b, a))
+    if (diameter <= 0) return
+    val radius: Float = diameter / 2f
+    // Half the width across the flats, i.e. the widest the shape ever gets.
+    val halfFlats: Float = radius * sqrt(3f) / 2f
+
+    for (row in 0 until diameter) {
+        val dy: Float = row + .5f - radius
+        val distance: Float = abs(dy)
+        // Vertical sides for the middle band, then a linear taper to each point.
+        val halfWidth: Float =
+            if (distance <= radius / 2) halfFlats
+            else halfFlats * (radius - distance) / (radius / 2)
+        val half: Int = halfWidth.roundToInt()
+        if (half <= 0) continue
+        context.fill(centerX - half, centerY - radius.toInt() + row, centerX + half, centerY - radius.toInt() + row + 1, color)
+    }
 }

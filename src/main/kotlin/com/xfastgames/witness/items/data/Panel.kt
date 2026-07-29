@@ -83,11 +83,11 @@ sealed class Panel(val type: Type) {
                         currentRow.add(currentNode)
 
                         // Link horizontal neighbour
-                        previousNode?.let { node -> graph.putEdgeValue(node, currentNode, Modifier.NORMAL) }
+                        previousNode?.let { node -> graph.putEdgeValue(node, currentNode, Edge.NORMAL) }
 
                         // Link vertical neighbour
                         previousRow.takeIf { it.isNotEmpty() }
-                            ?.let { row -> graph.putEdgeValue(row[y], currentNode, Modifier.NORMAL) }
+                            ?.let { row -> graph.putEdgeValue(row[y], currentNode, Edge.NORMAL) }
 
                         previousNode = currentNode
                     }
@@ -144,10 +144,14 @@ sealed class Panel(val type: Type) {
 
             repeat(width) { x ->
                 repeat(height) { y ->
+                    // Both halves of the source node travel: dropping the symbol here would
+                    // silently strip a panel's hexagons the moment its grid is grown.
+                    val source: Node? = sourceAt(x, y)
                     val node = Node(
                         x = x + targetXOffset,
                         y = y + targetYOffset,
-                        modifier = sourceAt(x, y)?.modifier ?: Modifier.NONE
+                        modifier = source?.modifier ?: Modifier.NONE,
+                        symbol = source?.symbol ?: Symbol.NONE
                     )
                     targetNodes[x to y] = node
                     target.addNode(node)
@@ -167,7 +171,7 @@ sealed class Panel(val type: Type) {
                             from != null && to != null ->
                                 graph.edgeValue(from, to).orElse(null) ?: return@forEach
 
-                            else -> Modifier.NORMAL
+                            else -> Edge.NORMAL
                         }
                         target.putEdgeValue(neighbour, node, edge)
                     }
@@ -228,7 +232,7 @@ sealed class Panel(val type: Type) {
                         if (tree.isEmpty()) return@repeat // No need to connect branches on the top row
                         val branchAbove: Int = branchIndex + 1
                         val branch: List<Node> = tree[branchAbove]?.chunked(2)?.get(leafIndex) ?: return@repeat
-                        branch.forEach { thatLeaf -> graph.putEdgeValue(thatLeaf, leaf, Modifier.NORMAL) }
+                        branch.forEach { thatLeaf -> graph.putEdgeValue(thatLeaf, leaf, Edge.NORMAL) }
                     }
                     tree[branchIndex] = leaves
                 }
@@ -273,7 +277,7 @@ sealed class Panel(val type: Type) {
             val topLeft = Node(2.5f, 2.5f, Modifier.NORMAL)
             graph.addNode(bottomRight)
             graph.addNode(topLeft)
-            graph.putEdgeValue(bottomRight, topLeft, Modifier.NORMAL)
+            graph.putEdgeValue(bottomRight, topLeft, Edge.NORMAL)
 
             Freeform(
                 line = emptyGraph(),

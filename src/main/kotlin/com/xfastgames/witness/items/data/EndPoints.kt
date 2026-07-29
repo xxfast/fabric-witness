@@ -105,7 +105,7 @@ fun Panel.withEndPointToggled(node: Node): Panel? {
 
     val nub: Node = node.nubAt(orientations[next])
     if (nub in graph.nodes()) return null
-    graph.putEdgeValue(node, nub, Modifier.NORMAL)
+    graph.putEdgeValue(node, nub, Edge.NORMAL)
     return withGraph(graph)
 }
 

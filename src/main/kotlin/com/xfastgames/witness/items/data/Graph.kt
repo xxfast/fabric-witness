@@ -12,6 +12,7 @@ import net.minecraft.nbt.NbtList
 import kotlin.math.pow
 
 private const val KEY_EDGES = "edges"
+private const val KEY_EDGE_SYMBOLS = "edgeSymbols"
 private const val KEY_NODES = "nodes"
 private const val KEY_FILL = "fill"
 
@@ -29,11 +30,24 @@ fun NbtCompound.getValueGraph(key: String): ValueGraph<Node, Edge> =
 
                 if (nodes.isEmpty()) return@apply
 
-                val adjacencyMatrix =
-                    tag.getIntListTolerant(KEY_EDGES)
-                        .map { index -> Modifier.values()[index] }
-                        .map { modifier -> if (modifier == Modifier.NONE) null else modifier }
-                        .chunked(nodes.size)
+                // Every panel saved before hexagons got their own field has no symbol array at all,
+                // so this defaults per cell rather than per array: an absent array must leave each
+                // edge symbol-less, not drop the edge.
+                val states: List<Int> = tag.getIntListTolerant(KEY_EDGES)
+                val symbols: List<Int> = tag.getIntListTolerant(KEY_EDGE_SYMBOLS)
+
+                val adjacencyMatrix: List<List<Edge?>> = states
+                    .mapIndexed { index, state ->
+                        when (val modifier: Modifier = state.toModifier()) {
+                            // No edge here at all.
+                            Modifier.NONE -> null
+                            // Legacy: a hexagon used to be the edge's own value, which cost the
+                            // edge its traversal state. It was always a traversable edge.
+                            Modifier.DOT -> Edge(Modifier.NORMAL, Symbol.HEXAGON)
+                            else -> Edge(modifier, symbols.getOrElse(index) { 0 }.toSymbol())
+                        }
+                    }
+                    .chunked(nodes.size)
 
                 add(nodes, adjacencyMatrix)
             }
@@ -47,11 +61,12 @@ fun NbtCompound.putValueGraph(key: String, graph: ValueGraph<Node, Edge>) {
                 add(NbtCompound().apply { putNode(node) })
             }
         })
-        putIntArray(KEY_EDGES, IntArray(nodes.size * nodes.size).apply {
-            graph.adjacencyMatrix.flatten().forEachIndexed { index, edge ->
-                val edgeToAdd: Int = edge?.ordinal ?: Edge.NONE.ordinal
-                this[index] = edgeToAdd
-            }
+        val edges: List<Edge?> = graph.adjacencyMatrix.flatten()
+        putIntArray(KEY_EDGES, IntArray(nodes.size * nodes.size) { index ->
+            edges.getOrNull(index)?.modifier?.ordinal ?: Modifier.NONE.ordinal
+        })
+        putIntArray(KEY_EDGE_SYMBOLS, IntArray(nodes.size * nodes.size) { index ->
+            edges.getOrNull(index)?.symbol?.ordinal ?: Symbol.NONE.ordinal
         })
     })
 }

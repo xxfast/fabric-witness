@@ -16,6 +16,7 @@ import com.xfastgames.witness.screens.widgets.WRadioGroup
 import com.xfastgames.witness.screens.widgets.WRadioImageButton
 import com.xfastgames.witness.screens.widgets.icons.BreakIcon
 import com.xfastgames.witness.screens.widgets.icons.EndIcon
+import com.xfastgames.witness.screens.widgets.icons.HexagonDotIcon
 import com.xfastgames.witness.screens.widgets.icons.StartIcon
 import com.xfastgames.witness.utils.*
 import com.xfastgames.witness.utils.guava.edgeValueOf
@@ -117,7 +118,7 @@ class PuzzleComposerScreenDescription(
     private val startButton = WRadioImageButton(icon = StartIcon, group = toggleGroup)
     private val endButton = WRadioImageButton(icon = EndIcon, group = toggleGroup)
     private val breakButton = WRadioImageButton(icon = BreakIcon, group = toggleGroup)
-    private val hexagonDotButton = WRadioImageButton(group = toggleGroup)
+    private val hexagonDotButton = WRadioImageButton(icon = HexagonDotIcon, group = toggleGroup)
     private val addButton = WRadioImageButton(group = toggleGroup)
     private val removeButton = WRadioImageButton(group = toggleGroup)
 
@@ -228,6 +229,13 @@ class PuzzleComposerScreenDescription(
                 return@setClickListener
             }
 
+            // A hexagon is a symbol, held beside the node's role and the edge's traversal state,
+            // so it edits neither (rules/witness/04-hexagon-dots.md).
+            if (selectedToggle == hexagonDotButton) {
+                commit(outputPuzzle.withSymbolToggled(node, edgeNodePair) ?: return@setClickListener)
+                return@setClickListener
+            }
+
             val updatedNodeModifier: Modifier = when {
                 selectedToggle == startButton && node != null ->
                     node.modifier.nextIn(Modifier.START, Modifier.NORMAL)
@@ -257,9 +265,9 @@ class PuzzleComposerScreenDescription(
 
             // The start tool only marks nodes. A start point is a node role, so clicking a segment
             // with it selected does nothing (rules/witness/01-start-points.md).
-            val updatedEdge: Modifier? = when {
+            val updatedEdge: Edge? = when {
                 selectedToggle == breakButton && edge != null ->
-                    edge.nextIn(Modifier.BREAK, Modifier.NORMAL)
+                    edge.copy(modifier = edge.modifier.nextIn(Modifier.BREAK, Modifier.NORMAL))
 
                 edge != null -> edge
                 else -> null
@@ -280,8 +288,7 @@ class PuzzleComposerScreenDescription(
             commit(updatedPuzzle)
         }
 
-        // TODO: Re-enable once this is implemented
-        hexagonDotButton.isEnabled = false
+        // TODO: Re-enable once these are implemented
         addButton.isEnabled = false
         removeButton.isEnabled = false
 

@@ -11,20 +11,39 @@ import kotlin.math.sqrt
 private const val KEY_NODE_X = "x"
 private const val KEY_NODE_Y = "y"
 private const val KEY_NODE_MODIFIER = "modifier"
+private const val KEY_NODE_SYMBOL = "symbol"
 
-data class Node(val x: Float, val y: Float, val modifier: Modifier = Modifier.NONE)
-
-fun NbtCompound.getNode() = Node(
-    x = getFloatTolerant(KEY_NODE_X),
-    y = getFloatTolerant(KEY_NODE_Y),
-    modifier = getIntTolerant(KEY_NODE_MODIFIER)
-        .let { Modifier.values()[it] }
+data class Node(
+    val x: Float,
+    val y: Float,
+    val modifier: Modifier = Modifier.NONE,
+    val symbol: Symbol = Symbol.NONE
 )
+
+fun NbtCompound.getNode(): Node {
+    val modifier: Modifier = getIntTolerant(KEY_NODE_MODIFIER).toModifier()
+    // Panels written before hexagons moved to their own field stored one as the node's modifier,
+    // which cost the node its role. Read it back as a symbol on a roleless node; the key is absent
+    // on those panels, so the tolerant read below would otherwise drop the hexagon entirely.
+    if (modifier == Modifier.DOT) return Node(
+        x = getFloatTolerant(KEY_NODE_X),
+        y = getFloatTolerant(KEY_NODE_Y),
+        modifier = Modifier.NONE,
+        symbol = Symbol.HEXAGON
+    )
+    return Node(
+        x = getFloatTolerant(KEY_NODE_X),
+        y = getFloatTolerant(KEY_NODE_Y),
+        modifier = modifier,
+        symbol = getIntTolerant(KEY_NODE_SYMBOL).toSymbol()
+    )
+}
 
 fun NbtCompound.putNode(node: Node) {
     putFloat(KEY_NODE_X, node.x)
     putFloat(KEY_NODE_Y, node.y)
     putInt(KEY_NODE_MODIFIER, node.modifier.ordinal)
+    putInt(KEY_NODE_SYMBOL, node.symbol.ordinal)
 }
 
 fun distance(u: Node, v: Node): Float =

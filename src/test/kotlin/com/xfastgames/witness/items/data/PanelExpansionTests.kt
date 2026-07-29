@@ -99,18 +99,18 @@ class PanelExpansionTests {
                 source.graph.edgeValue(edge.nodeU(), edge.nodeV()).get()
             )
         }
-        mutable.putEdgeValue(broken, brokenNeighbour, Modifier.BREAK)
+        mutable.putEdgeValue(broken, brokenNeighbour, Edge.BREAK)
         mutable.removeEdge(removed, removedNeighbour)
 
         val expanded: Panel.Grid = source.copy(graph = mutable).expandTo(4, 4)
 
         assertThat(expanded.graph.edgeValue(expanded.nodeAt(0, 0)!!, expanded.nodeAt(1, 0)!!).get())
-            .isEqualTo(Modifier.BREAK)
+            .isEqualTo(Edge.BREAK)
         assertThat(expanded.graph.hasEdgeConnecting(expanded.nodeAt(0, 1)!!, expanded.nodeAt(1, 1)!!))
             .isFalse()
         // Newly added cells are ordinary.
         assertThat(expanded.graph.edgeValue(expanded.nodeAt(3, 3)!!, expanded.nodeAt(3, 2)!!).get())
-            .isEqualTo(Modifier.NORMAL)
+            .isEqualTo(Edge.NORMAL)
     }
 
     @Test

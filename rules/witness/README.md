@@ -14,7 +14,7 @@ edge cases that bite, and where it stands in this mod.
 - [x] **01** [Start points](01-start-points.md): authored, multiple starts, only `START` picks up
 - [x] **02** [End points](02-end-points.md): authored as nubs, terminates and validates the line
 - [x] **03** [Broken edges (gaps)](03-broken-edges.md): traceable to the gap, never across
-- [ ] **04** [Hexagon dots](04-hexagon-dots.md): data model only, not rendered or checked
+- [x] **04** [Hexagon dots](04-hexagon-dots.md): authored, rendered, checked on submit; look unsettled
 - [ ] **05** [Symmetry lines](05-symmetry.md): not modelled
 
 **Region symbols**: drawn inside cells. The finished line partitions the grid into regions, and
@@ -56,8 +56,9 @@ What's left is everything that needs the grid partitioned:
 - **Region flood-fill is the shared blocker.** Every region symbol (06 through 09, 11) needs it,
   and none of them can be started without it. There is no flood-fill and no symbol validation
   anywhere in `src/main`, so a panel carrying symbols is accepted on the line rule alone.
-- **Hexagons (04) and symmetry (05)** are the remaining line mechanics. Hexagons are in the data
-  model but neither rendered nor checked; symmetry isn't modelled at all.
+- **Symmetry (05)** is the last unmodelled line mechanic. Hexagons (04) are done: authored in the
+  composer, drawn in front of the line, and validated on submit via `Panel.unsatisfiedHexagons`.
+  Their appearance is still open, a hexagon currently reads too much like a broken edge.
 
 ## Open questions
 

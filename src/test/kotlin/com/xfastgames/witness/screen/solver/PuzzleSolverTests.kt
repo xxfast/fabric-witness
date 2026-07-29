@@ -8,6 +8,7 @@ import com.xfastgames.witness.items.data.Edge
 import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.Symbol
 import com.xfastgames.witness.screens.solver.PuzzleSolverData
 import com.xfastgames.witness.screens.solver.PuzzleSolver
 import com.xfastgames.witness.utils.guava.emptyGraph
@@ -28,8 +29,8 @@ class PuzzleSolverTests {
     private val panel: Panel = Panel.Grid(
         line = emptyGraph(),
         graph = MutableValueGraphBuilder().apply {
-            putEdgeValue(start, corner, Modifier.NORMAL)
-            putEdgeValue(corner, finish, Modifier.NORMAL)
+            putEdgeValue(start, corner, Edge.NORMAL)
+            putEdgeValue(corner, finish, Edge.NORMAL)
         },
         backgroundColor = DyeColor.WHITE,
         width = 1,
@@ -151,7 +152,7 @@ class PuzzleSolverTests {
         val brokenPanel: Panel = Panel.Grid(
             line = emptyGraph(),
             graph = MutableValueGraphBuilder().apply {
-                putEdgeValue(start, corner, Modifier.BREAK)
+                putEdgeValue(start, corner, Edge.BREAK)
             },
             backgroundColor = DyeColor.WHITE,
             width = 1,
@@ -172,8 +173,8 @@ class PuzzleSolverTests {
     @Test
     fun `Backs out of a broken edge stub`() {
         val brokenPanel: Panel = panelOf(
-            Triple(start, corner, Modifier.BREAK),
-            Triple(corner, finish, Modifier.NORMAL)
+            Triple(start, corner, Edge.BREAK),
+            Triple(corner, finish, Edge.NORMAL)
         )
         solver.startTracingLine(brokenPanel, start)
         solver.move(brokenPanel, 1f, 0f)
@@ -230,10 +231,67 @@ class PuzzleSolverTests {
         assertThat(submitted.nodes()).isEmpty()
     }
 
+    @Test
+    fun `Rejects a path that reaches the end but misses a hexagon`() {
+        // The hexagon sits on the far side of a detour the short path never takes
+        // (rules/witness/04-hexagon-dots.md).
+        val detour = Node(0f, 1f, symbol = Symbol.HEXAGON)
+        val hexagonPanel: Panel = panelOf(
+            start to corner,
+            corner to finish,
+            start to detour,
+            detour to finish
+        )
+        solver.startTracingLine(hexagonPanel, start)
+        solver.move(hexagonPanel, 1f, 0f)
+        solver.move(hexagonPanel, 0f, 1f)
+
+        val submitted: Graph<Node> = requireNotNull(solver.submit(hexagonPanel))
+
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionRejected::class.java)
+        assertThat(submitted.nodes()).isEmpty()
+    }
+
+    @Test
+    fun `Accepts a path that reaches the end covering every hexagon`() {
+        val detour = Node(0f, 1f, symbol = Symbol.HEXAGON)
+        val hexagonPanel: Panel = panelOf(
+            start to corner,
+            corner to finish,
+            start to detour,
+            detour to finish
+        )
+        solver.startTracingLine(hexagonPanel, start)
+        solver.move(hexagonPanel, 0f, 1f)
+        solver.move(hexagonPanel, 1f, 0f)
+
+        val submitted: Graph<Node> = requireNotNull(solver.submit(hexagonPanel))
+
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionAccepted::class.java)
+        assertThat(submitted.nodes()).containsExactly(start, detour, finish)
+    }
+
+    @Test
+    fun `A dotted edge traces exactly like a plain one`() {
+        // A symbol never changes how the line moves; only the traversal state does.
+        val dottedPanel: Panel = panelOf(
+            Triple(start, corner, Edge(Modifier.NORMAL, Symbol.HEXAGON)),
+            Triple(corner, finish, Edge.NORMAL)
+        )
+        solver.startTracingLine(dottedPanel, start)
+        solver.move(dottedPanel, 1f, 0f)
+        solver.move(dottedPanel, 0f, 1f)
+
+        val submitted: Graph<Node> = requireNotNull(solver.submit(dottedPanel))
+
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionAccepted::class.java)
+        assertThat(submitted.nodes()).containsExactly(start, corner, finish)
+    }
+
     private fun Graph<Node>.end(): Node? = nodes().firstOrNull { it.modifier == Modifier.END }
 
     private fun panelOf(vararg edges: Pair<Node, Node>): Panel =
-        panelOf(*edges.map { (from, to) -> Triple(from, to, Modifier.NORMAL) }.toTypedArray())
+        panelOf(*edges.map { (from, to) -> Triple(from, to, Edge.NORMAL) }.toTypedArray())
 
     private fun panelOf(vararg edges: Triple<Node, Node, Edge>): Panel {
         val graph: MutableValueGraph<Node, Edge> = MutableValueGraphBuilder()

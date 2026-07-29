@@ -7,9 +7,11 @@ import com.xfastgames.witness.items.data.Edge
 import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.Symbol
 import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.renderer.PuzzlePanelTextures
 import com.xfastgames.witness.utils.fill
+import com.xfastgames.witness.utils.hexagon
 import com.xfastgames.witness.utils.guava.edgeValueOf
 import com.xfastgames.witness.utils.guava.incidentEdges
 import com.xfastgames.witness.utils.intersects
@@ -37,6 +39,12 @@ private const val GRAPH_BLUE = .25f
 private const val SOLUTION_RED = .95f
 private const val SOLUTION_GREEN = .95f
 private const val SOLUTION_BLUE = .9f
+/**
+ * A hexagon is drawn narrower than the line it marks so the line still shows either side of it.
+ * Since it draws in the panel's background colour, at full line width it would sever the line and
+ * read as a broken edge (rules/witness/03-broken-edges.md) rather than a symbol on an intact one.
+ */
+private const val HEXAGON_LINE_FRACTION = 3f / 4f
 private const val TEXTURE_COLOR = -1
 
 class WPuzzleEditor(
@@ -98,6 +106,10 @@ class WPuzzleEditor(
 
         drawGraph(context, puzzle.graph, ::px, ::py, lineThickness)
         drawSolution(context, puzzle.line, ::px, ::py, lineThickness)
+        // Symbols draw last, over the solution as well as the grid: a hexagon stays visible once
+        // the line covers it, which is the only way a player can tell it was crossed
+        // (rules/witness/04-hexagon-dots.md).
+        drawSymbols(context, puzzle, ::px, ::py, lineThickness)
     }
 
     private fun drawGraph(
@@ -109,7 +121,7 @@ class WPuzzleEditor(
     ) {
         graph.nodes().forEach { node ->
             val visibleEdges: Int = graph.incidentEdges(node).count { side ->
-                graph.edgeValueOf(side) !in listOf(Modifier.NONE, Modifier.HIDDEN)
+                graph.edgeValueOf(side)?.modifier !in listOf(Modifier.NONE, Modifier.HIDDEN)
             }
             when {
                 node.modifier == Modifier.START ->
@@ -128,7 +140,7 @@ class WPuzzleEditor(
         }
 
         graph.edges().forEach { side ->
-            when (val edge: Edge = graph.edgeValueOf(side) ?: return@forEach) {
+            when ((graph.edgeValueOf(side) ?: return@forEach).modifier) {
                 // A start point is a node role, never an edge value. A legacy panel that stored one
                 // on an edge draws as a plain segment (rules/witness/01-start-points.md).
                 Modifier.NORMAL, Modifier.START ->
@@ -138,6 +150,33 @@ class WPuzzleEditor(
 
                 Modifier.NONE, Modifier.DOT, Modifier.END, Modifier.HIDDEN -> Unit
             }
+        }
+    }
+
+    private fun drawSymbols(
+        context: DrawContext,
+        puzzle: Panel,
+        px: (Float) -> Int,
+        py: (Float) -> Int,
+        lineThickness: Int
+    ) {
+        val graph: ValueGraph<Node, Edge> = puzzle.graph
+        // The panel's own backdrop colour, so a hexagon reads as a notch punched through whatever
+        // covers it: the grid line while untraced, the solution line once drawn.
+        val color: Int = 0xFF000000.toInt() or (puzzle.backgroundColor.entityColor and 0xFFFFFF)
+        val diameter: Int = (lineThickness * HEXAGON_LINE_FRACTION).roundToInt().coerceAtLeast(1)
+
+        graph.nodes()
+            .filter { node -> node.symbol == Symbol.HEXAGON }
+            .forEach { node -> hexagon(context, px(node.x), py(node.y), diameter, color) }
+
+        graph.edges().forEach { side ->
+            val edge: Edge = graph.edgeValueOf(side) ?: return@forEach
+            if (edge.symbol != Symbol.HEXAGON) return@forEach
+            val u: Node = side.nodeU()
+            val v: Node = side.nodeV()
+            // An edge hexagon marks the edge as a whole, so it sits at the midpoint.
+            hexagon(context, px((u.x + v.x) / 2), py((u.y + v.y) / 2), diameter, color)
         }
     }
 
