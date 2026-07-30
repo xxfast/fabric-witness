@@ -134,10 +134,3 @@ Not yet implemented, roughly in order of how much they'd add:
 
 Each needs an entry in `sounds.json`, a `SoundEvent` in `WitnessSounds.kt` registered during
 common init (registries freeze afterwards), and a trigger in the puzzle solver.
-
-## Note on assets
-
-The volume scales, event names, variant counts and state model above are behavioural facts
-about how panel audio is structured. The audio files themselves are ours to author — anything
-shipped in this repo must be original work, since the mod is distributed under CC0 and CC0
-cannot be applied to material we do not hold rights to.

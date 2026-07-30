@@ -19,3 +19,7 @@ run/
 /minecraft/
 
 .vanila/
+
+# Sounds
+/src/main/resources/assets/witness/sounds/pixelated/
+/src/main/resources/assets/witness/sounds/raw/
