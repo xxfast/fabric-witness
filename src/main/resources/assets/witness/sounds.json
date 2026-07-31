@@ -29,9 +29,57 @@
       "witness:focus_mode_wondering"
     ]
   },
+  "panel_abort_finish_tracing": {
+    "sounds": [
+      "witness:panel_abort_finish_tracing"
+    ]
+  },
+  "panel_abort_tracing": {
+    "sounds": [
+      "witness:panel_abort_tracing"
+    ]
+  },
+  "panel_failure": {
+    "sounds": [
+      "witness:panel_failure"
+    ]
+  },
+  "panel_finish_tracing": {
+    "sounds": [
+      "witness:panel_finish_tracing"
+    ]
+  },
+  "panel_path_complete": {
+    "sounds": [
+      "witness:panel_path_complete"
+    ]
+  },
+  "panel_potential_failure": {
+    "sounds": [
+      "witness:panel_potential_failure"
+    ]
+  },
+  "panel_scint_endpoint": {
+    "sounds": [
+      "witness:panel_scint_endpoint"
+    ]
+  },
+  "panel_scint_startpoint": {
+    "sounds": [
+      "witness:panel_scint_startpoint"
+    ]
+  },
   "panel_start_tracing": {
     "sounds": [
       "witness:panel_start_tracing"
+    ]
+  },
+  "panel_success": {
+    "sounds": [
+      "witness:panel_success1",
+      "witness:panel_success2",
+      "witness:panel_success3",
+      "witness:panel_success4"
     ]
   },
   "pointless_click": {

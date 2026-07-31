@@ -208,7 +208,7 @@ class PuzzleSolverTests {
     }
 
     @Test
-    fun `Rejects a line that has backed out of the end point`() {
+    fun `Aborts a line that has backed out of the end point`() {
         solver.startTracingLine(panel, start)
         solver.move(panel, 1f, 0f)
         solver.move(panel, 0f, 1f)
@@ -216,19 +216,48 @@ class PuzzleSolverTests {
 
         val submitted: Graph<Node> = requireNotNull(solver.submit(panel))
 
-        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionRejected::class.java)
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionAborted::class.java)
         assertThat(submitted.nodes()).isEmpty()
     }
 
     @Test
-    fun `Rejects a path that stops short of an end point`() {
+    fun `Aborts a path that stops short of an end point`() {
         solver.startTracingLine(panel, start)
         solver.move(panel, 0.5f, 0f)
 
         val submitted: Graph<Node> = requireNotNull(solver.submit(panel))
 
-        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionRejected::class.java)
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionAborted::class.java)
         assertThat(submitted.nodes()).isEmpty()
+    }
+
+    @Test
+    fun `Aborts a path released on a plain node rather than rejecting it`() {
+        // Nothing was submitted, so the panel never gets to fail it.
+        solver.startTracingLine(panel, start)
+        solver.move(panel, 1f, 0f)
+
+        val submitted: Graph<Node> = requireNotNull(solver.submit(panel))
+
+        assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionAborted::class.java)
+        assertThat(submitted.nodes()).isEmpty()
+    }
+
+    @Test
+    fun `Reports reaching the end point, and leaving it again`() {
+        solver.startTracingLine(panel, start)
+        solver.move(panel, 1f, 0f)
+        assertThat(solver.isAtFinish).isFalse()
+
+        solver.move(panel, 0f, 1f)
+        assertThat(solver.isAtFinish).isTrue()
+
+        // Retracting down the nub still counts as reached; only leaving the node undoes it.
+        solver.move(panel, 0f, -0.5f)
+        assertThat(solver.isAtFinish).isTrue()
+
+        solver.move(panel, 0f, -0.5f)
+        assertThat(solver.isAtFinish).isFalse()
     }
 
     @Test

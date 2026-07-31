@@ -16,6 +16,9 @@ sealed class PuzzleSolverData {
     object PreSolution : PuzzleSolverData()
     object InSolution : PuzzleSolverData()
     object SolutionSubmitted : PuzzleSolverData()
+
+    /** The line was released somewhere other than an end point, so nothing was ever submitted. */
+    object SolutionAborted : PuzzleSolverData()
     object SolutionRejected : PuzzleSolverData()
     object SolutionAccepted : PuzzleSolverData()
 }

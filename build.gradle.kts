@@ -62,6 +62,15 @@ kotlin {
 
 tasks {
     processResources {
+        // Uncompressed sound sources live beside the shipped oggs, and are ~56MB of jar otherwise.
+        // USAGE.md sits there too, and its uppercase name is an invalid resource path: packing it
+        // makes the client log an error for the resource pack on every launch.
+        exclude(
+            "assets/witness/sounds/raw/**",
+            "assets/witness/sounds/pixelated/**",
+            "assets/witness/sounds/USAGE.md"
+        )
+
         filesMatching("fabric.mod.json") {
             expand(
                 "modid" to Info.modid,

@@ -43,7 +43,7 @@ Volume scale per event, on a 0–1 scale:
 | `panel_finish_tracing` | 0.20 | |
 | `panel_abort_tracing` | 0.40 | |
 | `panel_abort_finish_tracing` | 0.30 | |
-| `panel_scint_startpoint` | 0.20 | pitch-randomised, see below |
+| `panel_scint_startpoint` | 0.20 | pitch-randomised, see below; we run it at 0.12 |
 | `panel_scint_endpoint` | 0.15 | pitch-randomised |
 | `panel_success` | 0.30 | 4 variants, picked at random |
 | `panel_success_muted` | 0.70 | louder scale, quieter source |
@@ -51,7 +51,8 @@ Volume scale per event, on a 0–1 scale:
 | `panel_potential_failure` | 0.40 | |
 | `panel_path_complete` | 0.15 | |
 | `focus_mode_enter` / `focus_mode_exit` | 0.20 | |
-| `focus_mode_being` / `focus_mode_doing` | 0.13 | |
+| `focus_mode_being` | 0.13 | we run it at 0.05, see below |
+| `focus_mode_doing` | 0.13 | |
 | `focus_mode_wondering` | 0.17 | |
 | `focus_mode_considering_exit` | 0.17 | |
 | `pointless_click` | 0.30 | |
@@ -112,25 +113,60 @@ default path first.
 
 ## Current state in this mod
 
-Registered in `WitnessSounds.kt`:
+Every cue is a `WitnessSound` in `WitnessSounds.kt`, which pairs the registered `SoundEvent` with
+its mix from the table above, so the volume and pitch jitter live in one place rather than at each
+call site. Registration happens during common init: registries freeze afterwards.
 
-- `panel_start_tracing`
-- `pointless_click`
-- all six `focus_mode_*`
+Wired up, all of it in `PuzzleSolverScreen`:
 
-Not yet implemented, roughly in order of how much they'd add:
-
-| event | why it matters |
+| event | trigger |
 |---|---|
-| `panel_success` | the signature moment; wants 4 variants |
-| `panel_failure` | no feedback on invalid submission today |
-| `panel_finish_tracing` | completes the start/finish pair we already half-have |
-| `panel_abort_tracing` | feedback when a trace is dropped |
-| `panel_scint_startpoint` / `_endpoint` | node affordance — helps discoverability |
-| `panel_potential_failure` | teaches constraints while drawing |
-| `panel_path_complete` | separates "reached exit" from "solved" |
-| `panel_abort_finish_tracing` | polish |
-| `panel_success_muted` | only once panels can cluster |
+| `focus_mode_enter` / `_exit` | the solver screen opens / closes |
+| `focus_mode_being` | looping, whenever the screen is open and no line is moving |
+| `focus_mode_doing` | looping, replaces `being` for the duration of a trace |
+| `panel_scint_startpoint` | the cursor enters a start node, after 5s of the panel going untouched |
+| `panel_scint_endpoint` | a trace has been stalled for 5s, repeating on that beat |
+| `panel_start_tracing` | a trace begins on a start node |
+| `panel_path_complete` | the line lands on an end point, whatever the path is worth |
+| `panel_finish_tracing` | the line is released on an end point, before the verdict |
+| `panel_success` | validation passed, one of the four variants at random |
+| `panel_failure` | validation failed |
+| `panel_abort_tracing` | the line is released anywhere else, or the trace is dropped |
+| `panel_abort_finish_tracing` | the trace is dropped while resting on an end point |
+| `pointless_click` | a click that hits no start node |
 
-Each needs an entry in `sounds.json`, a `SoundEvent` in `WitnessSounds.kt` registered during
-common init (registries freeze afterwards), and a trigger in the puzzle solver.
+Both `scint_*` cues are attract cues on the same five second timer, but they answer different
+questions. `startpoint` fires when the cursor enters a start node on a panel nobody has touched
+for five seconds: where do I begin. `endpoint` fires when a trace has been running but the line
+has not moved for five seconds, and repeats on that beat until it does: where am I going. Clicks
+and a moving line count as touching the panel, drifting the cursor across it does not, otherwise
+the move onto a node would reset the timer the cue is waiting on.
+
+Neither cue is tied to hovering the thing it points at. Nothing found in datamined panel data
+supports a tutorial versus non-tutorial split in the original, where these would be taught and
+then withdrawn, so they stay on every panel and lean on the idle gate instead. If panels ever grow
+a per-panel hinting flag, this is where it would apply.
+
+`focus_mode_being` deviates from the table: 0.05 rather than 0.13, and eased in over three seconds
+by `LoopingSoundInstance` instead of starting at full volume. It is the one layer that runs the
+whole time a panel is open, and at the observed level it pulls attention off the puzzle. The fade
+curve is squared, since a linear ramp is most of the way up almost immediately.
+
+Only real verdicts get verdict cues. Releasing off an end point is an *abort*, not a rejection:
+`PuzzleSolver.submit` only reaches validation from an end point, so a dropped line never sounds
+like a wrong answer, and `failure` only fires on a path the panel actually rejected. Nothing
+predicts a verdict ahead of the release.
+
+Not wired up yet, and why:
+
+| event | blocked on |
+|---|---|
+| `panel_potential_failure` | reserved for eliminators (rules/witness/11-eliminators.md), the rule that fails visibly mid-trace |
+| `focus_mode_wondering` / `_considering_exit` | no hesitation or exit-drift state to hang them on |
+| `panel_success_muted` | only earns its place once panels can cluster |
+| `<zone>_panel_*` (`crt`, `defaultverb`, `glassverb`) | no acoustic zone concept — see *Variants by surface* |
+| `menu_*` | the composer GUI has no sound layer |
+
+The files ship regardless; wiring one up is an entry in `sounds.json`, a `WitnessSound` in
+`WitnessSounds.kt`, and a trigger. The uncompressed sources in `raw/` and `pixelated/` are
+gitignored working files and are excluded from the jar by `processResources`.

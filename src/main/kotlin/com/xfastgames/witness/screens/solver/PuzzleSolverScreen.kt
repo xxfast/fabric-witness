@@ -6,8 +6,10 @@ import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Companion.PUZZLE_FRAME_SCALE
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
-import com.xfastgames.witness.sounds.WitnessSounds
 import com.xfastgames.witness.sounds.LoopingSoundInstance
+import com.xfastgames.witness.sounds.WitnessSound
+import com.xfastgames.witness.sounds.WitnessSounds
+import com.xfastgames.witness.sounds.play
 import com.xfastgames.witness.utils.*
 import com.xfastgames.witness.utils.Interpolator
 import kotlinx.coroutines.FlowPreview
@@ -32,6 +34,7 @@ import net.minecraft.entity.projectile.ProjectileUtil
 import net.minecraft.item.ItemStack
 import net.minecraft.sound.SoundCategory
 import net.minecraft.state.property.Properties
+import net.minecraft.util.Util
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
@@ -45,6 +48,12 @@ import kotlin.math.hypot
 private const val BORDER_WIDTH = 14
 private const val DEBUG_SHOW_CURSOR_WHILE_TRACING = false
 private const val CURSOR_WARP_EPSILON = 1.0
+/** How close to a node's centre, in panel units, a click or a hover counts as being on it. */
+private const val NODE_HIT_RADIUS = 0.25f
+/** Three seconds, at 20 ticks a second: the idle bed creeps in rather than landing on the ear. */
+private const val IDLE_AMBIENCE_FADE_IN_TICKS = 60
+/** How long the panel goes untouched before start points start advertising themselves. */
+private const val SCINT_ATTRACT_DELAY_MILLIS = 5_000L
 // PuzzleFrameBlockRenderer (-0.034, -0.05) + PuzzlePanelRenderer line layer (-0.011).
 private const val PUZZLE_LINE_DEPTH_FROM_BLOCK_CENTER = 0.095
 
@@ -60,6 +69,11 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     private var panelScreenBasis: PanelScreenBasis? = null
     private var pendingCursorWarp: MousePosition? = null
     private var tracingSound: LoopingSoundInstance? = null
+    private var idleSound: LoopingSoundInstance? = null
+    private var hoveredNode: Node? = null
+    private var closing: Boolean = false
+    private var lastInteractionMillis: Long = 0
+    private var lastEndPointHintMillis: Long = 0
 
     private val solver = PuzzleSolver()
     private val clientInstance: MinecraftClient by lazy { requireNotNull(client) }
@@ -67,9 +81,22 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
 
     override fun init() {
         mouse.hide()
-        client?.player?.playSound(WitnessSounds.FOCUS_MODE_ENTER, 0.5f, 1f)
+        client?.player?.play(WitnessSounds.FOCUS_MODE_ENTER)
+        startIdleAmbience()
+        registerInteraction()
         client?.options?.hudHidden = true
     }
+
+    /**
+     * Marks the panel as touched. Clicks and a moving line count; drifting the cursor over the
+     * panel does not, or the attract cue it gates would be reset by the very move that triggers it.
+     */
+    private fun registerInteraction() {
+        lastInteractionMillis = Util.getMeasuringTimeMs()
+    }
+
+    private val isUnattended: Boolean
+        get() = Util.getMeasuringTimeMs() - lastInteractionMillis >= SCINT_ATTRACT_DELAY_MILLIS
 
     override fun shouldPause(): Boolean = false
 
@@ -104,10 +131,26 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     }
 
     override fun tick() {
+        hintEndPointWhileStalled()
+    }
+
+    /**
+     * Shimmers the way out when a trace stalls: a line that hasn't moved for
+     * [SCINT_ATTRACT_DELAY_MILLIS] is a player who has stopped knowing where to draw, so the exit
+     * says where it is. Keeps repeating on that beat until they move again.
+     */
+    private fun hintEndPointWhileStalled() {
+        if (!solver.isSolving || !isUnattended) return
+        val now: Long = Util.getMeasuringTimeMs()
+        if (now - lastEndPointHintMillis < SCINT_ATTRACT_DELAY_MILLIS) return
+        val puzzle: Panel = startedBlockEntity?.inventory?.getStack(0)?.panel ?: return
+        if (puzzle.graph.nodes().none { node -> node.modifier == Modifier.END }) return
+        lastEndPointHintMillis = now
+        client?.player?.play(WitnessSounds.PANEL_SCINT_ENDPOINT)
     }
 
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
-        if (!solver.isSolving) return
+        if (!solver.isSolving) return scintillateStartPointUnderCursor(mouseX, mouseY)
 
         val blockEntity: PuzzleFrameBlockEntity = startedBlockEntity ?: return
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
@@ -122,10 +165,42 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val panelDelta: Pair<Float, Float> =
             basis.toPanelDelta(mouseX - previousMousePosition.x, mouseY - previousMousePosition.y)
                 ?: return
+        val wasAtFinish: Boolean = solver.isAtFinish
         val line: Graph<Node> = solver.move(puzzle, panelDelta.first, panelDelta.second) ?: return
         updateLine(blockEntity, puzzle, line)
+        registerInteraction()
+        // Reaching the exit is geometric, not a verdict: it chirps the same whether or not the
+        // path would survive validation.
+        if (solver.isAtFinish && !wasAtFinish) client?.player?.play(WitnessSounds.PANEL_PATH_COMPLETE)
         solver.tracingTip()?.let { tip -> lockCursorToLineTip(blockEntity, puzzle, tip, mousePosition) }
     }
+
+    /**
+     * Shimmers the start point under the cursor, but only once the panel has been left alone for
+     * [SCINT_ATTRACT_DELAY_MILLIS]: this is an attract cue for a player who hasn't found where to
+     * begin, not running commentary on the cursor. Fires on entering a node, not on every move
+     * across it.
+     */
+    private fun scintillateStartPointUnderCursor(mouseX: Double, mouseY: Double) {
+        val world: ClientWorld = client?.world ?: return
+        val hitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
+        val node: Node? = hitResult?.let { hit ->
+            val (panelX: Float, panelY: Float) = hit.position
+            hit.puzzlePanel.nodeAt(panelX, panelY, Modifier.START)
+        }
+        if (node == hoveredNode) return
+        hoveredNode = node
+        if (node == null || !isUnattended) return
+        client?.player?.play(WitnessSounds.PANEL_SCINT_STARTPOINT)
+    }
+
+    /** The node under a panel space position, restricted to the roles in [modifiers]. */
+    private fun Panel.nodeAt(panelX: Float, panelY: Float, vararg modifiers: Modifier): Node? =
+        graph.nodes().find { node ->
+            node.modifier in modifiers &&
+                    panelX in (node.x - NODE_HIT_RADIUS)..(node.x + NODE_HIT_RADIUS) &&
+                    panelY in (node.y - NODE_HIT_RADIUS)..(node.y + NODE_HIT_RADIUS)
+        }
 
     override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
         val client: MinecraftClient = requireNotNull(client)
@@ -135,6 +210,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val mouseX: Double = click.x()
         val mouseY: Double = click.y()
         val button: Int = click.button()
+        registerInteraction()
 
         // Right-click closes the solver while idle. During a trace it releases and submits the
         // line, just like left-click, so both buttons accept only valid solutions.
@@ -156,12 +232,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val (clickX, clickY) = panelHitResult.position
         val blockEntity: PuzzleFrameBlockEntity = panelHitResult.blockEntity
 
-        val thickness = 0.25f
-        val overNode: Node? = puzzlePanel.graph.nodes().find { node ->
-            node.modifier == Modifier.START &&
-                    clickX in (node.x - thickness)..(node.x + thickness) &&
-                    clickY in (node.y - thickness)..(node.y + thickness)
-        }
+        val overNode: Node? = puzzlePanel.nodeAt(clickX, clickY, Modifier.START)
 
         overNode?.let {
             panelScreenBasis = calculatePanelScreenBasis(blockEntity, puzzlePanel, overNode)
@@ -172,8 +243,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         }
 
         if (overNode != null) {
-            player.playSound(WitnessSounds.PANEL_START_TRACING, 1f, 1f)
-            startTracingSound()
+            player.play(WitnessSounds.PANEL_START_TRACING)
+            startTracingAmbience()
             startedBlockEntity = blockEntity
             tracingMousePosition = MousePosition(mouseX, mouseY)
             solver.tracingTip()?.let { tip ->
@@ -190,41 +261,83 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     }
 
     override fun removed() {
+        closing = true
         client?.options?.hudHidden = false
-        client?.player?.playSound(WitnessSounds.FOCUS_MODE_EXIT, 0.5f, 1f)
         stopTracing()
+        idleSound?.stop()
+        idleSound = null
+        client?.player?.play(WitnessSounds.FOCUS_MODE_EXIT)
         client?.mouse?.unlockCursor()
         super.removed()
     }
 
+    /**
+     * Releases the line. Landing on an end point is the finish gesture, and the verdict follows it;
+     * releasing anywhere else drops the line without ever asking the panel.
+     */
     private fun submitTrace(player: ClientPlayerEntity) {
         val blockEntity: PuzzleFrameBlockEntity = startedBlockEntity ?: return stopTracing()
         val puzzle: Panel = blockEntity.inventory.getStack(0).panel ?: return stopTracing()
         val line: Graph<Node> = solver.submit(puzzle) ?: return stopTracing()
         updateLine(blockEntity, puzzle, line)
-        if (solver.state.value is PuzzleSolverData.SolutionRejected) missClick(player)
+        when (solver.state.value) {
+            is PuzzleSolverData.SolutionAccepted -> {
+                player.play(WitnessSounds.PANEL_FINISH_TRACING)
+                player.play(WitnessSounds.PANEL_SUCCESS)
+            }
+
+            is PuzzleSolverData.SolutionRejected -> {
+                player.play(WitnessSounds.PANEL_FINISH_TRACING)
+                player.play(WitnessSounds.PANEL_FAILURE)
+            }
+
+            else -> player.play(WitnessSounds.PANEL_ABORT_TRACING)
+        }
         // The verdict stays on the solver's state; only the screen's tracing state is dropped.
         releaseTracing()
     }
 
+    /** Throws away a trace in progress: cancelling on the end point has its own cue. */
     private fun stopTracing() {
+        if (solver.isSolving) {
+            val cue: WitnessSound =
+                if (solver.isAtFinish) WitnessSounds.PANEL_ABORT_FINISH_TRACING
+                else WitnessSounds.PANEL_ABORT_TRACING
+            client?.player?.play(cue)
+        }
         solver.stopTrace()
         releaseTracing()
     }
 
-    private fun startTracingSound() {
+    /** Swaps the focus mode ambience over to the actively-tracing layer. */
+    private fun startTracingAmbience() {
+        idleSound?.stop()
+        idleSound = null
         tracingSound?.stop()
-        tracingSound = LoopingSoundInstance(WitnessSounds.FOCUS_MODE_DOING, SoundCategory.AMBIENT, .5f)
+        tracingSound = LoopingSoundInstance(WitnessSounds.FOCUS_MODE_DOING, SoundCategory.AMBIENT)
             .also { it.play() }
+    }
+
+    /** The focused-but-not-drawing layer, running whenever the screen is open and no line moves. */
+    private fun startIdleAmbience() {
+        if (closing) return
+        idleSound?.stop()
+        idleSound = LoopingSoundInstance(
+            WitnessSounds.FOCUS_MODE_BEING,
+            SoundCategory.AMBIENT,
+            fadeInTicks = IDLE_AMBIENCE_FADE_IN_TICKS
+        ).also { it.play() }
     }
 
     private fun releaseTracing() {
         tracingSound?.stop()
         tracingSound = null
+        startIdleAmbience()
         startedBlockEntity = null
         tracingMousePosition = null
         panelScreenBasis = null
         pendingCursorWarp = null
+        hoveredNode = null
     }
 
     private fun consumePendingCursorWarp(position: MousePosition): Boolean {
@@ -497,7 +610,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     }
 
     private fun missClick(player: ClientPlayerEntity): Boolean {
-        player.playSound(WitnessSounds.POINTLESS_CLICK, 0.5f, 1f)
+        player.play(WitnessSounds.POINTLESS_CLICK)
         return false
     }
 }

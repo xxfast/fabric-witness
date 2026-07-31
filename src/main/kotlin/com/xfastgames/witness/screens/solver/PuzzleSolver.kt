@@ -106,15 +106,23 @@ class PuzzleSolver {
 
     /**
      * Submits the drawn line for validation and returns the line to render: the finished path when
-     * accepted, an empty graph when rejected (the line is discarded, as in the game). [state] holds
-     * the verdict.
+     * accepted, an empty graph otherwise (the line is discarded, as in the game). [state] holds the
+     * verdict.
+     *
+     * Releasing anywhere but an end point never reaches validation: the line is
+     * [PuzzleSolverData.SolutionAborted] rather than rejected, since the puzzle was never answered.
      */
     fun submit(panel: Panel): Graph<Node>? {
         if (!isSolving) return null
         val segment: ActiveSegment? = activeSegment
         activeSegment = null
+        if (!finishLine(segment) || !isAtFinish) {
+            path.clear()
+            stateFlow.value = PuzzleSolverData.SolutionAborted
+            return buildLine()
+        }
         stateFlow.value = PuzzleSolverData.SolutionSubmitted
-        if (finishLine(segment) && isValidSolution(panel)) {
+        if (isValidSolution(panel)) {
             stateFlow.value = PuzzleSolverData.SolutionAccepted
             return buildLine()
         }
@@ -122,6 +130,12 @@ class PuzzleSolver {
         stateFlow.value = PuzzleSolverData.SolutionRejected
         return buildLine()
     }
+
+    /**
+     * Whether the traced path has reached an end point, ignoring how far the tip has since
+     * retracted back down the nub (rules/witness/02-end-points.md).
+     */
+    val isAtFinish: Boolean get() = path.lastOrNull()?.modifier == Modifier.END
 
     /**
      * Resolves a submit made part way along an edge, returning whether the line is finished.
