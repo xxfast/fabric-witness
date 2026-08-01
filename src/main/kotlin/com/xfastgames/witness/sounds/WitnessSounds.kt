@@ -28,7 +28,8 @@ class WitnessSound(name: String, val volume: Float, private val pitchJitter: Flo
 }
 
 /** Plays [sound] at its documented mix. Called from the client, where this plays at the listener. */
-fun PlayerEntity.play(sound: WitnessSound) = playSound(sound.event, sound.volume, sound.pitch())
+fun PlayerEntity.play(sound: WitnessSound, volumeScale: Float = 1f) =
+    playSound(sound.event, sound.volume * volumeScale, sound.pitch())
 
 /**
  * Sound events must be registered during common init: registries freeze afterwards, and this

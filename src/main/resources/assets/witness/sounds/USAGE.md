@@ -124,8 +124,8 @@ Wired up, all of it in `PuzzleSolverScreen`:
 | `focus_mode_enter` / `_exit` | the solver screen opens / closes |
 | `focus_mode_being` | looping, whenever the screen is open and no line is moving |
 | `focus_mode_doing` | looping, replaces `being` for the duration of a trace |
-| `panel_scint_startpoint` | the cursor enters a start node, after 5s of the panel going untouched |
-| `panel_scint_endpoint` | a trace has been stalled for 5s, repeating on that beat |
+| `panel_scint_startpoint` | after 5s idle in focus (not tracing), pings every 3s up to 3 times with falling volume (**tutorial only**) |
+| `panel_scint_endpoint` | a trace has been stalled for 5s, repeating on that beat (**tutorial panels only**) |
 | `panel_start_tracing` | a trace begins on a start node |
 | `panel_path_complete` | the line lands on an end point, whatever the path is worth |
 | `panel_finish_tracing` | the line is released on an end point, before the verdict |
@@ -135,17 +135,20 @@ Wired up, all of it in `PuzzleSolverScreen`:
 | `panel_abort_finish_tracing` | the trace is dropped while resting on an end point |
 | `pointless_click` | a click that hits no start node |
 
-Both `scint_*` cues are attract cues on the same five second timer, but they answer different
-questions. `startpoint` fires when the cursor enters a start node on a panel nobody has touched
-for five seconds: where do I begin. `endpoint` fires when a trace has been running but the line
-has not moved for five seconds, and repeats on that beat until it does: where am I going. Clicks
-and a moving line count as touching the panel, drifting the cursor across it does not, otherwise
-the move onto a node would reset the timer the cue is waiting on.
+Both `scint_*` cues are attract cues gated by the same five second idle delay. `startpoint` then
+pings every three seconds, at most three times, with volume stepping full → 2/3 → 1/3 so a fourth
+would be inaudible (and is simply not played). It is not hover-driven. `endpoint` fires when a
+trace has been running but the line has not moved for five seconds, and repeats on that five
+second beat until it does: where am I going. Clicks and a moving line count as touching the
+panel, drifting the cursor across it does not. Interacting resets the startpoint counter so a
+later idle stretch gets the full three-ping fade again.
 
-Neither cue is tied to hovering the thing it points at. Nothing found in datamined panel data
-supports a tutorial versus non-tutorial split in the original, where these would be taught and
-then withdrawn, so they stay on every panel and lean on the idle gate instead. If panels ever grow
-a per-panel hinting flag, this is where it would apply.
+Both only fire when `Panel.tutorial` is true (composer toggle). Non-tutorial panels stay silent.
+
+Visually, each cue also fires [PanelAttractPulse]: a thin white ring that expands past the
+start disc (or, smaller, the end nub) and fades over ~700ms. Drawn on the panel face itself by
+`PuzzlePanelRenderer` (same matrix as the lattice), tutorial panels only, so perspective matches
+the frame like the original game.
 
 `focus_mode_being` deviates from the table: 0.05 rather than 0.13, and eased in over three seconds
 by `LoopingSoundInstance` instead of starting at full volume. It is the one layer that runs the

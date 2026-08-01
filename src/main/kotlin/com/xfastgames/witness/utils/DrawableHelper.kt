@@ -53,6 +53,46 @@ fun circle(
 }
 
 /**
+ * Annulus between [innerRadius] and [outerRadius] in screen pixels. Scanlines, same as [circle],
+ * so thin tutorial attract rings stay crisp at small sizes.
+ */
+fun ring(
+    context: DrawContext,
+    centerX: Int,
+    centerY: Int,
+    outerRadius: Int,
+    innerRadius: Int,
+    r: Float,
+    g: Float,
+    b: Float,
+    a: Float,
+) {
+    if (outerRadius <= 0 || a <= 0f) return
+    val outer: Int = outerRadius
+    val inner: Int = innerRadius.coerceIn(0, outer - 1)
+    val color: Int = argb(r, g, b, a)
+    val outerSq: Int = outer * outer
+    val innerSq: Int = inner * inner
+    for (dy in -outer until outer) {
+        val ySq: Int = dy * dy
+        if (ySq >= outerSq) continue
+        val outerHalf: Int = sqrt((outerSq - ySq).toDouble()).roundToInt()
+        if (outerHalf <= 0) continue
+        if (ySq >= innerSq || inner <= 0) {
+            // Full chord: inside the hole's vertical range, draw the whole outer span.
+            context.fill(centerX - outerHalf, centerY + dy, centerX + outerHalf, centerY + dy + 1, color)
+            continue
+        }
+        val innerHalf: Int = sqrt((innerSq - ySq).toDouble()).roundToInt()
+        // Left and right arcs of the ring.
+        if (outerHalf > innerHalf) {
+            context.fill(centerX - outerHalf, centerY + dy, centerX - innerHalf, centerY + dy + 1, color)
+            context.fill(centerX + innerHalf, centerY + dy, centerX + outerHalf, centerY + dy + 1, color)
+        }
+    }
+}
+
+/**
  * Draws a filled regular hexagon centred on ([centerX], [centerY]), point up, [diameter] pixels from
  * point to point. Scanlines, like [circle], so it sits correctly in an exact box at small sizes.
  *

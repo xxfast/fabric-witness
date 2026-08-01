@@ -6,6 +6,7 @@ import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Companion.PUZZLE_FRAME_SCALE
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
+import com.xfastgames.witness.items.renderer.PanelAttractPulse
 import com.xfastgames.witness.sounds.LoopingSoundInstance
 import com.xfastgames.witness.sounds.WitnessSound
 import com.xfastgames.witness.sounds.WitnessSounds
@@ -52,8 +53,15 @@ private const val CURSOR_WARP_EPSILON = 1.0
 private const val NODE_HIT_RADIUS = 0.25f
 /** Three seconds, at 20 ticks a second: the idle bed creeps in rather than landing on the ear. */
 private const val IDLE_AMBIENCE_FADE_IN_TICKS = 60
-/** How long the panel goes untouched before start points start advertising themselves. */
+/** How long the panel goes untouched before attract cues start advertising themselves. */
 private const val SCINT_ATTRACT_DELAY_MILLIS = 5_000L
+/** Beat between start-point attract pings once the idle delay has elapsed. */
+private const val SCINT_STARTPOINT_INTERVAL_MILLIS = 3_000L
+/**
+ * How many start-point attract pings fire before they fall silent. Volume steps down each time
+ * (full, 2/3, 1/3) so the third is a whisper and nothing follows.
+ */
+private const val SCINT_STARTPOINT_MAX_PINGS = 3
 // PuzzleFrameBlockRenderer (-0.034, -0.05) + PuzzlePanelRenderer line layer (-0.011).
 private const val PUZZLE_LINE_DEPTH_FROM_BLOCK_CENTER = 0.095
 
@@ -70,9 +78,10 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     private var pendingCursorWarp: MousePosition? = null
     private var tracingSound: LoopingSoundInstance? = null
     private var idleSound: LoopingSoundInstance? = null
-    private var hoveredNode: Node? = null
     private var closing: Boolean = false
     private var lastInteractionMillis: Long = 0
+    private var lastStartPointHintMillis: Long = 0
+    private var startPointHintCount: Int = 0
     private var lastEndPointHintMillis: Long = 0
 
     private val solver = PuzzleSolver()
@@ -90,9 +99,11 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     /**
      * Marks the panel as touched. Clicks and a moving line count; drifting the cursor over the
      * panel does not, or the attract cue it gates would be reset by the very move that triggers it.
+     * Resets the start-point ping counter so a later idle stretch gets the full three-ping fade.
      */
     private fun registerInteraction() {
         lastInteractionMillis = Util.getMeasuringTimeMs()
+        startPointHintCount = 0
     }
 
     private val isUnattended: Boolean
@@ -131,7 +142,37 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     }
 
     override fun tick() {
+        hintStartPointWhileIdle()
         hintEndPointWhileStalled()
+    }
+
+    /**
+     * Attract cue for where to begin. Once focus mode has been left alone for
+     * [SCINT_ATTRACT_DELAY_MILLIS], pings every [SCINT_STARTPOINT_INTERVAL_MILLIS] while still idle
+     * and not tracing. Volume steps down each ping and stops after [SCINT_STARTPOINT_MAX_PINGS]
+     * (matches the original: audible fade over three beats, then silence). Not hover-driven.
+     * Tutorial panels only.
+     */
+    private fun hintStartPointWhileIdle() {
+        if (solver.isSolving || !isUnattended) return
+        if (startPointHintCount >= SCINT_STARTPOINT_MAX_PINGS) return
+        val now: Long = Util.getMeasuringTimeMs()
+        if (now - lastStartPointHintMillis < SCINT_STARTPOINT_INTERVAL_MILLIS) return
+        val world: ClientWorld = client?.world ?: return
+        // Screen centre, not the cursor: this cue is a focus-mode beat, not a hover reaction.
+        val hit: PuzzlePanelHitResult =
+            rayCastAtPanel(world, width / 2.0, height / 2.0) ?: return
+        val puzzle: Panel = hit.puzzlePanel
+        if (!puzzle.tutorial) return
+        if (puzzle.graph.nodes().none { node -> node.modifier == Modifier.START }) return
+        // full → 2/3 → 1/3 across the three pings, then the counter stops further plays.
+        val volumeScale: Float =
+            (SCINT_STARTPOINT_MAX_PINGS - startPointHintCount).toFloat() / SCINT_STARTPOINT_MAX_PINGS
+        startPointHintCount++
+        lastStartPointHintMillis = now
+        client?.player?.play(WitnessSounds.PANEL_SCINT_STARTPOINT, volumeScale)
+        // Same beat as the cue: expanding white ring on the panel's start discs.
+        PanelAttractPulse.triggerStart(volumeScale)
     }
 
     /**
@@ -144,13 +185,17 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val now: Long = Util.getMeasuringTimeMs()
         if (now - lastEndPointHintMillis < SCINT_ATTRACT_DELAY_MILLIS) return
         val puzzle: Panel = startedBlockEntity?.inventory?.getStack(0)?.panel ?: return
+        // Attract cues are for tutorial panels only; everything else stays quiet.
+        if (!puzzle.tutorial) return
         if (puzzle.graph.nodes().none { node -> node.modifier == Modifier.END }) return
         lastEndPointHintMillis = now
         client?.player?.play(WitnessSounds.PANEL_SCINT_ENDPOINT)
+        // Same beat as the cue: smaller expanding ring on the panel's end nubs.
+        PanelAttractPulse.triggerEnd()
     }
 
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
-        if (!solver.isSolving) return scintillateStartPointUnderCursor(mouseX, mouseY)
+        if (!solver.isSolving) return
 
         val blockEntity: PuzzleFrameBlockEntity = startedBlockEntity ?: return
         val puzzleStack: ItemStack = blockEntity.inventory.getStack(0)
@@ -173,25 +218,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         // path would survive validation.
         if (solver.isAtFinish && !wasAtFinish) client?.player?.play(WitnessSounds.PANEL_PATH_COMPLETE)
         solver.tracingTip()?.let { tip -> lockCursorToLineTip(blockEntity, puzzle, tip, mousePosition) }
-    }
-
-    /**
-     * Shimmers the start point under the cursor, but only once the panel has been left alone for
-     * [SCINT_ATTRACT_DELAY_MILLIS]: this is an attract cue for a player who hasn't found where to
-     * begin, not running commentary on the cursor. Fires on entering a node, not on every move
-     * across it.
-     */
-    private fun scintillateStartPointUnderCursor(mouseX: Double, mouseY: Double) {
-        val world: ClientWorld = client?.world ?: return
-        val hitResult: PuzzlePanelHitResult? = rayCastAtPanel(world, mouseX, mouseY)
-        val node: Node? = hitResult?.let { hit ->
-            val (panelX: Float, panelY: Float) = hit.position
-            hit.puzzlePanel.nodeAt(panelX, panelY, Modifier.START)
-        }
-        if (node == hoveredNode) return
-        hoveredNode = node
-        if (node == null || !isUnattended) return
-        client?.player?.play(WitnessSounds.PANEL_SCINT_STARTPOINT)
     }
 
     /** The node under a panel space position, restricted to the roles in [modifiers]. */
@@ -266,6 +292,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         stopTracing()
         idleSound?.stop()
         idleSound = null
+        PanelAttractPulse.clear()
         client?.player?.play(WitnessSounds.FOCUS_MODE_EXIT)
         client?.mouse?.unlockCursor()
         super.removed()
@@ -337,7 +364,6 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         tracingMousePosition = null
         panelScreenBasis = null
         pendingCursorWarp = null
-        hoveredNode = null
     }
 
     private fun consumePendingCursorWarp(position: MousePosition): Boolean {

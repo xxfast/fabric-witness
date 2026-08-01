@@ -50,6 +50,54 @@ fun VertexConsumer.circle(
     }
 }
 
+/**
+ * Annulus between [innerRadius] and [outerRadius]. Used for the tutorial attract pulse ring
+ * (Witness-style expanding white hint on start / end nodes).
+ */
+fun VertexConsumer.ring(
+    entry: MatrixStack.Entry,
+    center: Vector3f,
+    innerRadius: Float,
+    outerRadius: Float,
+    light: Int,
+    overlay: Int,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
+    resolution: Double = 8.0
+) {
+    if (a <= 0f || outerRadius <= 0f || outerRadius <= innerRadius) return
+    val model: Matrix4f = entry.positionMatrix
+    val inner: Float = innerRadius.coerceAtLeast(0f)
+
+    fun vert(radius: Float, thetaRad: Float) {
+        vertex(
+            model,
+            center.x + radius * sin(thetaRad),
+            center.y + radius * cos(thetaRad),
+            center.z
+        )
+            .color(r, g, b, a)
+            .texture(0f, 1f)
+            .overlay(overlay)
+            .light(light)
+            .normal(entry, .5f, .5f, .5f)
+    }
+
+    var theta: Double = 0.0
+    while (theta < 360.0) {
+        val t0: Float = toRadians(theta).toFloat()
+        val t1: Float = toRadians(theta + resolution).toFloat()
+        // Outer → outer → inner → inner, matching the quad winding used elsewhere.
+        vert(outerRadius, t0)
+        vert(outerRadius, t1)
+        vert(inner, t1)
+        vert(inner, t0)
+        theta += resolution
+    }
+}
+
 fun VertexConsumer.square(entry: MatrixStack.Entry, position: Vector3f, length: Float, light: Int, overlay: Int) {
     val offSets: List<Pair<Float, Float>> = listOf(0f to 0f, 1f to 0f, 1f to 1f, 0f to 1f).reversed()
     offSets.forEach { (offsetX, offsetY) ->

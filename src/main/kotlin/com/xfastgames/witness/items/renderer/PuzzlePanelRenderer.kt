@@ -61,6 +61,77 @@ object PuzzlePanelRenderer {
             puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
             matrices, queue, light, overlay
         )
+        // On the panel face itself (Witness-style), not a screen overlay: perspective follows the frame.
+        if (puzzle.tutorial) {
+            renderAttractPulse(puzzle, matrices, queue, overlay)
+        }
+    }
+
+    /**
+     * Expanding white ring on start discs / end nubs, driven by [PanelAttractPulse]. Same visual
+     * as the original: thin stroke grows past the node and fades, drawn in panel space on the
+     * frame so it sits on the surface from any camera angle. End is half the start radius.
+     */
+    private fun renderAttractPulse(
+        puzzle: Panel,
+        matrices: MatrixStack,
+        queue: OrderedRenderCommandQueue,
+        overlay: Int
+    ) {
+        val frame: PanelAttractPulse.Frame = PanelAttractPulse.sample() ?: return
+        val nodes: List<Node> = when (frame.kind) {
+            PanelAttractPulse.Kind.START ->
+                puzzle.graph.nodes().filter { it.modifier == Modifier.START }
+            PanelAttractPulse.Kind.END ->
+                puzzle.graph.nodes().filter { it.modifier == Modifier.END }
+        }
+        if (nodes.isEmpty()) return
+
+        // Match PuzzlePanelRenderer node discs: start 4.pc, end nub 2.pc.
+        val baseRadius: Float = when (frame.kind) {
+            PanelAttractPulse.Kind.START -> 4.pc
+            PanelAttractPulse.Kind.END -> 2.pc
+        }
+        val t: Float = frame.progress
+        val expand: Float = 1f - (1f - t) * (1f - t)
+        val midRadius: Float = baseRadius * (0.30f + 1.25f * expand)
+        val stroke: Float = baseRadius * 0.18f
+        val innerRadius: Float = (midRadius - stroke).coerceAtLeast(0f)
+        val outerRadius: Float = midRadius
+        val alpha: Float = frame.strength * (1f - t) * (1f - t) * 0.95f
+        if (alpha <= 0.02f) return
+
+        val maxDimension: Int = maxOf(puzzle.width, puzzle.height)
+        val maxScale: Float = 1f / maxDimension
+
+        matrices.push()
+        matrices.scale(maxScale, maxScale, 1f)
+        // In front of symbols / line so the ring isn't buried under the lattice.
+        matrices.translate(.0, .0, -.014)
+
+        // entityTranslucentEmissive: real vertex alpha + fullbright, unlike beaconBeam which
+        // ate the first translucent attempt. Solution-fill is the cream/white panel stroke.
+        val fullBright: Int = 0x00F000F0
+        queue.submitCustom(
+            matrices,
+            RenderLayers.entityTranslucentEmissive(PuzzlePanelTextures.solutionFill)
+        ) { entry, consumer ->
+            withRenderContext(entry, consumer, fullBright, overlay) {
+                nodes.forEach { node ->
+                    ring(
+                        Vector3f(node.x, node.y, 0f),
+                        innerRadius,
+                        outerRadius,
+                        r = 1f,
+                        g = 1f,
+                        b = 1f,
+                        a = alpha
+                    )
+                }
+            }
+        }
+
+        matrices.pop()
     }
 
     /**

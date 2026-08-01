@@ -13,6 +13,16 @@ fun RenderContext.square(position: Vector3f, length: Float) =
 fun RenderContext.circle(position: Vector3f, radius: Float, arc: IntRange = 0..360) =
     vertexConsumer.circle(entry, position, radius, light, overlay, arc)
 
+fun RenderContext.ring(
+    position: Vector3f,
+    innerRadius: Float,
+    outerRadius: Float,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
+) = vertexConsumer.ring(entry, position, innerRadius, outerRadius, light, overlay, r, g, b, a)
+
 /**
  * A regular hexagon, point up, [radius] from centre to point.
  *
