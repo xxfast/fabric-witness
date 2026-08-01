@@ -30,6 +30,49 @@ import kotlin.math.*
 object PuzzlePanelRenderer {
 
     /**
+     * Attract / error-cue draw path.
+     *
+     * - `false` (default): opaque `beaconBeam`, same pass as the solution line. Fade is white →
+     *   panel backdrop (no grey). Reliable on the face.
+     * - `true`: `entityTranslucentEmissive` + vertex alpha. Softer look; broken on-face today —
+     *   see TODO(panel-cues) below before turning on.
+     */
+    private const val USE_TRANSLUCENT_PANEL_CUES: Boolean = false
+
+    /**
+     * Slight forward bias past the lattice (lattice ~-.01, symbols ~-.012). Keep this *small* so
+     * the cue stays on the glass; large values peel the ring into free space.
+     */
+    private const val CUE_Z_BIAS: Double = -0.02
+
+    // TODO(panel-cues): Proper translucent attract / error rings (Witness soft white alpha on glass).
+    //
+    // Failure mode when USE_TRANSLUCENT_PANEL_CUES is true today (consistent, not random):
+    //   The ring is only visible where it falls *outside* the panel bezel. On the face it vanishes.
+    //   Opaque lattice/backdrop already wrote the depth buffer for the whole face; translucent is
+    //   drawn later, depth-tests, and loses. Escaping that depth footprint (huge CUE_Z_BIAS, or a
+    //   start on the edge that peels into free space) is the only reason translucent ever "works" —
+    //   it is not on-glass. Multi-start panels show the same: only the start that projects clear of
+    //   the face reads.
+    //
+    // What a real fix needs (not more Z bias):
+    //   1. A dedicated RenderLayer / RenderPipeline for these cues that either
+    //        - depth-tests with a small reliable polygon/Z offset that stays coplanar under
+    //          perspective, or
+    //        - disables depth test (or ALWAYS) for this overlay only, depth-write off, so on-face
+    //          fragments still composite without fighting the lattice.
+    //   2. Keep sticky focus + x/y/z frame matching (PanelAttractPulse / PanelErrorFlash); do not
+    //      reintroduce screen-centre raycast for "which panel".
+    //   3. Fade via vertex alpha on pure white (red for error), not RGB dim toward black.
+    //   4. Verify multi-start panels and steep camera angles: every START/END on the focused frame
+    //      must read on the glass, not only nodes that project outside the bezel.
+    //   5. Prefer submitCustom on that layer in-world (panel perspective), not a 2D screen overlay.
+    //
+    // Until then leave USE_TRANSLUCENT_PANEL_CUES false and CUE_Z_BIAS small.
+
+    private val FULL_BRIGHT: Int = 0x00F000F0
+
+    /**
      * Centre to point, so a hexagon is 3.pc across corners against the 4.pc line it marks. Narrower
      * than the line on purpose; see the open question in rules/witness/04-hexagon-dots.md.
      */
@@ -79,8 +122,8 @@ object PuzzlePanelRenderer {
     }
 
     /**
-     * Expanding white ring on start discs / end nubs ([PanelAttractPulse]). Translucent + emissive
-     * so the ring stays white and fades via alpha (opaque dimming turned it grey/black).
+     * Expanding white ring on start discs / end nubs ([PanelAttractPulse]). See
+     * [USE_TRANSLUCENT_PANEL_CUES] for the two draw paths.
      */
     private fun renderAttractPulse(
         puzzle: Panel,
@@ -109,32 +152,45 @@ object PuzzlePanelRenderer {
         val stroke: Float = baseRadius * 0.18f
         val innerRadius: Float = (midRadius - stroke).coerceAtLeast(0f)
         val outerRadius: Float = midRadius
-        val alpha: Float = frame.strength * (1f - t) * (1f - t)
-        if (alpha <= 0.02f) return
+        // Shared envelope: remaining intensity of the ring (1 = full, 0 = gone).
+        val intensity: Float = frame.strength * (1f - t) * (1f - t)
+        if (intensity <= 0.04f) return
+
+        val r: Float
+        val g: Float
+        val b: Float
+        val a: Float
+        if (USE_TRANSLUCENT_PANEL_CUES) {
+            // Pure white; fade is vertex alpha.
+            r = 1f; g = 1f; b = 1f; a = intensity
+        } else {
+            // Opaque path: lerp white → panel backdrop so the ring dissolves without greying.
+            val (br, bg, bb) = dyeRgb(puzzle.backgroundColor)
+            r = br + (1f - br) * intensity
+            g = bg + (1f - bg) * intensity
+            b = bb + (1f - bb) * intensity
+            a = 1f
+        }
 
         val maxDimension: Int = maxOf(puzzle.width, puzzle.height)
         val maxScale: Float = 1f / maxDimension
 
         matrices.push()
         matrices.scale(maxScale, maxScale, 1f)
-        matrices.translate(.0, .0, -.014)
+        matrices.translate(.0, .0, CUE_Z_BIAS)
 
-        // Fullbright translucent: white stays white, fade is pure alpha.
-        val fullBright: Int = 0x00F000F0
-        queue.submitCustom(
-            matrices,
-            RenderLayers.entityTranslucentEmissive(PuzzlePanelTextures.solutionFill)
-        ) { entry, consumer ->
-            withRenderContext(entry, consumer, fullBright, overlay) {
+        val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) FULL_BRIGHT else light
+        queue.submitCustom(matrices, panelCueLayer()) { entry, consumer ->
+            withRenderContext(entry, consumer, layerLight, overlay) {
                 nodes.forEach { node ->
                     ring(
                         Vector3f(node.x, node.y, 0f),
                         innerRadius,
                         outerRadius,
-                        r = 1f,
-                        g = 1f,
-                        b = 1f,
-                        a = alpha
+                        r = r,
+                        g = g,
+                        b = b,
+                        a = a
                     )
                 }
             }
@@ -144,8 +200,7 @@ object PuzzlePanelRenderer {
     }
 
     /**
-     * Red blink on missed hexagon dots ([PanelErrorFlash]). Same translucent-emissive path as the
-     * attract ring so colour stays true red rather than a muddy opaque blend.
+     * Red blink on missed hexagon dots ([PanelErrorFlash]). Same layer switch as the attract ring.
      */
     private fun renderErrorFlash(
         puzzle: Panel,
@@ -163,14 +218,14 @@ object PuzzlePanelRenderer {
 
         matrices.push()
         matrices.scale(maxScale, maxScale, 1f)
-        matrices.translate(.0, .0, -.015)
+        // Slightly further out than the attract ring so red wins when both are live.
+        matrices.translate(.0, .0, CUE_Z_BIAS - 0.005)
 
-        val fullBright: Int = 0x00F000F0
-        queue.submitCustom(
-            matrices,
-            RenderLayers.entityTranslucentEmissive(PuzzlePanelTextures.solutionFill)
-        ) { entry, consumer ->
-            withRenderContext(entry, consumer, fullBright, overlay) {
+        val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) FULL_BRIGHT else light
+        // Translucent: alpha from blink. Opaque: solid on/off (alpha ignored).
+        val a: Float = if (USE_TRANSLUCENT_PANEL_CUES) frame.alpha else 1f
+        queue.submitCustom(matrices, panelCueLayer()) { entry, consumer ->
+            withRenderContext(entry, consumer, layerLight, overlay) {
                 frame.positions.forEach { (x, y) ->
                     hexagon(
                         Vector3f(x, y, 0f),
@@ -178,13 +233,30 @@ object PuzzlePanelRenderer {
                         r = 1f,
                         g = 0.12f,
                         b = 0.08f,
-                        a = frame.alpha
+                        a = a
                     )
                 }
             }
         }
 
         matrices.pop()
+    }
+
+    private fun panelCueLayer() =
+        if (USE_TRANSLUCENT_PANEL_CUES) {
+            RenderLayers.entityTranslucentEmissive(PuzzlePanelTextures.solutionFill)
+        } else {
+            RenderLayers.beaconBeam(PuzzlePanelTextures.solutionFill, false)
+        }
+
+    /** Dye entity RGB as 0..1 floats. */
+    private fun dyeRgb(color: DyeColor): Triple<Float, Float, Float> {
+        val rgb: Int = color.entityColor
+        return Triple(
+            ((rgb shr 16) and 0xFF) / 255f,
+            ((rgb shr 8) and 0xFF) / 255f,
+            (rgb and 0xFF) / 255f,
+        )
     }
 
     /**
