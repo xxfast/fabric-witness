@@ -16,33 +16,38 @@ edits the marks on a panel you already have.
 
 ## The rule
 
-Right-click a placed Puzzle Composer to open it. The screen has four working areas:
+Right-click a placed Puzzle Composer to open it. A left rail of slots + tools, a large editor on the
+right, player inventory under both.
 
-1. **Input** — a single slot that accepts only a puzzle panel.
-2. **Editor** — a live drawing of the panel currently being composed.
-3. **Tools** — a radio group of edit modes (one active at a time).
-4. **Output** — a single slot holding the working copy. You can take it; you cannot put anything
-   into it.
+```
+  ┌─ Puzzle Composer ─────────────────┐
+  │  [in]  │                          │
+  │        │                          │
+  │  ●  ⊣  │      [ editor grid ]     │
+  │  ─  ◆  │                          │
+  │  +  −  │                          │
+  │        │                          │
+  │  [out] │                          │
+  │  ─── Inventory ─────────────────  │
+  │  ████████████████████████████     │
+  └───────────────────────────────────┘
+```
+
+- **Input** (top-left) — one slot, puzzle panels only. Empty look is a faint panel watermark.
+- **Tools** (middle-left, 2×3) — radio group, one mode at a time. Top four live; bottom two
+  (add / remove) render darker and do nothing.
+- **Output** (bottom-left) — working copy. Take-only; you cannot put a panel into it.
+- **Editor** (right, large square) — live drawing of the **output** panel. Clicks apply the
+  selected tool.
+- **Player inventory** — ordinary inventory strip under the workstation.
 
 Putting a panel in the input clones it into the output (if the output is empty). Edits land on the
 output only. Taking the output clears the input, so composing consumes the source panel: one in,
 one out, no free duplication.
 
-Optional dye in a dye slot can recolour the working copy's background when the clone is made. Dye
-is meant to be consumed when the colour of the taken panel differs from the input's, but that path
-is currently broken (see [Not done](#not-done)).
-
-```
-  ┌──────────────────────────────────┐
-  │           [ editor grid ]        │
-  │  [in]                            │
-  │  ●  ⊣   tools                    │
-  │  ─  ◆                            │
-  │  +  −                            │
-  │  [out]                           │
-  │  ─── player inventory ───        │
-  └──────────────────────────────────┘
-```
+Optional dye in a dye slot can recolour the working copy's background when the clone is made. That
+slot is not on the GUI today (logic only). Dye is meant to be consumed when the colour of the taken
+panel differs from the input's, but that path is currently broken (see [Not done](#not-done)).
 
 ## Tools
 
