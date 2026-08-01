@@ -15,6 +15,10 @@ fun NbtCompound.getIntTolerant(key: String, default: Int = 0): Int =
 fun NbtCompound.getFloatTolerant(key: String, default: Float = 0f): Float =
     (get(key) as? AbstractNbtNumber)?.floatValue() ?: default
 
+/** Bools arrive as NbtByte (or any number from JSON). Absent → [default]. */
+fun NbtCompound.getBooleanTolerant(key: String, default: Boolean = false): Boolean =
+    (get(key) as? AbstractNbtNumber)?.let { it.byteValue() != 0.toByte() } ?: default
+
 /** Reads an int collection stored either as an [NbtIntArray] or as a list of numeric tags. */
 fun NbtCompound.getIntListTolerant(key: String): List<Int> =
     when (val element = get(key)) {

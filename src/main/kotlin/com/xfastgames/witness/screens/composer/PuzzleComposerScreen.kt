@@ -26,6 +26,7 @@ import io.github.cottonmc.cotton.gui.client.ScreenDrawing
 import io.github.cottonmc.cotton.gui.widget.WItemSlot
 import io.github.cottonmc.cotton.gui.widget.WPlainPanel
 import io.github.cottonmc.cotton.gui.widget.WPlayerInvPanel
+import io.github.cottonmc.cotton.gui.widget.WToggleButton
 import io.github.cottonmc.cotton.gui.widget.WWidget
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
@@ -115,6 +116,7 @@ class PuzzleComposerScreenDescription(
     private val removeButton = WRadioImageButton(group = toggleGroup)
 
     private val editor = WPuzzleEditor(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX)
+    private val tutorialToggle = WToggleButton()
     private val playerInventoryPanel: WPlayerInvPanel = this.createPlayerInventoryPanel()
 
     private val placeholderPuzzleTexture = Identifier.of(Witness.IDENTIFIER, "textures/gui/placeholder_puzzle.png")
@@ -136,6 +138,7 @@ class PuzzleComposerScreenDescription(
     private fun updateOutputFrom(inputStack: ItemStack) {
         if (inputStack.isEmpty) {
             updateInventory(PUZZLE_OUTPUT_SLOT_INDEX, ItemStack.EMPTY)
+            syncTutorialToggle()
             return
         }
 
@@ -149,6 +152,7 @@ class PuzzleComposerScreenDescription(
             PUZZLE_OUTPUT_SLOT_INDEX,
             inputStack.copy().apply { panel = inputPanel }
         )
+        syncTutorialToggle()
     }
 
     /** Writes an edited panel to the output slot, keeping the input stack's other components. */
@@ -161,6 +165,13 @@ class PuzzleComposerScreenDescription(
             PUZZLE_OUTPUT_SLOT_INDEX,
             inputStack.copy().apply { panel = updatedPuzzle }
         )
+        syncTutorialToggle()
+    }
+
+    /** Mirror the output panel's tutorial flag onto the switch without re-firing its listener. */
+    private fun syncTutorialToggle() {
+        val panel: Panel? = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX).panel
+        tutorialToggle.toggle = panel?.tutorial == true
     }
 
     init {
@@ -178,9 +189,24 @@ class PuzzleComposerScreenDescription(
 
         outputSlot.addChangeListener { _, _, index, changedItemStack ->
             if (index != PUZZLE_OUTPUT_SLOT_INDEX) return@addChangeListener
-            if (changedItemStack.isNotEmpty) return@addChangeListener
+            if (changedItemStack.isNotEmpty) {
+                syncTutorialToggle()
+                return@addChangeListener
+            }
             // Taking the working copy consumes the input: one in, one out, no free copy.
             updateInventory(PUZZLE_INPUT_SLOT_INDEX, ItemStack.EMPTY)
+            syncTutorialToggle()
+        }
+
+        // Panel-level flag, not a tool mode: toggles `Panel.tutorial` on the working copy.
+        tutorialToggle.setOnToggle { on ->
+            val outputPuzzle: Panel =
+                blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: run {
+                    // No panel in the editor; snap the switch back off.
+                    tutorialToggle.toggle = false
+                    return@setOnToggle
+                }
+            commit(outputPuzzle.withTutorial(on))
         }
 
         editor.setClickListener { node, edge, edgeNodePair ->
@@ -267,6 +293,7 @@ class PuzzleComposerScreenDescription(
         if (composerInventory?.owner?.world?.isClient == false) {
             updateOutputFrom(composerInventory.getStack(PUZZLE_INPUT_SLOT_INDEX))
         }
+        syncTutorialToggle()
 
         layout()
         context.run { world, pos -> if (world.isClient) addPainters() }
@@ -275,6 +302,16 @@ class PuzzleComposerScreenDescription(
     private fun layout() {
         var y = 12
         val marginStart = 4
+        // Top-right inside the panel border (LibGui paints the bevel inward, so 0-edge clips).
+        val toggleSize = 18
+        val panelInset = 7
+        root.add(
+            tutorialToggle,
+            root.width - toggleSize - panelInset,
+            panelInset,
+            toggleSize,
+            toggleSize
+        )
         y += 8
         root.add(editor, 46, y, editor.width, editor.height)
         y += 3

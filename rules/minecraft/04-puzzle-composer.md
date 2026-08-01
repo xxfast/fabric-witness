@@ -39,6 +39,9 @@ right, player inventory under both.
 - **Output** (bottom-left) — working copy. Take-only; you cannot put a panel into it.
 - **Editor** (right, large square) — live drawing of the **output** panel. Clicks apply the
   selected tool.
+- **Tutorial toggle** (top-right) — LibGui switch that sets `Panel.tutorial` on the working
+  copy. Not a paint tool; panel-level authoring flag. Off by default; legacy panels without the
+  key read as off.
 - **Player inventory** — ordinary inventory strip under the workstation.
 
 Putting a panel in the input clones it into the output (if the output is empty). Edits land on the
@@ -64,6 +67,13 @@ putting a fresh one in.
 
 Start, end, break, and hexagon are pure marks: they do not spend tablets, change size, or change
 `cost`. Growing a panel still goes through [crafting](01-puzzle-panel-crafting.md).
+
+## Tutorial flag
+
+A top-level boolean on the panel (`tutorial`, NBT key `tutorial`). Composer toggle at the top
+right flips it on the working copy via `Panel.withTutorial`. It is authoring metadata only:
+solvers, rendering, and crafting ignore it for now. Advanced item tooltip shows "Tutorial" when
+set. Absent on old saves → false.
 
 ## Colour
 
@@ -114,8 +124,9 @@ Crafting the block itself: 1 Ancient Puzzle Tablet + 8 iron ingots (shaped, tabl
 ## Status in this mod
 
 Implemented and live as a block, block entity, LibGui screen, and block-entity renderer. Tools
-start / end / break / hexagon work. Add / Remove tools exist as disabled radio buttons. Dye and
-side storage slots are gone; inventory is input + output only.
+start / end / break / hexagon work. Add / Remove tools exist as disabled radio buttons. Tutorial
+toggle at the top right sets `Panel.tutorial`. Dye and side storage slots are gone; inventory is
+input + output only.
 
 ## Inventory layout
 

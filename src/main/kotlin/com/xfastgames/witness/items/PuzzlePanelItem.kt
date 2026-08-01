@@ -89,6 +89,7 @@ class PuzzlePanelItem(settings: Settings) : Item(settings), Clientside {
         if (type.isAdvanced) {
             textConsumer.accept(Text.of("($sizeString $colorString $typeString)"))
             textConsumer.accept(Text.of(cost))
+            if (puzzle.tutorial) textConsumer.accept(Text.of("Tutorial"))
             if (maxedOut) textConsumer.accept(Text.of("Maximum size"))
         }
     }

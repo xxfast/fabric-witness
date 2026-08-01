@@ -9,6 +9,7 @@ import com.xfastgames.witness.utils.guava.emptyGraph
 import com.xfastgames.witness.utils.guava.mutableGraph
 import com.xfastgames.witness.utils.pow
 import com.mojang.serialization.Codec
+import com.xfastgames.witness.utils.getBooleanTolerant
 import com.xfastgames.witness.utils.getIntTolerant
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.network.RegistryByteBuf
@@ -23,6 +24,7 @@ private const val KEY_LINE = "line"
 private const val KEY_GRAPH = "graph"
 private const val KEY_BACKGROUND_COLOR = "backgroundColor"
 private const val KEY_PANEL_TYPE = "type"
+private const val KEY_TUTORIAL = "tutorial"
 
 @Suppress("UnstableApiUsage")
 sealed class Panel(val type: Type) {
@@ -31,6 +33,8 @@ sealed class Panel(val type: Type) {
     abstract val backgroundColor: DyeColor
     abstract val width: Int
     abstract val height: Int
+    /** When true, this panel is authored as a tutorial panel (composer flag; no runtime effect yet). */
+    abstract val tutorial: Boolean
 
     abstract fun resize(length: Int): Panel
 
@@ -40,6 +44,7 @@ sealed class Panel(val type: Type) {
         override val backgroundColor: DyeColor,
         override val width: Int,
         override val height: Int,
+        override val tutorial: Boolean = false,
     ) : Panel(Type.Grid) {
 
         companion object {
@@ -203,6 +208,7 @@ sealed class Panel(val type: Type) {
         override val backgroundColor: DyeColor,
         override val width: Int,
         override val height: Int,
+        override val tutorial: Boolean = false,
     ) : Panel(Type.Tree) {
 
         companion object {
@@ -249,6 +255,7 @@ sealed class Panel(val type: Type) {
         override val backgroundColor: DyeColor,
         override val width: Int,
         override val height: Int,
+        override val tutorial: Boolean = false,
     ) : Panel(Type.Freeform) {
         override fun resize(length: Int): Freeform = TODO()
     }
@@ -300,11 +307,13 @@ fun NbtCompound.toPanel(): Panel {
 
     val backgroundColor: DyeColor = DyeColor.values()[getIntTolerant(KEY_BACKGROUND_COLOR)]
     val grid: ValueGraph<Node, Edge> = getValueGraph(KEY_GRAPH)
+    // Absent on pre-flag panels; those are not tutorials.
+    val tutorial: Boolean = getBooleanTolerant(KEY_TUTORIAL)
 
     return when (type) {
-        Type.Grid -> Panel.Grid(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT))
-        Type.Tree -> Panel.Tree(line, grid, backgroundColor, getIntTolerant(KEY_HEIGHT), getIntTolerant(KEY_HEIGHT))
-        Type.Freeform -> Panel.Freeform(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT))
+        Type.Grid -> Panel.Grid(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial)
+        Type.Tree -> Panel.Tree(line, grid, backgroundColor, getIntTolerant(KEY_HEIGHT), getIntTolerant(KEY_HEIGHT), tutorial)
+        Type.Freeform -> Panel.Freeform(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial)
     }
 }
 
@@ -314,6 +323,7 @@ fun Panel.toNbt(): NbtCompound = NbtCompound().also { tag ->
     tag.putGraph(KEY_LINE, line)
     tag.putInt(KEY_BACKGROUND_COLOR, backgroundColor.ordinal)
     tag.putValueGraph(KEY_GRAPH, graph)
+    tag.putBoolean(KEY_TUTORIAL, tutorial)
     when (this) {
         is Panel.Grid, is Panel.Freeform -> {
             tag.putInt(KEY_WIDTH, width)
@@ -322,6 +332,13 @@ fun Panel.toNbt(): NbtCompound = NbtCompound().also { tag ->
 
         is Panel.Tree -> tag.putInt(KEY_HEIGHT, height)
     }
+}
+
+/** Copy with [tutorial] set; preserves every other field. */
+fun Panel.withTutorial(tutorial: Boolean): Panel = when (this) {
+    is Panel.Grid -> copy(tutorial = tutorial)
+    is Panel.Tree -> copy(tutorial = tutorial)
+    is Panel.Freeform -> copy(tutorial = tutorial)
 }
 
 @Suppress("UnstableApiUsage")
