@@ -43,11 +43,8 @@ right, player inventory under both.
 
 Putting a panel in the input clones it into the output (if the output is empty). Edits land on the
 output only. Taking the output clears the input, so composing consumes the source panel: one in,
-one out, no free duplication.
-
-Optional dye in a dye slot can recolour the working copy's background when the clone is made. That
-slot is not on the GUI today (logic only). Dye is meant to be consumed when the colour of the taken
-panel differs from the input's, but that path is currently broken (see [Not done](#not-done)).
+one out, no free duplication. Colour is not changed here; recolour is the crafting recipe
+([02](02-panel-dye.md)).
 
 ## Tools
 
@@ -70,12 +67,9 @@ Start, end, break, and hexagon are pure marks: they do not spend tablets, change
 
 ## Colour
 
-If a dye is present when the input is cloned to the output, the working copy's background becomes
-that dye's colour. If no dye is present, the input's colour is kept. Colour is the only field the
-clone rewrites at insert time; graph, line, size, and cost come through unchanged.
-
-This is the same outcome as [panel dye](02-panel-dye.md), just done at the workstation so you can
-tint while composing instead of making a second trip to a crafting table.
+The clone keeps the input panel's `backgroundColor` as-is. To recolour, use
+[panel dye](02-panel-dye.md) at a crafting table (panel + any dye). There is no dye slot on the
+composer; an earlier in-screen tint path was removed once that recipe landed.
 
 ## The block face
 
@@ -120,38 +114,32 @@ Crafting the block itself: 1 Ancient Puzzle Tablet + 8 iron ingots (shaped, tabl
 ## Status in this mod
 
 Implemented and live as a block, block entity, LibGui screen, and block-entity renderer. Tools
-start / end / break / hexagon work. Dye slot and side storage inventory are referenced in code but
-not laid out in the GUI. Dye consumption on take is marked `TODO: This is currently broken`.
-Add / Remove tools exist as disabled radio buttons.
+start / end / break / hexagon work. Add / Remove tools exist as disabled radio buttons. Dye and
+side storage slots are gone; inventory is input + output only.
 
 ## Inventory layout
 
-`PuzzleComposerBlockEntity.INVENTORY_SIZE = 10`. Slot indices are constants on
+`PuzzleComposerBlockEntity.INVENTORY_SIZE = 2`. Slot indices are constants on
 `PuzzleComposerScreen`:
 
-| Index | Role | In GUI today |
-|-------|------|--------------|
-| 0 | Input (`PUZZLE_INPUT_SLOT_INDEX`) | yes |
-| 1 | Background dye (`PUZZLE_BACKGROUND_DYE_SLOT_INDEX`) | no (logic only) |
-| 2 | unused | — |
-| 3–? | Storage (`PUZZLE_INVENTORY_SLOT_INDEX = 3`, a 2×3 `WItemSlot` is constructed) | no (never added to root) |
-| 7 | Output (`PUZZLE_OUTPUT_SLOT_INDEX`) | yes |
+| Index | Role |
+|-------|------|
+| 0 | Input (`PUZZLE_INPUT_SLOT_INDEX`) |
+| 1 | Output (`PUZZLE_OUTPUT_SLOT_INDEX`) |
 
-The unused storage range collides with the output index if it is ever laid out as written (2×3 from
-3 covers 3..8, which includes 7). Re-enabling storage needs a non-overlapping index map first.
+Older worlds that still have a 10-slot composer NBT will drop anything that was in the removed dye /
+storage indices on load; only slots 0 and 1 are read into the new size.
 
 ## Clone, edit, take
 
 `PuzzleComposerScreenDescription`:
 
 1. **Insert** (`inputSlot` change listener → `updateOutputFrom`): if input non-empty and output
-   empty, copy the input stack, apply dye colour (or keep panel colour), write to output via
-   `updateInventory`.
+   empty, copy the input stack (defaulting a missing panel component to `Panel.DEFAULT`) into the
+   output via `updateInventory`.
 2. **Edit** (`editor` click listener → tool branch → `commit`): rewrite the output stack's
    `witness:panel` component from the input stack's other components + the new `Panel`.
-3. **Take** (`outputSlot` change listener): when output becomes empty, clear the input. Dye
-   consumption compares input vs output background colours and is currently broken (the emptied
-   stack no longer carries the panel, so the colour compare is meaningless).
+3. **Take** (`outputSlot` change listener): when output becomes empty, clear the input.
 
 `updateInventory` is the side-aware write path:
 
@@ -193,12 +181,6 @@ has no component, and draws via `PuzzlePanelRenderer` on the top face, rotated t
 
 ## Not done
 
-- **Dye slot is not in the layout.** Colour-on-clone only works if something external fills slot 1
-  (hopper / creative), which nothing currently does from the GUI.
-- **Dye consumption on take is broken** (`TODO` in the output change listener). Taking a recoloured
-  panel does not spend the dye.
-- **Side storage inventory is constructed but never shown**, and its index range collides with the
-  output slot.
 - **Add / Remove tools disabled.** Lattice grow/shrink at the composer is intentionally off; size
   changes go through [01](01-puzzle-panel-crafting.md).
 - **No compose-time validation** of solvable / well-formed panels (isolated starts, missing ends,

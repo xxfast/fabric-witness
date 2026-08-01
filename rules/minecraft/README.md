@@ -59,10 +59,9 @@ is that cost never exceeds what was spent, which is what makes recycling safe.
 1. `ancient_debris` → **9** tablets ([00](00-ancient-puzzle-tablet.md)).
 2. Tablets → a panel, or panel + tablets → a **bigger** panel, colour kept, `cost += tablets placed`
    ([01](01-puzzle-panel-crafting.md)). One rule, because a tablet is a 1×1-cell panel costing 1.
-3. Panel + dye → the **same** panel recoloured ([02](02-panel-dye.md)), or tint while composing
-   ([04](04-puzzle-composer.md)).
+3. Panel + dye → the **same** panel recoloured ([02](02-panel-dye.md)).
 4. Composer ([04](04-puzzle-composer.md)) paints start / end / break / hexagon onto the panel. No
-   tablet cost.
+   tablet cost; colour is unchanged (dye is step 3).
 5. Panel → **`cost`** tablets back ([03](03-panel-recycle.md)).
 
 Steps 2 and 5 are inverses on every route, so the economy is conservative: recycling returns exactly
@@ -73,9 +72,9 @@ what was invested, never more. Composer edits do not touch `cost`.
 Unlike [../witness/](../witness/README.md) (mostly unmodelled puzzle logic), crafting and the
 composer are **implemented and live**. The three special recipes register their serializers through
 `PanelDyeRecipe.init()` before datapacks load; the tablet recipe is plain JSON. The composer ships
-with start / end / break / hexagon tools working; dye slot layout, dye consumption, and add/remove
-tools are still open ([04](04-puzzle-composer.md#not-done)). Crafting open questions are economy and
-legibility, listed in [01](01-puzzle-panel-crafting.md#not-done).
+with start / end / break / hexagon tools working; add/remove tools are still open
+([04](04-puzzle-composer.md#not-done)). Crafting open questions are economy and legibility, listed
+in [01](01-puzzle-panel-crafting.md#not-done).
 
 ## Sources
 

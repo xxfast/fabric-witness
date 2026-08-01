@@ -7,9 +7,7 @@ import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
-import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_BACKGROUND_DYE_SLOT_INDEX
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_INPUT_SLOT_INDEX
-import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_INVENTORY_SLOT_INDEX
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_OUTPUT_SLOT_INDEX
 import com.xfastgames.witness.screens.widgets.WPuzzleEditor
 import com.xfastgames.witness.screens.widgets.WRadioGroup
@@ -37,15 +35,12 @@ import net.minecraft.client.gui.screen.ingame.HandledScreens
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.inventory.Inventory
-import net.minecraft.item.DyeItem
-import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
 import net.minecraft.screen.ScreenHandlerContext
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.text.Text
-import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 
@@ -70,9 +65,7 @@ class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription, player: PlayerE
     companion object : Clientside {
 
         const val PUZZLE_INPUT_SLOT_INDEX = 0
-        const val PUZZLE_BACKGROUND_DYE_SLOT_INDEX = 1
-        const val PUZZLE_INVENTORY_SLOT_INDEX = 3
-        const val PUZZLE_OUTPUT_SLOT_INDEX = 7
+        const val PUZZLE_OUTPUT_SLOT_INDEX = 1
 
         override fun onClient() {
             HandledScreens.register(PUZZLE_COMPOSER_SCREEN_HANDLER) { gui, inventory, title ->
@@ -111,7 +104,6 @@ class PuzzleComposerScreenDescription(
 ) {
     private val root: WPlainPanel = WPlainPanel().apply { setSize(170, 220) }
     private val inputSlot = WItemSlot(blockInventory, PUZZLE_INPUT_SLOT_INDEX, 1, 1, true)
-    private val inventorySlots: WItemSlot = WItemSlot.of(blockInventory, PUZZLE_INVENTORY_SLOT_INDEX, 2, 3)
     private val outputSlot: WItemSlot = WItemSlot(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX, 1, 1, true)
 
     private val toggleGroup = WRadioGroup()
@@ -150,23 +142,12 @@ class PuzzleComposerScreenDescription(
         val outputStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
         if (outputStack.isNotEmpty) return
 
-        val dyeStack: ItemStack = blockInventory.getStack(PUZZLE_BACKGROUND_DYE_SLOT_INDEX)
-        val dyeItem: Item = dyeStack.item
         // Plain stacks (notably old creative-menu stacks) predate the item's default panel
         // component. Treat them exactly like the renderer does instead of showing a blank editor.
         val inputPanel: Panel = inputStack.panel ?: Panel.DEFAULT
-        val updatedColor: DyeColor =
-            if (dyeStack.isEmpty || dyeItem !is DyeItem) inputPanel.backgroundColor else dyeItem.color
-
-        val tintedPanel: Panel = when (inputPanel) {
-            is Panel.Grid -> inputPanel.copy(backgroundColor = updatedColor)
-            is Panel.Tree -> inputPanel.copy(backgroundColor = updatedColor)
-            is Panel.Freeform -> inputPanel.copy(backgroundColor = updatedColor)
-        }
-
         updateInventory(
             PUZZLE_OUTPUT_SLOT_INDEX,
-            inputStack.copy().apply { panel = tintedPanel }
+            inputStack.copy().apply { panel = inputPanel }
         )
     }
 
@@ -195,21 +176,11 @@ class PuzzleComposerScreenDescription(
             updateOutputFrom(changedItemStack)
         }
 
-        outputSlot.addChangeListener { slot, inventory, index, changedItemStack ->
-            val inputStack: ItemStack = inventory.getStack(PUZZLE_INPUT_SLOT_INDEX)
-            val dyeStack: ItemStack = inventory.getStack(PUZZLE_BACKGROUND_DYE_SLOT_INDEX)
-
+        outputSlot.addChangeListener { _, _, index, changedItemStack ->
             if (index != PUZZLE_OUTPUT_SLOT_INDEX) return@addChangeListener
             if (changedItemStack.isNotEmpty) return@addChangeListener
+            // Taking the working copy consumes the input: one in, one out, no free copy.
             updateInventory(PUZZLE_INPUT_SLOT_INDEX, ItemStack.EMPTY)
-            // Consume dye if the puzzle color has changed
-            val inputBackgroundColor: DyeColor? = inputStack.panel?.backgroundColor
-            val outputBackgroundColor: DyeColor? = changedItemStack.panel?.backgroundColor
-            // TODO: This is currently broken
-            if (inputBackgroundColor != outputBackgroundColor) {
-                val updatedDyeStack: ItemStack = dyeStack.copy().apply { decrement(changedItemStack.count) }
-                updateInventory(PUZZLE_BACKGROUND_DYE_SLOT_INDEX, updatedDyeStack)
-            }
         }
 
         editor.setClickListener { node, edge, edgeNodePair ->

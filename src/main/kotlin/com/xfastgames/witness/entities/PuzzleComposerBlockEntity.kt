@@ -77,7 +77,8 @@ class PuzzleComposerBlockEntity(pos: BlockPos?, state: BlockState?) : BlockEntit
         // client-side editor needs to send a packet to server to synchronise the client inventory with server's
         val SYNCHRONIZE_C2S_ID = Identifier.of(Witness.IDENTIFIER, "synchronise_puzzle_slot")
 
-        const val INVENTORY_SIZE = 10
+        /** Input + output only. Recolour is the panel dye recipe, not a composer slot. */
+        const val INVENTORY_SIZE = 2
 
         val ENTITY_TYPE: BlockEntityType<PuzzleComposerBlockEntity> = registerBlockEntity(IDENTIFIER) {
             FabricBlockEntityTypeBuilder
