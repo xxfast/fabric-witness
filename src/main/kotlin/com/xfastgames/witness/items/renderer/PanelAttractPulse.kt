@@ -1,14 +1,14 @@
 package com.xfastgames.witness.items.renderer
 
 import net.minecraft.util.Util
+import net.minecraft.util.math.BlockPos
 
 /**
- * Client-only attract pulse for tutorial panels. The solver screen fires it on the same beat as
- * `panel_scint_startpoint` / `panel_scint_endpoint`; [PuzzlePanelRenderer] samples it each frame
- * and draws the expanding white ring.
+ * Client-only attract pulse for tutorial panels. Solver fires it with the focused frame's pos;
+ * [PuzzlePanelRenderer] draws it only on the matching frame.
  *
- * Only one pulse is live at a time (focus mode has one panel), so this is a single global slot
- * rather than a map keyed by block position.
+ * Target is stored as raw x/y/z ints (not a BlockPos / packed long) so matching cannot fail on
+ * mutable pos identity or packing quirks.
  */
 object PanelAttractPulse {
 
@@ -22,32 +22,48 @@ object PanelAttractPulse {
         val strength: Float,
     )
 
-    /** How long one expand-and-fade ring takes. */
     private const val DURATION_MS = 700L
 
+    private var hasTarget: Boolean = false
+    private var targetX: Int = 0
+    private var targetY: Int = 0
+    private var targetZ: Int = 0
     private var kind: Kind? = null
     private var startedAtMs: Long = 0
     private var strength: Float = 1f
 
-    fun triggerStart(strength: Float = 1f) = trigger(Kind.START, strength)
+    fun triggerStart(pos: BlockPos, strength: Float = 1f) = trigger(pos, Kind.START, strength)
 
-    fun triggerEnd(strength: Float = 1f) = trigger(Kind.END, strength)
+    fun triggerEnd(pos: BlockPos, strength: Float = 1f) = trigger(pos, Kind.END, strength)
 
     fun clear() {
+        hasTarget = false
         kind = null
     }
 
-    private fun trigger(kind: Kind, strength: Float) {
+    fun isFor(pos: BlockPos): Boolean =
+        hasTarget && pos.x == targetX && pos.y == targetY && pos.z == targetZ
+
+    private fun trigger(pos: BlockPos, kind: Kind, strength: Float) {
+        hasTarget = true
+        targetX = pos.x
+        targetY = pos.y
+        targetZ = pos.z
         this.kind = kind
-        this.startedAtMs = Util.getMeasuringTimeMs()
+        startedAtMs = Util.getMeasuringTimeMs()
         this.strength = strength.coerceIn(0f, 1f)
     }
 
-    fun sample(nowMs: Long = Util.getMeasuringTimeMs()): Frame? {
+    /**
+     * Progress for a live pulse aimed at [pos]. Pure read of time; does not clear mid-pass so
+     * multiple render layers can sample the same frame.
+     */
+    fun sample(pos: BlockPos, nowMs: Long = Util.getMeasuringTimeMs()): Frame? {
+        if (!isFor(pos)) return null
         val active: Kind = kind ?: return null
         val progress: Float = (nowMs - startedAtMs).toFloat() / DURATION_MS
         if (progress >= 1f) {
-            kind = null
+            clear()
             return null
         }
         return Frame(active, progress.coerceIn(0f, 1f), strength)

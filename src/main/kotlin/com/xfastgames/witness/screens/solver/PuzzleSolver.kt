@@ -122,12 +122,20 @@ class PuzzleSolver {
             return buildLine()
         }
         stateFlow.value = PuzzleSolverData.SolutionSubmitted
-        if (isValidSolution(panel)) {
+        // Snapshot before clear: rejection drops the line, but rule feedback still needs the path.
+        val submitted: List<Node> = path.toList()
+        if (!isStructurallyValid(panel, submitted)) {
+            path.clear()
+            stateFlow.value = PuzzleSolverData.SolutionRejected()
+            return buildLine()
+        }
+        val missed = panel.unsatisfiedHexagons(submitted)
+        if (missed.isEmpty()) {
             stateFlow.value = PuzzleSolverData.SolutionAccepted
             return buildLine()
         }
         path.clear()
-        stateFlow.value = PuzzleSolverData.SolutionRejected
+        stateFlow.value = PuzzleSolverData.SolutionRejected(missed)
         return buildLine()
     }
 
@@ -158,20 +166,18 @@ class PuzzleSolver {
 
     /**
      * Rule 00: a solution is a single simple path along existing, traversable edges, from a `START`
-     * node to an `END` node, and rule 04: it must cover every hexagon. Region symbol validation
-     * (rules 06 onwards) is not implemented, so those are still accepted unchecked.
+     * node to an `END` node. Hexagon coverage (rule 04) is checked separately so a reject can report
+     * which dots were missed. Region symbols (rules 06 onwards) are still accepted unchecked.
      */
-    private fun isValidSolution(panel: Panel): Boolean {
+    private fun isStructurallyValid(panel: Panel, path: List<Node>): Boolean {
         if (path.size < 2) return false
         if (path.first().modifier != Modifier.START) return false
         if (path.last().modifier != Modifier.END) return false
         if (path.distinct().size != path.size) return false
-        val connected: Boolean = path.zipWithNext().all { (from, to) ->
+        return path.zipWithNext().all { (from, to) ->
             panel.graph.hasEdgeConnecting(from, to) &&
                 panel.edgeBetween(from, to).modifier !in IMPASSABLE_EDGES
         }
-        if (!connected) return false
-        return panel.unsatisfiedHexagons(path).isEmpty()
     }
 
     fun stopTrace() {

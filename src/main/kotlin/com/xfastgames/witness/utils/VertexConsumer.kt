@@ -18,7 +18,11 @@ fun VertexConsumer.circle(
     light: Int,
     overlay: Int,
     arc: IntRange = 0..360,
-    resolution: Double = 15.0
+    resolution: Double = 15.0,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
 ) {
     val model: Matrix4f = entry.positionMatrix
 
@@ -27,7 +31,7 @@ fun VertexConsumer.circle(
         theta -= resolution
         // Anchor quad to center
         vertex(model, center.x, center.y, center.z)
-            .color(1f, 1f, 1f, 1f)
+            .color(r, g, b, a)
             .texture(0f, 1f)
             .overlay(overlay)
             .light(light)
@@ -40,7 +44,7 @@ fun VertexConsumer.circle(
                 center.y + radius * cos(toRadians(theta).toFloat()),
                 center.z
             )
-                .color(1f, 1f, 1f, 1f)
+                .color(r, g, b, a)
                 .texture(0f, 1f)
                 .overlay(overlay)
                 .light(light)

@@ -272,7 +272,11 @@ class IronPuzzleFrameBlock(settings: AbstractBlock.Settings) : BlockWithEntity(s
             // when there's a panel and player is not sneaking
             inventory.items[0].isNotEmpty -> {
                 if (hit?.side == state[HORIZONTAL_FACING].opposite) {
-                    if (world.isClient) MinecraftClient.getInstance().setScreen(PuzzleSolverScreen())
+                    // Pass the frame pos so focus-mode cues (attract / error flash) stick to
+                    // this panel instead of whatever screen-centre raycast happens to hit.
+                    if (world.isClient) {
+                        MinecraftClient.getInstance().setScreen(PuzzleSolverScreen(pos.toImmutable()))
+                    }
                     return ActionResult.CONSUME
                 }
                 return ActionResult.FAIL

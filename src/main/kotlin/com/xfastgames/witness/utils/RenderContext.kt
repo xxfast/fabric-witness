@@ -10,8 +10,15 @@ fun RenderContext.rectangle(position: Vector3f, width: Float, height: Float) =
 fun RenderContext.square(position: Vector3f, length: Float) =
     vertexConsumer.square(entry, position, length, light, overlay)
 
-fun RenderContext.circle(position: Vector3f, radius: Float, arc: IntRange = 0..360) =
-    vertexConsumer.circle(entry, position, radius, light, overlay, arc)
+fun RenderContext.circle(
+    position: Vector3f,
+    radius: Float,
+    arc: IntRange = 0..360,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
+) = vertexConsumer.circle(entry, position, radius, light, overlay, arc, r = r, g = g, b = b, a = a)
 
 fun RenderContext.ring(
     position: Vector3f,
@@ -29,8 +36,19 @@ fun RenderContext.ring(
  * A six step sweep of [circle] is already exactly a hexagon, so this needs no new geometry: the arc
  * starts at the top (`sin`/`cos` of 0), which puts a point up rather than a flat.
  */
-fun RenderContext.hexagon(position: Vector3f, radius: Float) =
-    vertexConsumer.circle(entry, position, radius, light, overlay, 0..360, resolution = 60.0)
+fun RenderContext.hexagon(
+    position: Vector3f,
+    radius: Float,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
+) = vertexConsumer.circle(
+    entry, position, radius, light, overlay,
+    arc = 0..360,
+    resolution = 60.0,
+    r = r, g = g, b = b, a = a,
+)
 
 fun RenderContext.line(start: Vector3f, end: Vector3f, thickness: Float) =
     vertexConsumer.line(entry, start, end, thickness, light, overlay)

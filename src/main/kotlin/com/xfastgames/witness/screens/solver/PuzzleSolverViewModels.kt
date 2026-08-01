@@ -3,6 +3,7 @@ package com.xfastgames.witness.screens.solver
 import com.google.common.graph.ValueGraph
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.data.Edge
+import com.xfastgames.witness.items.data.Hexagon
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
 
@@ -19,7 +20,13 @@ sealed class PuzzleSolverData {
 
     /** The line was released somewhere other than an end point, so nothing was ever submitted. */
     object SolutionAborted : PuzzleSolverData()
-    object SolutionRejected : PuzzleSolverData()
+
+    /**
+     * The path reached an end but failed validation. [missedHexagons] is the subset of hexagon dots
+     * the path never covered (empty when the reject is structural rather than rule 04).
+     */
+    data class SolutionRejected(val missedHexagons: List<Hexagon> = emptyList()) : PuzzleSolverData()
+
     object SolutionAccepted : PuzzleSolverData()
 }
 

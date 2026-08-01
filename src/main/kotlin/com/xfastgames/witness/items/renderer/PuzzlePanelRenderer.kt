@@ -12,6 +12,7 @@ import net.minecraft.client.render.command.OrderedRenderCommandQueue
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
 import net.minecraft.util.DyeColor
+import net.minecraft.util.math.BlockPos
 import org.joml.Vector3f
 import kotlin.math.*
 
@@ -39,18 +40,25 @@ object PuzzlePanelRenderer {
         matrices: MatrixStack,
         queue: OrderedRenderCommandQueue,
         light: Int,
-        overlay: Int
+        overlay: Int,
+        framePos: BlockPos? = null,
     ) {
         val puzzle: Panel = stack.panel ?: Panel.DEFAULT
-        renderPanel(puzzle, matrices, queue, light, overlay)
+        renderPanel(puzzle, matrices, queue, light, overlay, framePos)
     }
 
+    /**
+     * @param framePos world position of the puzzle frame this panel is mounted on. Attract and
+     * error flashes only draw when [framePos] matches the frame that owns the live effect, so a
+     * reject never lights every tutorial panel nearby. Item / composer renders leave it null.
+     */
     fun renderPanel(
         puzzle: Panel,
         matrices: MatrixStack,
         queue: OrderedRenderCommandQueue,
         light: Int,
-        overlay: Int
+        overlay: Int,
+        framePos: BlockPos? = null,
     ) {
         renderBackground(puzzle.backgroundColor, matrices, queue, light, overlay)
         renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, light, overlay)
@@ -61,24 +69,28 @@ object PuzzlePanelRenderer {
             puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
             matrices, queue, light, overlay
         )
-        // On the panel face itself (Witness-style), not a screen overlay: perspective follows the frame.
-        if (puzzle.tutorial) {
-            renderAttractPulse(puzzle, matrices, queue, overlay)
+        // Cue drawing is gated by the effect's own frame-pos match (set at trigger), not by
+        // re-reading tutorial here — trigger already required tutorial, and a missing/stale
+        // component must not silently drop an in-flight flash.
+        if (framePos != null) {
+            renderAttractPulse(puzzle, framePos, matrices, queue, light, overlay)
+            renderErrorFlash(puzzle, framePos, matrices, queue, light, overlay)
         }
     }
 
     /**
-     * Expanding white ring on start discs / end nubs, driven by [PanelAttractPulse]. Same visual
-     * as the original: thin stroke grows past the node and fades, drawn in panel space on the
-     * frame so it sits on the surface from any camera angle. End is half the start radius.
+     * Expanding white ring on start discs / end nubs ([PanelAttractPulse]). Translucent + emissive
+     * so the ring stays white and fades via alpha (opaque dimming turned it grey/black).
      */
     private fun renderAttractPulse(
         puzzle: Panel,
+        framePos: BlockPos,
         matrices: MatrixStack,
         queue: OrderedRenderCommandQueue,
+        light: Int,
         overlay: Int
     ) {
-        val frame: PanelAttractPulse.Frame = PanelAttractPulse.sample() ?: return
+        val frame: PanelAttractPulse.Frame = PanelAttractPulse.sample(framePos) ?: return
         val nodes: List<Node> = when (frame.kind) {
             PanelAttractPulse.Kind.START ->
                 puzzle.graph.nodes().filter { it.modifier == Modifier.START }
@@ -87,7 +99,6 @@ object PuzzlePanelRenderer {
         }
         if (nodes.isEmpty()) return
 
-        // Match PuzzlePanelRenderer node discs: start 4.pc, end nub 2.pc.
         val baseRadius: Float = when (frame.kind) {
             PanelAttractPulse.Kind.START -> 4.pc
             PanelAttractPulse.Kind.END -> 2.pc
@@ -98,7 +109,7 @@ object PuzzlePanelRenderer {
         val stroke: Float = baseRadius * 0.18f
         val innerRadius: Float = (midRadius - stroke).coerceAtLeast(0f)
         val outerRadius: Float = midRadius
-        val alpha: Float = frame.strength * (1f - t) * (1f - t) * 0.95f
+        val alpha: Float = frame.strength * (1f - t) * (1f - t)
         if (alpha <= 0.02f) return
 
         val maxDimension: Int = maxOf(puzzle.width, puzzle.height)
@@ -106,11 +117,9 @@ object PuzzlePanelRenderer {
 
         matrices.push()
         matrices.scale(maxScale, maxScale, 1f)
-        // In front of symbols / line so the ring isn't buried under the lattice.
         matrices.translate(.0, .0, -.014)
 
-        // entityTranslucentEmissive: real vertex alpha + fullbright, unlike beaconBeam which
-        // ate the first translucent attempt. Solution-fill is the cream/white panel stroke.
+        // Fullbright translucent: white stays white, fade is pure alpha.
         val fullBright: Int = 0x00F000F0
         queue.submitCustom(
             matrices,
@@ -126,6 +135,50 @@ object PuzzlePanelRenderer {
                         g = 1f,
                         b = 1f,
                         a = alpha
+                    )
+                }
+            }
+        }
+
+        matrices.pop()
+    }
+
+    /**
+     * Red blink on missed hexagon dots ([PanelErrorFlash]). Same translucent-emissive path as the
+     * attract ring so colour stays true red rather than a muddy opaque blend.
+     */
+    private fun renderErrorFlash(
+        puzzle: Panel,
+        framePos: BlockPos,
+        matrices: MatrixStack,
+        queue: OrderedRenderCommandQueue,
+        light: Int,
+        overlay: Int
+    ) {
+        val frame: PanelErrorFlash.Frame = PanelErrorFlash.sample(framePos) ?: return
+        if (frame.alpha <= 0.02f || frame.positions.isEmpty()) return
+
+        val maxDimension: Int = maxOf(puzzle.width, puzzle.height)
+        val maxScale: Float = 1f / maxDimension
+
+        matrices.push()
+        matrices.scale(maxScale, maxScale, 1f)
+        matrices.translate(.0, .0, -.015)
+
+        val fullBright: Int = 0x00F000F0
+        queue.submitCustom(
+            matrices,
+            RenderLayers.entityTranslucentEmissive(PuzzlePanelTextures.solutionFill)
+        ) { entry, consumer ->
+            withRenderContext(entry, consumer, fullBright, overlay) {
+                frame.positions.forEach { (x, y) ->
+                    hexagon(
+                        Vector3f(x, y, 0f),
+                        HEXAGON_RADIUS,
+                        r = 1f,
+                        g = 0.12f,
+                        b = 0.08f,
+                        a = frame.alpha
                     )
                 }
             }

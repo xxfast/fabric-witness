@@ -14,6 +14,7 @@ import net.minecraft.client.render.state.CameraRenderState
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Properties
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.RotationAxis
 import net.minecraft.util.math.Vec3d
@@ -21,6 +22,11 @@ import net.minecraft.util.math.Vec3d
 class PuzzleFrameRenderState : BlockEntityRenderState() {
     var panel: Panel? = null
     var facing: Direction = Direction.NORTH
+    /**
+     * Immutable snapshot of the frame's block pos at extract time. Attract / error flashes key off
+     * this so a mutable [pos] reference can never drift between trigger and draw.
+     */
+    var framePos: BlockPos = BlockPos.ORIGIN
 }
 
 class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, PuzzleFrameRenderState> {
@@ -48,6 +54,8 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
         val itemStack: ItemStack = blockEntity.inventory.items[0]
         state.panel = if (itemStack.isEmpty) null else itemStack.panel ?: Panel.DEFAULT
         state.facing = blockEntity.cachedState.get(Properties.HORIZONTAL_FACING)
+        // Snapshot now: do not hand the live BE pos reference into flash matching.
+        state.framePos = blockEntity.pos.toImmutable()
     }
 
     override fun render(
@@ -74,8 +82,10 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
         // Move to corner
         matrices.translate(-.5, -.5, -.05)
 
-        // Render puzzle panel
-        puzzlePanelRenderer.renderPanel(panel, matrices, queue, state.lightmapCoordinates, OverlayTexture.DEFAULT_UV)
+        // Pass frame pos so attract / error flashes only hit this panel, not neighbours.
+        puzzlePanelRenderer.renderPanel(
+            panel, matrices, queue, state.lightmapCoordinates, OverlayTexture.DEFAULT_UV, state.framePos
+        )
         matrices.pop()
     }
 }

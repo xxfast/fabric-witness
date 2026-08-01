@@ -105,9 +105,13 @@ edges that meet it and would otherwise be unclickable. A broken edge refuses one
 `SymbolTests.Authoring`.
 
 **Validation, done.** `Panel.unsatisfiedHexagons(path)` (`items/data/Hexagons.kt`) returns the hexagons
-a submitted path fails to cover, and `PuzzleSolver.isValidSolution` now rejects unless it is empty. It
-returns the failures rather than a verdict so per-symbol feedback has something to build on. Covered by
+a submitted path fails to cover, and `PuzzleSolver.submit` rejects unless it is empty. The missed list
+is carried on `PuzzleSolverData.SolutionRejected` so per-symbol feedback can point at them. Covered by
 `HexagonTests` and three cases in `PuzzleSolverTests`.
+
+**Error flash (tutorial), done.** On reject for a `Panel.tutorial` panel, missed hexagons blink red
+on the panel face via `PanelErrorFlash` + `PuzzlePanelRenderer` (same emissive path as attract rings).
+Non-tutorial panels stay quiet. Cleared when a new trace starts or focus mode closes.
 
 **Rendering: world done, composer unsettled.** Both `WPuzzleEditor` and `PuzzlePanelRenderer` draw
 hexagons in a pass in front of the solution line, in the panel's backdrop colour. The world renderer

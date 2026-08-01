@@ -7,6 +7,7 @@ import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Compani
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.items.renderer.PanelAttractPulse
+import com.xfastgames.witness.items.renderer.PanelErrorFlash
 import com.xfastgames.witness.sounds.LoopingSoundInstance
 import com.xfastgames.witness.sounds.WitnessSound
 import com.xfastgames.witness.sounds.WitnessSounds
@@ -68,7 +69,13 @@ private const val PUZZLE_LINE_DEPTH_FROM_BLOCK_CENTER = 0.095
 @Environment(EnvType.CLIENT)
 @OptIn(FlowPreview::class)
 @Suppress("UnstableApiUsage")
-class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
+class PuzzleSolverScreen(
+    /**
+     * Frame that opened focus mode. Attract / error cues stick to this pos (updated if the player
+     * starts a trace on a different frame in the same session). Never raycast-for-focus again.
+     */
+    openedAt: BlockPos,
+) : Screen(NarratorManager.EMPTY) {
 
     private val borderAlpha = Interpolator(.0f, .8f) { it.value += .05f }
     private val cursorShadowSize = Interpolator(BORDER_WIDTH * 4, BORDER_WIDTH / 2) { it.value -= 2 }
@@ -83,6 +90,8 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     private var lastStartPointHintMillis: Long = 0
     private var startPointHintCount: Int = 0
     private var lastEndPointHintMillis: Long = 0
+    /** Sticky focus frame; set at open, rebounds when a trace starts on another panel. */
+    private var focusPos: BlockPos = openedAt.toImmutable()
 
     private val solver = PuzzleSolver()
     private val clientInstance: MinecraftClient by lazy { requireNotNull(client) }
@@ -94,6 +103,16 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         startIdleAmbience()
         registerInteraction()
         client?.options?.hudHidden = true
+    }
+
+    /** World BE at [focusPos], if it is still a puzzle frame with a panel. */
+    private fun focusFrameEntity(): PuzzleFrameBlockEntity? {
+        val world: ClientWorld = client?.world ?: return null
+        return world.getBlockEntity(focusPos) as? PuzzleFrameBlockEntity
+    }
+
+    private fun bindFocus(entity: PuzzleFrameBlockEntity) {
+        focusPos = entity.pos.toImmutable()
     }
 
     /**
@@ -149,20 +168,18 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
     /**
      * Attract cue for where to begin. Once focus mode has been left alone for
      * [SCINT_ATTRACT_DELAY_MILLIS], pings every [SCINT_STARTPOINT_INTERVAL_MILLIS] while still idle
-     * and not tracing. Volume steps down each ping and stops after [SCINT_STARTPOINT_MAX_PINGS]
-     * (matches the original: audible fade over three beats, then silence). Not hover-driven.
-     * Tutorial panels only.
+     * and not tracing. Volume steps down each ping and stops after [SCINT_STARTPOINT_MAX_PINGS].
+     *
+     * Always addresses [focusPos] (the frame that opened focus / last started a trace), never a
+     * screen-centre raycast — that miss/hit noise was why pulses felt random.
      */
     private fun hintStartPointWhileIdle() {
         if (solver.isSolving || !isUnattended) return
         if (startPointHintCount >= SCINT_STARTPOINT_MAX_PINGS) return
         val now: Long = Util.getMeasuringTimeMs()
         if (now - lastStartPointHintMillis < SCINT_STARTPOINT_INTERVAL_MILLIS) return
-        val world: ClientWorld = client?.world ?: return
-        // Screen centre, not the cursor: this cue is a focus-mode beat, not a hover reaction.
-        val hit: PuzzlePanelHitResult =
-            rayCastAtPanel(world, width / 2.0, height / 2.0) ?: return
-        val puzzle: Panel = hit.puzzlePanel
+        val entity: PuzzleFrameBlockEntity = focusFrameEntity() ?: return
+        val puzzle: Panel = entity.inventory.getStack(0).panel ?: return
         if (!puzzle.tutorial) return
         if (puzzle.graph.nodes().none { node -> node.modifier == Modifier.START }) return
         // full → 2/3 → 1/3 across the three pings, then the counter stops further plays.
@@ -171,8 +188,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         startPointHintCount++
         lastStartPointHintMillis = now
         client?.player?.play(WitnessSounds.PANEL_SCINT_STARTPOINT, volumeScale)
-        // Same beat as the cue: expanding white ring on the panel's start discs.
-        PanelAttractPulse.triggerStart(volumeScale)
+        PanelAttractPulse.triggerStart(focusPos, volumeScale)
     }
 
     /**
@@ -184,14 +200,15 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         if (!solver.isSolving || !isUnattended) return
         val now: Long = Util.getMeasuringTimeMs()
         if (now - lastEndPointHintMillis < SCINT_ATTRACT_DELAY_MILLIS) return
-        val puzzle: Panel = startedBlockEntity?.inventory?.getStack(0)?.panel ?: return
+        val blockEntity: PuzzleFrameBlockEntity = startedBlockEntity ?: return
+        val puzzle: Panel = blockEntity.inventory.getStack(0).panel ?: return
         // Attract cues are for tutorial panels only; everything else stays quiet.
         if (!puzzle.tutorial) return
         if (puzzle.graph.nodes().none { node -> node.modifier == Modifier.END }) return
         lastEndPointHintMillis = now
         client?.player?.play(WitnessSounds.PANEL_SCINT_ENDPOINT)
-        // Same beat as the cue: smaller expanding ring on the panel's end nubs.
-        PanelAttractPulse.triggerEnd()
+        // Trace owner is always the focus frame once a line is started.
+        PanelAttractPulse.triggerEnd(blockEntity.pos.toImmutable())
     }
 
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
@@ -272,7 +289,11 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             player.play(WitnessSounds.PANEL_START_TRACING)
             startTracingAmbience()
             startedBlockEntity = blockEntity
+            // Cues follow the frame the line is on, even if focus was opened on a neighbour.
+            bindFocus(blockEntity)
             tracingMousePosition = MousePosition(mouseX, mouseY)
+            // A new attempt supersedes the previous reject flash.
+            PanelErrorFlash.clear()
             solver.tracingTip()?.let { tip ->
                 lockCursorToLineTip(
                     blockEntity,
@@ -293,6 +314,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         idleSound?.stop()
         idleSound = null
         PanelAttractPulse.clear()
+        PanelErrorFlash.clear()
         client?.player?.play(WitnessSounds.FOCUS_MODE_EXIT)
         client?.mouse?.unlockCursor()
         super.removed()
@@ -307,7 +329,7 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
         val puzzle: Panel = blockEntity.inventory.getStack(0).panel ?: return stopTracing()
         val line: Graph<Node> = solver.submit(puzzle) ?: return stopTracing()
         updateLine(blockEntity, puzzle, line)
-        when (solver.state.value) {
+        when (val verdict = solver.state.value) {
             is PuzzleSolverData.SolutionAccepted -> {
                 player.play(WitnessSounds.PANEL_FINISH_TRACING)
                 player.play(WitnessSounds.PANEL_SUCCESS)
@@ -316,6 +338,10 @@ class PuzzleSolverScreen : Screen(NarratorManager.EMPTY) {
             is PuzzleSolverData.SolutionRejected -> {
                 player.play(WitnessSounds.PANEL_FINISH_TRACING)
                 player.play(WitnessSounds.PANEL_FAILURE)
+                // Tutorial only: flash missed dots on this frame, not every panel nearby.
+                if (puzzle.tutorial && verdict.missedHexagons.isNotEmpty()) {
+                    PanelErrorFlash.trigger(blockEntity.pos.toImmutable(), verdict.missedHexagons)
+                }
             }
 
             else -> player.play(WitnessSounds.PANEL_ABORT_TRACING)

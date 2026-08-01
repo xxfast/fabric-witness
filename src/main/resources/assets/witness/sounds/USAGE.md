@@ -150,6 +150,9 @@ start disc (or, smaller, the end nub) and fades over ~700ms. Drawn on the panel 
 `PuzzlePanelRenderer` (same matrix as the lattice), tutorial panels only, so perspective matches
 the frame like the original game.
 
+On a tutorial-panel reject that misses hexagon dots, those dots blink red via [PanelErrorFlash]
+(~1.6s, four peaks) on the same panel face. Structural rejects with no missed hexagons flash nothing.
+
 `focus_mode_being` deviates from the table: 0.05 rather than 0.13, and eased in over three seconds
 by `LoopingSoundInstance` instead of starting at full volume. It is the one layer that runs the
 whole time a panel is open, and at the observed level it pulls attention off the puzzle. The fade
