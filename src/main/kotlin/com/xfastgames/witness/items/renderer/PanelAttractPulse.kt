@@ -1,7 +1,7 @@
 package com.xfastgames.witness.items.renderer
 
 import net.minecraft.util.Util
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
 
 /**
  * Client-only attract pulse for tutorial panels. Solver fires it with the focused frame's pos;
@@ -14,7 +14,7 @@ object PanelAttractPulse {
 
     enum class Kind { START, END }
 
-    data class Frame(
+    data class Sample(
         val kind: Kind,
         /** 0 at trigger, 1 when fully expanded and faded. */
         val progress: Float,
@@ -50,7 +50,7 @@ object PanelAttractPulse {
         targetY = pos.y
         targetZ = pos.z
         this.kind = kind
-        startedAtMs = Util.getMeasuringTimeMs()
+        startedAtMs = Util.getMillis()
         this.strength = strength.coerceIn(0f, 1f)
     }
 
@@ -58,7 +58,7 @@ object PanelAttractPulse {
      * Progress for a live pulse aimed at [pos]. Pure read of time; does not clear mid-pass so
      * multiple render layers can sample the same frame.
      */
-    fun sample(pos: BlockPos, nowMs: Long = Util.getMeasuringTimeMs()): Frame? {
+    fun sample(pos: BlockPos, nowMs: Long = Util.getMillis()): Sample? {
         if (!isFor(pos)) return null
         val active: Kind = kind ?: return null
         val progress: Float = (nowMs - startedAtMs).toFloat() / DURATION_MS
@@ -66,6 +66,6 @@ object PanelAttractPulse {
             clear()
             return null
         }
-        return Frame(active, progress.coerceIn(0f, 1f), strength)
+        return Sample(active, progress.coerceIn(0f, 1f), strength)
     }
 }

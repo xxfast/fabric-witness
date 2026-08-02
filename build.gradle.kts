@@ -3,8 +3,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     // NOTE: Gradle 9's plugins {} block cannot resolve buildSrc constants, so
     // the plugin versions are inlined here (kept in sync with Dependencies.kt).
-    kotlin("jvm") version "2.4.0"
-    id("fabric-loom") version "1.17.13"
+    kotlin("jvm") version "2.4.10"
+    // 26.1+ uses the fully-qualified loom plugin id.
+    id("net.fabricmc.fabric-loom") version "1.17.17"
     `maven-publish`
 }
 
@@ -21,14 +22,15 @@ tasks.test {
 
 dependencies {
     minecraft("com.mojang", "minecraft", Minecraft.version)
-    mappings("net.fabricmc", "yarn", Fabric.YarnMappings.version, classifier = Fabric.YarnMappings.classifier)
+    // 26.1+ ships unobfuscated: no mappings dependency (Fabric porting guide).
 
-    modImplementation("net.fabricmc", "fabric-loader", Fabric.Loader.version)
-    modImplementation("net.fabricmc", "fabric-language-kotlin", Fabric.Kotlin.version)
-    modImplementation("net.fabricmc.fabric-api", "fabric-api", Fabric.API.version)
+    // 26.1+ uses plain implementation, not modImplementation.
+    implementation("net.fabricmc", "fabric-loader", Fabric.Loader.version)
+    implementation("net.fabricmc", "fabric-language-kotlin", Fabric.Kotlin.version)
+    implementation("net.fabricmc.fabric-api", "fabric-api", Fabric.API.version)
 
-    modImplementation(include(Mods.libgui)!!)
-    modImplementation(Mods.modmenu)
+    implementation(include(Mods.libgui)!!)
+    implementation(Mods.modmenu)
 
     testRuntimeOnly(JUnit.jupiter_engine)
     testRuntimeOnly(JUnit.platform_launcher)
@@ -41,18 +43,17 @@ dependencies {
 // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
-    sourceCompatibility = "21"
-    targetCompatibility = "21"
+    options.release.set(25)
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_21)
+        jvmTarget.set(JvmTarget.JVM_25)
         optIn.addAll(
             "kotlin.RequiresOptIn",
             "kotlin.ExperimentalStdlibApi"

@@ -3,10 +3,10 @@ package com.xfastgames.witness.screens.widgets.icons
 import com.xfastgames.witness.utils.circle
 import com.xfastgames.witness.utils.fill
 import io.github.cottonmc.cotton.gui.widget.icon.Icon
-import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.GuiGraphicsExtractor
 
 object EndIcon : Icon {
-    override fun paint(context: DrawContext, x: Int, y: Int, size: Int) {
+    override fun paint(context: GuiGraphicsExtractor, x: Int, y: Int, size: Int) {
         val bevel = 1
         val radius: Int = size / 5
         val thickness: Int = size / 3

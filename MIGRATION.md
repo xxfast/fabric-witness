@@ -24,9 +24,8 @@ Notes:
   buildSrc constants there); everything else still lives in `buildSrc/src/main/kotlin/Dependencies.kt`.
 - The CottonMC maven (`server.bbkr.space`) is dead; LibGui now resolves from
   `https://staging.alexiil.uk/maven/`.
-- MC 26.2 (the actual latest) was deliberately deferred: it requires Java 25, Mojang mappings
-  (Yarn is discontinued from 26.1), and ModMenu only has a beta there. The 1.21.11 → 26.2 hop is
-  a much smaller follow-up.
+- MC 26.2 is now the target (see **Migration: 1.21.11 → 26.2** below). Yarn is gone; the jar is
+  unobfuscated official names. Java 25 is required.
 
 ## What was migrated
 
@@ -155,3 +154,85 @@ Notes:
   stonecutting.
 - Worldgen JSONs validate on datapack load (inert until injected into biomes).
 - Dedicated-server boot (client/server split, screen-handler registration timing).
+
+---
+
+# Migration: Minecraft 1.21.11 → 26.2 (August 2026)
+
+Compile + unit tests are green on this hop. In-game verification is still outstanding.
+
+## Toolchain
+
+| Dependency    | 1.21.11 (Yarn/mojmap) | 26.2                                      |
+|---------------|-----------------------|-------------------------------------------|
+| Minecraft     | 1.21.11               | 26.2                                      |
+| Mappings      | Yarn → intermediate Mojmap | **none** (unobfuscated official names) |
+| Fabric API    | 0.141.4+1.21.11       | 0.156.0+26.2                              |
+| Fabric Loom   | 1.17.13               | 1.17.17 (`net.fabricmc.fabric-loom`)      |
+| Kotlin / FLK  | 2.4.0 / 1.13.12       | 2.4.10 / 1.13.13+kotlin.2.4.10            |
+| LibGui        | 15.x                  | 17.0.0+26.2                               |
+| ModMenu       | 17.x                  | 20.0.1                                    |
+| Java          | 21                    | 25 (Homebrew `openjdk@25`, pinned in `gradle.properties`) |
+
+Notes:
+- Loom plugin id is `net.fabricmc.fabric-loom` (not the legacy `fabric-loom` id alone).
+- Dependencies use `implementation` rather than `modImplementation` for loader/API/FLK under Loom 1.17.
+- No `mappings` line in `build.gradle.kts`.
+
+## Yarn → Mojang names (on 1.21.11 first)
+
+Loom's `migrateMappings` does not remap Kotlin sources. A custom Python remapper over Yarn/Mojmap
+tiny + intermediate class lists, plus a compile-fix loop, rewrote ~80 sources. Pitfalls:
+- Simple-name collisions (`Pair`→`Tuple`, `Player`→wrong type, package `world`→`level` over-eagerly).
+- Own identifiers that looked like yarn names (e.g. `Interpolator`).
+- Recovery: restore `src`, remapper v2 with curated renames, then file-level rewrites.
+
+## API churn applied for 26.2
+
+### Fabric
+- `ItemGroupEvents` (`itemgroup.v1`) → `CreativeModeTabEvents.modifyOutputEvent` (`creativetab.v1`)
+- `ExtendedScreenHandlerFactory` / `ExtendedScreenHandlerType` → `ExtendedMenuProvider` / `ExtendedMenuType` (`menu.v1`)
+- `PayloadTypeRegistry.playC2S()` → `serverboundPlay()`
+- `ColorProviderRegistry.BLOCK` → `BlockColorRegistry` + `BlockTintSources.constant(...)`
+- `BlockRenderLayerMap` **removed** from Fabric rendering API for 26.x; plant cutout/translucent
+  registration deleted. Models still need a data-driven layer path (open follow-up).
+
+### Vanilla client
+- `GuiGraphics` → `GuiGraphicsExtractor` (LibGui paint signatures match)
+- `Screen.render` / `renderBackground` → `extractRenderState` / `extractBackground`
+- `Minecraft.setScreen` / `.screen` → `Minecraft.gui.setScreen` / `gui.screen()`
+- `Options.hideGui` → `Hud.toggle()` / `isHidden()` via `Minecraft.setHudHidden`
+- BER camera package: `renderer.state.level.CameraRenderState`
+- Light: `LevelRenderer.getLightColor` → `LightCoordsUtil.getLightCoords`
+- Special item models: `SpecialModelWrapper.Unbaked(base, Optional.empty(), unbaked)`;
+  `SpecialModelRenderer.submit` drops `ItemDisplayContext`; `Unbaked` is generic
+
+### Recipes
+- `CustomRecipe` is no-arg; category defaults via `category()`
+- `assemble(CraftingInput)` (no `HolderLookup.Provider`)
+- Serializers are `RecipeSerializer(MapCodec.unit(INSTANCE), StreamCodec.unit(INSTANCE))`
+- Dyes: `DataComponents.DYE` / `Items.DYE` ColorCollection (no `DyeItem.byColor` / `.dyeColor`)
+- Recipe book slot displays take `ItemStackTemplate`, not raw `ItemStack`
+
+## Smoke test (2026-08-02)
+
+`./gradlew runClient --args='--quickPlaySingleplayer "New World"'`:
+- Client boots on MC 26.2 / Java 25; `witness 0.11.0` loads with Fabric API 0.156.0+26.2.
+- First load failed on worldgen: `minecraft:random_patch` removed. Fixed by rewriting
+  `jasmine_bush` / `mimosa_bush` configured features as `simple_block` (still not biome-injected).
+- Second load: **player joined `WitnessPlayground`** and stayed in-world ~90s without crash.
+
+Non-fatal log noise (addressed or expected):
+- `#missing` texture refs on `iron_puzzle_frame` / `puzzle_composer` models → remapped to `#0`.
+- `witness:puzzle_panel_grid` "can't be placed due to empty ingredients" (expected: `NOT_PLACEABLE`
+  special recipe; recipe book uses `display()` instead).
+- `pink_cedar_leaves` loot: `minecraft:alternative` → `any_of`.
+
+Render layers: Fabric's `BlockRenderLayerMap` is gone. 26.2 picks cutout vs translucent from
+texture alpha (`ChunkSectionLayer.byTransparency`); glass uses `"force_translucent": true` on the
+texture material. Plant block models do not need a code-side layer map if their PNGs have alpha.
+
+## Known follow-ups before calling 26.2 "done"
+- In-game checklist: solver focus mode, composer GUI, panel craft/dye/recycle, frame BER.
+- Confirm plant foliage looks cutout (not solid black boxes) in the play-test world.
+- Data component compatibility for existing panels after the version hop.

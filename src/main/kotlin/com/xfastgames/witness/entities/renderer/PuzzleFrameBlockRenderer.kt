@@ -4,29 +4,29 @@ import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
-import net.minecraft.client.render.OverlayTexture
-import net.minecraft.client.render.block.entity.BlockEntityRenderer
-import net.minecraft.client.render.block.entity.BlockEntityRendererFactories
-import net.minecraft.client.render.block.entity.state.BlockEntityRenderState
-import net.minecraft.client.render.command.ModelCommandRenderer
-import net.minecraft.client.render.command.OrderedRenderCommandQueue
-import net.minecraft.client.render.state.CameraRenderState
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.item.ItemStack
-import net.minecraft.state.property.Properties
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.RotationAxis
-import net.minecraft.util.math.Vec3d
+import net.minecraft.client.renderer.texture.OverlayTexture
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer
+import net.minecraft.client.renderer.SubmitNodeCollector
+import net.minecraft.client.renderer.state.level.CameraRenderState
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import com.mojang.math.Axis
+import net.minecraft.world.phys.Vec3
 
 class PuzzleFrameRenderState : BlockEntityRenderState() {
     var panel: Panel? = null
     var facing: Direction = Direction.NORTH
     /**
-     * Immutable snapshot of the frame's block pos at extract time. Attract / error flashes key off
+     * Frozen snapshot of the frame's block pos at extract time. Attract / error flashes key off
      * this so a mutable [pos] reference can never drift between trigger and draw.
      */
-    var framePos: BlockPos = BlockPos.ORIGIN
+    var framePos: BlockPos = BlockPos.ZERO
 }
 
 class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, PuzzleFrameRenderState> {
@@ -35,7 +35,7 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
         const val PUZZLE_FRAME_SCALE = 0.85f
 
         fun register() {
-            BlockEntityRendererFactories.register(PuzzleFrameBlockEntity.ENTITY_TYPE) { PuzzleFrameBlockRenderer() }
+            BlockEntityRenderers.register(PuzzleFrameBlockEntity.ENTITY_TYPE) { PuzzleFrameBlockRenderer() }
         }
     }
 
@@ -43,35 +43,35 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
 
     override fun createRenderState(): PuzzleFrameRenderState = PuzzleFrameRenderState()
 
-    override fun updateRenderState(
+    override fun extractRenderState(
         blockEntity: PuzzleFrameBlockEntity,
         state: PuzzleFrameRenderState,
         tickDelta: Float,
-        cameraPos: Vec3d,
-        crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?
+        cameraPos: Vec3,
+        crumblingOverlay: ModelFeatureRenderer.CrumblingOverlay?
     ) {
-        BlockEntityRenderState.updateBlockEntityRenderState(blockEntity, state, crumblingOverlay)
+        BlockEntityRenderState.extractBase(blockEntity, state, crumblingOverlay)
         val itemStack: ItemStack = blockEntity.inventory.items[0]
         state.panel = if (itemStack.isEmpty) null else itemStack.panel ?: Panel.DEFAULT
-        state.facing = blockEntity.cachedState.get(Properties.HORIZONTAL_FACING)
+        state.facing = blockEntity.blockState.getValue(BlockStateProperties.HORIZONTAL_FACING)
         // Snapshot now: do not hand the live BE pos reference into flash matching.
-        state.framePos = blockEntity.pos.toImmutable()
+        state.framePos = blockEntity.blockPos.immutable()
     }
 
-    override fun render(
+    override fun submit(
         state: PuzzleFrameRenderState,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         cameraState: CameraRenderState
     ) {
         val panel: Panel = state.panel ?: return
-        matrices.push()
+        matrices.pushPose()
 
         // Move to center
         matrices.translate(.5, .5, .5)
 
-        // Rotate the entity to the direction of the block
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-state.facing.positiveHorizontalDegrees))
+        // Rot the entity to the direction of the block
+        matrices.mulPose(Axis.YP.rotationDegrees(-state.facing.toYRot()))
 
         // Scale the panel
         matrices.scale(PUZZLE_FRAME_SCALE, PUZZLE_FRAME_SCALE, 1f)
@@ -84,8 +84,8 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
 
         // Pass frame pos so attract / error flashes only hit this panel, not neighbours.
         puzzlePanelRenderer.renderPanel(
-            panel, matrices, queue, state.lightmapCoordinates, OverlayTexture.DEFAULT_UV, state.framePos
+            panel, matrices, queue, state.lightCoords, OverlayTexture.NO_OVERLAY, state.framePos
         )
-        matrices.pop()
+        matrices.popPose()
     }
 }

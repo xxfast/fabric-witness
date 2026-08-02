@@ -1,7 +1,7 @@
 package com.xfastgames.witness.utils
 
-import net.minecraft.client.render.VertexConsumer
-import net.minecraft.client.util.math.MatrixStack
+import com.mojang.blaze3d.vertex.VertexConsumer
+import com.mojang.blaze3d.vertex.PoseStack
 import org.joml.Vector3f
 
 fun RenderContext.rectangle(position: Vector3f, width: Float, height: Float) =
@@ -54,7 +54,7 @@ fun RenderContext.line(start: Vector3f, end: Vector3f, thickness: Float) =
     vertexConsumer.line(entry, start, end, thickness, light, overlay)
 
 fun withRenderContext(
-    entry: MatrixStack.Entry,
+    entry: PoseStack.Pose,
     vertexConsumer: VertexConsumer,
     light: Int,
     overlay: Int,
@@ -62,7 +62,7 @@ fun withRenderContext(
 ) = with(RenderContext(entry, vertexConsumer, light, overlay), block)
 
 data class RenderContext(
-    val entry: MatrixStack.Entry,
+    val entry: PoseStack.Pose,
     val vertexConsumer: VertexConsumer,
     val light: Int,
     val overlay: Int

@@ -7,98 +7,101 @@ import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PU
 import com.xfastgames.witness.utils.blockSettings
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
-import net.minecraft.block.*
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.*
-import net.minecraft.screen.NamedScreenHandlerFactory
-import net.minecraft.sound.BlockSoundGroup
-import net.minecraft.state.StateManager
-import net.minecraft.state.property.Properties.HORIZONTAL_FACING
-import net.minecraft.util.ActionResult
-import net.minecraft.util.Identifier
-import net.minecraft.util.collection.DefaultedList
-import net.minecraft.util.hit.BlockHitResult
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.shape.VoxelShape
-import net.minecraft.util.shape.VoxelShapes
-import net.minecraft.world.BlockView
-import net.minecraft.world.World
+import net.minecraft.world.level.block.*
+import net.minecraft.world.level.block.state.*
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.*
+import net.minecraft.world.item.context.BlockPlaceContext
+import net.minecraft.world.MenuProvider
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING
+import net.minecraft.world.InteractionResult
+import net.minecraft.resources.Identifier
+import net.minecraft.core.NonNullList
+import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.world.phys.shapes.CollisionContext
+import net.minecraft.world.phys.shapes.VoxelShape
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.Level
 
-class PuzzleComposerBlock(settings: AbstractBlock.Settings) : BlockWithEntity(settings) {
+class PuzzleComposerBlock(settings: BlockBehaviour.Properties) : BaseEntityBlock(settings) {
 
     init {
-        defaultState = stateManager.defaultState.with(HORIZONTAL_FACING, Direction.NORTH)
+        registerDefaultState(stateDefinition.any().setValue(HORIZONTAL_FACING, Direction.NORTH))
     }
 
     companion object {
-        val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "puzzle_composer")
-        val CODEC: MapCodec<PuzzleComposerBlock> = createCodec(::PuzzleComposerBlock)
+        val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "puzzle_composer")
+        val CODEC: MapCodec<PuzzleComposerBlock> = simpleCodec(::PuzzleComposerBlock)
         val BLOCK: Block = registerBlock(
-            PuzzleComposerBlock(blockSettings(IDENTIFIER).strength(2.5F).sounds(BlockSoundGroup.METAL)),
+            PuzzleComposerBlock(blockSettings(IDENTIFIER).strength(2.5F).sound(SoundType.METAL)),
             IDENTIFIER
         )
         val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER)
     }
 
-    override fun getCodec(): MapCodec<out BlockWithEntity> = CODEC
+    override fun codec(): MapCodec<out BaseEntityBlock> = CODEC
 
-    override fun getRenderType(state: BlockState?): BlockRenderType = BlockRenderType.MODEL
+    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
-    override fun createBlockEntity(pos: BlockPos?, state: BlockState?): BlockEntity? =
+    override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity =
         PuzzleComposerBlockEntity(pos, state)
 
-    override fun getPlacementState(ctx: ItemPlacementContext): BlockState? {
-        return super.getPlacementState(ctx)?.with(HORIZONTAL_FACING, ctx.horizontalPlayerFacing)
+    override fun getStateForPlacement(ctx: BlockPlaceContext): BlockState {
+        return defaultBlockState().setValue(HORIZONTAL_FACING, ctx.horizontalDirection)
     }
 
-    override fun appendProperties(stateManager: StateManager.Builder<Block, BlockState>) {
-        stateManager.add(HORIZONTAL_FACING)
+    override fun createBlockStateDefinition(stateDefinition: StateDefinition.Builder<Block, BlockState>) {
+        stateDefinition.add(HORIZONTAL_FACING)
     }
 
-    override fun getOutlineShape(
-        state: BlockState?,
-        world: BlockView?,
-        pos: BlockPos?,
-        context: ShapeContext?
-    ): VoxelShape = VoxelShapes.fullCube()
+    override fun getShape(
+        state: BlockState,
+        world: BlockGetter,
+        pos: BlockPos,
+        context: CollisionContext
+    ): VoxelShape = Shapes.block()
 
-    override fun onPlaced(
-        world: World,
+    override fun setPlacedBy(
+        world: Level,
         pos: BlockPos,
         state: BlockState,
         placer: LivingEntity?,
-        itemStack: ItemStack?
+        itemStack: ItemStack
     ) {
-        if (world.isClient) return
+        if (world.isClientSide) return
         val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
         require(entity is PuzzleComposerBlockEntity)
         entity.sync()
-        world.updateListeners(pos, state, state, 3)
+        world.sendBlockUpdated(pos, state, state, Block.UPDATE_ALL)
     }
 
-    override fun onBreak(world: World, pos: BlockPos, state: BlockState, player: PlayerEntity): BlockState {
+    override fun playerWillDestroy(world: Level, pos: BlockPos, state: BlockState, player: Player): BlockState {
         val entity: BlockEntity? = world.getBlockEntity(pos)
         require(entity is PuzzleComposerBlockEntity)
         // Output slot should not be dropped
-        entity.inventory.removeStack(PUZZLE_OUTPUT_SLOT_INDEX)
-        val updatedList: DefaultedList<ItemStack> = entity.inventory.items
-        updatedList.forEach { stack -> dropStack(world, pos, stack) }
-        return super.onBreak(world, pos, state, player)
+        entity.inventory.removeItem(PUZZLE_OUTPUT_SLOT_INDEX, entity.inventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).count)
+        val updatedList: NonNullList<ItemStack> = entity.inventory.items
+        updatedList.forEach { stack -> Block.popResource(world, pos, stack) }
+        return super.playerWillDestroy(world, pos, state, player)
     }
 
-    override fun onUse(
+    override fun useWithoutItem(
         state: BlockState,
-        world: World,
+        world: Level,
         pos: BlockPos,
-        player: PlayerEntity,
+        player: Player,
         hit: BlockHitResult
-    ): ActionResult {
-        val factory: NamedScreenHandlerFactory = world.getBlockEntity(pos) as? NamedScreenHandlerFactory
-            ?: return ActionResult.PASS
-        player.openHandledScreen(factory)
-        return ActionResult.SUCCESS
+    ): InteractionResult {
+        val factory: MenuProvider = world.getBlockEntity(pos) as? MenuProvider
+            ?: return InteractionResult.PASS
+        player.openMenu(factory)
+        return InteractionResult.SUCCESS
     }
 }

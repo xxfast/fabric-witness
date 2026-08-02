@@ -2,7 +2,7 @@ package com.xfastgames.witness.items.renderer
 
 import com.xfastgames.witness.items.data.Hexagon
 import net.minecraft.util.Util
-import net.minecraft.util.math.BlockPos
+import net.minecraft.core.BlockPos
 
 /**
  * Client-only red flash for missed hexagon dots. Solver fires it with the frame that failed;
@@ -12,7 +12,7 @@ import net.minecraft.util.math.BlockPos
  */
 object PanelErrorFlash {
 
-    data class Frame(
+    data class Sample(
         val positions: List<Pair<Float, Float>>,
         /** 0..1; 0 means this blink trough is off. */
         val alpha: Float,
@@ -41,7 +41,7 @@ object PanelErrorFlash {
                     (hexagon.u.x + hexagon.v.x) / 2f to (hexagon.u.y + hexagon.v.y) / 2f
             }
         }
-        startedAtMs = Util.getMeasuringTimeMs()
+        startedAtMs = Util.getMillis()
     }
 
     fun clear() {
@@ -52,7 +52,7 @@ object PanelErrorFlash {
     fun isFor(pos: BlockPos): Boolean =
         hasTarget && pos.x == targetX && pos.y == targetY && pos.z == targetZ
 
-    fun sample(pos: BlockPos, nowMs: Long = Util.getMeasuringTimeMs()): Frame? {
+    fun sample(pos: BlockPos, nowMs: Long = Util.getMillis()): Sample? {
         if (!isFor(pos) || positions.isEmpty()) return null
         val progress: Float = (nowMs - startedAtMs).toFloat() / DURATION_MS
         if (progress >= 1f) {
@@ -62,6 +62,6 @@ object PanelErrorFlash {
         // Square blink: long "on" window so a short glance still catches red.
         val cycle: Float = (progress * BLINKS) % 1f
         val alpha: Float = if (cycle < 0.7f) 1f else 0f
-        return Frame(positions, alpha)
+        return Sample(positions, alpha)
     }
 }

@@ -3,17 +3,17 @@ package com.xfastgames.witness.blocks.building
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
-import net.minecraft.block.AbstractBlock
-import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
-import net.minecraft.block.StairsBlock
-import net.minecraft.util.Identifier
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.StairBlock
+import net.minecraft.resources.Identifier
 
-class StainedStoneStairs(state: BlockState, settings: AbstractBlock.Settings) : StairsBlock(state, settings) {
+class StainedStoneStairs(state: BlockState, settings: BlockBehaviour.Properties) : StairBlock(state, settings) {
 
     companion object {
-        val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "yellow_stained_stone_stairs")
-        val BLOCK = registerBlock(StainedStoneStairs(Blocks.BRICK_STAIRS.defaultState, stainedStoneSettings(IDENTIFIER)), IDENTIFIER)
+        val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "yellow_stained_stone_stairs")
+        val BLOCK = registerBlock(StainedStoneStairs(Blocks.BRICK_STAIRS.defaultBlockState(), stainedStoneSettings(IDENTIFIER)), IDENTIFIER)
         val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
     }
 

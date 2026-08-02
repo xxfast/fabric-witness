@@ -2,9 +2,9 @@ package com.xfastgames.witness.sounds
 
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.registerSound
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.sound.SoundEvent
-import net.minecraft.util.Identifier
+import net.minecraft.world.entity.player.Player
+import net.minecraft.sounds.SoundEvent
+import net.minecraft.resources.Identifier
 import kotlin.math.pow
 import kotlin.random.Random
 
@@ -17,9 +17,9 @@ private const val SEMITONES_PER_OCTAVE = 12f
  */
 class WitnessSound(name: String, val volume: Float, private val pitchJitter: Float = 0f) {
 
-    val event: SoundEvent = registerSound(Identifier.of(Witness.IDENTIFIER, name))
+    val event: SoundEvent = registerSound(Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, name))
 
-    /** Pitch multiplier for one playback, jittered by up to ±[pitchJitter] semitones. */
+    /** PitchDirection multiplier for one playback, jittered by up to ±[pitchJitter] semitones. */
     fun pitch(): Float {
         if (pitchJitter == 0f) return 1f
         val semitones: Float = Random.nextFloat() * 2 * pitchJitter - pitchJitter
@@ -28,7 +28,7 @@ class WitnessSound(name: String, val volume: Float, private val pitchJitter: Flo
 }
 
 /** Plays [sound] at its documented mix. Called from the client, where this plays at the listener. */
-fun PlayerEntity.play(sound: WitnessSound, volumeScale: Float = 1f) =
+fun Player.play(sound: WitnessSound, volumeScale: Float = 1f) =
     playSound(sound.event, sound.volume * volumeScale, sound.pitch())
 
 /**
@@ -45,7 +45,7 @@ object WitnessSounds {
     val PANEL_ABORT_TRACING = WitnessSound("panel_abort_tracing", volume = .4f)
     val PANEL_ABORT_FINISH_TRACING = WitnessSound("panel_abort_finish_tracing", volume = .3f)
 
-    /** Pitch jittered per play so hovering a lattice of nodes doesn't get grating. */
+    /** PitchDirection jittered per play so hovering a lattice of nodes doesn't get grating. */
     val PANEL_SCINT_STARTPOINT = WitnessSound("panel_scint_startpoint", volume = .12f, pitchJitter = .9f)
     val PANEL_SCINT_ENDPOINT = WitnessSound("panel_scint_endpoint", volume = .15f, pitchJitter = .9f)
 

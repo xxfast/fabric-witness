@@ -30,37 +30,38 @@ import io.github.cottonmc.cotton.gui.widget.WToggleButton
 import io.github.cottonmc.cotton.gui.widget.WWidget
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.screen.ingame.HandledScreens
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.entity.player.PlayerInventory
-import net.minecraft.inventory.Inventory
-import net.minecraft.item.ItemStack
-import net.minecraft.registry.Registries
-import net.minecraft.registry.Registry
-import net.minecraft.screen.ScreenHandlerContext
-import net.minecraft.screen.ScreenHandlerType
-import net.minecraft.text.Text
-import net.minecraft.util.Identifier
-import net.minecraft.util.math.BlockPos
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType
+import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.gui.screens.MenuScreens
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.entity.player.Inventory
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.Container
+import net.minecraft.world.level.Level
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.Registry
+import net.minecraft.world.inventory.ContainerLevelAccess
+import net.minecraft.world.inventory.MenuType
+import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
+import net.minecraft.core.BlockPos
 
-val PUZZLE_COMPOSER_SCREEN_HANDLER: ScreenHandlerType<PuzzleComposerScreenDescription> = Registry.register(
-    Registries.SCREEN_HANDLER,
+val PUZZLE_COMPOSER_SCREEN_HANDLER: MenuType<PuzzleComposerScreenDescription> = Registry.register(
+    BuiltInRegistries.MENU,
     PuzzleComposerBlock.IDENTIFIER,
-    ExtendedScreenHandlerType(
-        { syncId, playerInventory, pos: BlockPos ->
+    ExtendedMenuType(
+        { syncId: Int, playerInventory: Inventory, pos: BlockPos ->
             PuzzleComposerScreenDescription(
                 syncId,
                 playerInventory,
-                ScreenHandlerContext.create(playerInventory.player.entityWorld, pos)
+                ContainerLevelAccess.create(playerInventory.player.level(), pos)
             )
         },
-        BlockPos.PACKET_CODEC
+        BlockPos.STREAM_CODEC
     )
 )
 
-class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription, player: PlayerEntity, title: Text?) :
+class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription, player: Player, title: Component) :
     CottonInventoryScreen<PuzzleComposerScreenDescription>(gui, player, title) {
 
     companion object : Clientside {
@@ -69,7 +70,7 @@ class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription, player: PlayerE
         const val PUZZLE_OUTPUT_SLOT_INDEX = 1
 
         override fun onClient() {
-            HandledScreens.register(PUZZLE_COMPOSER_SCREEN_HANDLER) { gui, inventory, title ->
+            MenuScreens.register(PUZZLE_COMPOSER_SCREEN_HANDLER) { gui, inventory, title ->
                 PuzzleComposerScreen(gui, inventory.player, title)
             }
         }
@@ -77,7 +78,7 @@ class PuzzleComposerScreen(gui: PuzzleComposerScreenDescription, player: PlayerE
 }
 
 class InputSlotBackgroundPainter(private val itemSlot: WItemSlot, private val texture: Identifier) : BackgroundPainter {
-    override fun paintBackground(context: DrawContext, left: Int, top: Int, panel: WWidget?) {
+    override fun paintBackground(context: GuiGraphicsExtractor, left: Int, top: Int, panel: WWidget) {
         BackgroundPainter.SLOT.paintBackground(context, left, top, panel)
         ScreenDrawing.texturedRect(
             context,
@@ -94,18 +95,20 @@ class InputSlotBackgroundPainter(private val itemSlot: WItemSlot, private val te
 @Suppress("UnstableApiUsage")
 class PuzzleComposerScreenDescription(
     syncId: Int,
-    playerInventory: PlayerInventory,
-    context: ScreenHandlerContext
+    playerInventory: Inventory,
+    context: ContainerLevelAccess,
+    private val composerInventory: Container =
+        getBlockInventory(context, PuzzleComposerBlockEntity.INVENTORY_SIZE),
 ) : SyncedGuiDescription(
     PUZZLE_COMPOSER_SCREEN_HANDLER,
     syncId,
     playerInventory,
-    getBlockInventory(context, PuzzleComposerBlockEntity.INVENTORY_SIZE),
+    composerInventory,
     null
 ) {
     private val root: WPlainPanel = WPlainPanel().apply { setSize(170, 220) }
-    private val inputSlot = WItemSlot(blockInventory, PUZZLE_INPUT_SLOT_INDEX, 1, 1, true)
-    private val outputSlot: WItemSlot = WItemSlot(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX, 1, 1, true)
+    private val inputSlot = WItemSlot(composerInventory, PUZZLE_INPUT_SLOT_INDEX, 1, 1, true)
+    private val outputSlot: WItemSlot = WItemSlot(composerInventory, PUZZLE_OUTPUT_SLOT_INDEX, 1, 1, true)
 
     private val toggleGroup = WRadioGroup()
     private val startButton = WRadioImageButton(icon = StartIcon, group = toggleGroup)
@@ -115,23 +118,23 @@ class PuzzleComposerScreenDescription(
     private val addButton = WRadioImageButton(group = toggleGroup)
     private val removeButton = WRadioImageButton(group = toggleGroup)
 
-    private val editor = WPuzzleEditor(blockInventory, PUZZLE_OUTPUT_SLOT_INDEX)
+    private val editor = WPuzzleEditor(composerInventory, PUZZLE_OUTPUT_SLOT_INDEX)
     private val tutorialToggle = WToggleButton()
     private val playerInventoryPanel: WPlayerInvPanel = this.createPlayerInventoryPanel()
 
-    private val placeholderPuzzleTexture = Identifier.of(Witness.IDENTIFIER, "textures/gui/placeholder_puzzle.png")
+    private val placeholderPuzzleTexture = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "textures/gui/placeholder_puzzle.png")
 
     private fun updateInventory(slotIndex: Int, itemStack: ItemStack) {
-        val inventory: Inventory = blockInventory
+        val inventory: Container = composerInventory
         require(inventory is BlockInventory)
         require(inventory.owner is PuzzleComposerBlockEntity)
-        if (inventory.owner.world?.isClient == true) {
+        if (inventory.owner.level?.isClientSide == true) {
             // Editor widget clicks only happen client-side, so send those changes to the server.
             inventory.owner.syncInventorySlotTag(slotIndex, itemStack)
         } else {
-            // WItemSlot change listeners run on the authoritative server ScreenHandler.
+            // WItemSlot change listeners run on the authoritative server AbstractContainerMenu.
             // Update its backing inventory directly; vanilla slot sync sends the result to the client.
-            inventory.setStack(slotIndex, itemStack)
+            inventory.setItem(slotIndex, itemStack)
         }
     }
 
@@ -142,7 +145,7 @@ class PuzzleComposerScreenDescription(
             return
         }
 
-        val outputStack: ItemStack = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX)
+        val outputStack: ItemStack = composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX)
         if (outputStack.isNotEmpty) return
 
         // Plain stacks (notably old creative-menu stacks) predate the item's default panel
@@ -157,9 +160,9 @@ class PuzzleComposerScreenDescription(
 
     /** Writes an edited panel to the output slot, keeping the input stack's other components. */
     private fun commit(updatedPuzzle: Panel) {
-        val outputPuzzle: Panel = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: return
+        val outputPuzzle: Panel = composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: return
         if (updatedPuzzle == outputPuzzle) return
-        val inputStack: ItemStack = blockInventory.getStack(PUZZLE_INPUT_SLOT_INDEX)
+        val inputStack: ItemStack = composerInventory.getItem(PUZZLE_INPUT_SLOT_INDEX)
         if (inputStack.isEmpty) return
         updateInventory(
             PUZZLE_OUTPUT_SLOT_INDEX,
@@ -170,7 +173,7 @@ class PuzzleComposerScreenDescription(
 
     /** Mirror the output panel's tutorial flag onto the switch without re-firing its listener. */
     private fun syncTutorialToggle() {
-        val panel: Panel? = blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX).panel
+        val panel: Panel? = composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel
         tutorialToggle.toggle = panel?.tutorial == true
     }
 
@@ -201,7 +204,7 @@ class PuzzleComposerScreenDescription(
         // Panel-level flag, not a tool mode: toggles `Panel.tutorial` on the working copy.
         tutorialToggle.setOnToggle { on ->
             val outputPuzzle: Panel =
-                blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: run {
+                composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: run {
                     // No panel in the editor; snap the switch back off.
                     tutorialToggle.toggle = false
                     return@setOnToggle
@@ -214,7 +217,7 @@ class PuzzleComposerScreenDescription(
             if (edge == null && node == null && edgeNodePair == null) return@setClickListener
 
             val outputPuzzle: Panel =
-                blockInventory.getStack(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: return@setClickListener
+                composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: return@setClickListener
 
             val selectedToggle: WRadioImageButton? = toggleGroup.selected
 
@@ -289,14 +292,14 @@ class PuzzleComposerScreenDescription(
         addButton.isEnabled = false
         removeButton.isEnabled = false
 
-        val composerInventory = blockInventory as? BlockInventory
-        if (composerInventory?.owner?.world?.isClient == false) {
-            updateOutputFrom(composerInventory.getStack(PUZZLE_INPUT_SLOT_INDEX))
+        val blockInv = composerInventory as? BlockInventory
+        if (blockInv?.owner?.level?.isClientSide == false) {
+            updateOutputFrom(blockInv.getItem(PUZZLE_INPUT_SLOT_INDEX))
         }
         syncTutorialToggle()
 
         layout()
-        context.run { world, pos -> if (world.isClient) addPainters() }
+        context.execute { world: Level, pos: BlockPos -> if (world.isClientSide) addPainters() }
     }
 
     private fun layout() {

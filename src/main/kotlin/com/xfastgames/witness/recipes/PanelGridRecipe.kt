@@ -4,23 +4,25 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.items.AncientPuzzleTablet
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.Panel
+import com.mojang.serialization.MapCodec
 import com.xfastgames.witness.items.data.cost
 import com.xfastgames.witness.items.data.panel
-import net.minecraft.item.ItemStack
-import net.minecraft.item.Items
-import net.minecraft.recipe.Ingredient
-import net.minecraft.recipe.RecipeSerializer
-import net.minecraft.recipe.SpecialCraftingRecipe
-import net.minecraft.recipe.book.CraftingRecipeCategory
-import net.minecraft.recipe.display.RecipeDisplay
-import net.minecraft.recipe.display.ShapedCraftingRecipeDisplay
-import net.minecraft.recipe.display.SlotDisplay
-import net.minecraft.recipe.input.CraftingRecipeInput
-import net.minecraft.registry.Registries
-import net.minecraft.registry.Registry
-import net.minecraft.registry.RegistryWrapper
-import net.minecraft.util.Identifier
-import net.minecraft.world.World
+import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.network.RegistryFriendlyByteBuf
+import net.minecraft.network.codec.StreamCodec
+import net.minecraft.resources.Identifier
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.ItemStackTemplate
+import net.minecraft.world.item.Items
+import net.minecraft.world.item.crafting.CraftingInput
+import net.minecraft.world.item.crafting.CustomRecipe
+import net.minecraft.world.item.crafting.Ingredient
+import net.minecraft.world.item.crafting.RecipeSerializer
+import net.minecraft.world.item.crafting.display.RecipeDisplay
+import net.minecraft.world.item.crafting.display.ShapedCraftingRecipeDisplay
+import net.minecraft.world.item.crafting.display.SlotDisplay
+import net.minecraft.world.level.Level
 
 /**
  * The one recipe that builds and grows every puzzle panel.
@@ -33,16 +35,20 @@ import net.minecraft.world.World
  * It lives in code rather than JSON because the result depends on the source panel's own data (size,
  * colour, cost), which a static shaped recipe can't read.
  */
-class PanelGridRecipe(category: CraftingRecipeCategory) : SpecialCraftingRecipe(category) {
+class PanelGridRecipe : CustomRecipe() {
 
     companion object {
-        private val TABLET_INGREDIENT: Ingredient = Ingredient.ofItem(AncientPuzzleTablet.ITEM)
+        private val TABLET_INGREDIENT: Ingredient = Ingredient.of(AncientPuzzleTablet.ITEM)
 
-        val IDENTIFIER: Identifier = Identifier.of(Witness.IDENTIFIER, "panel_grid")
+        val INSTANCE: PanelGridRecipe = PanelGridRecipe()
+        val MAP_CODEC: MapCodec<PanelGridRecipe> = MapCodec.unit(INSTANCE)
+        val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, PanelGridRecipe> = StreamCodec.unit(INSTANCE)
+
+        val IDENTIFIER: Identifier = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "panel_grid")
         val SERIALIZER: RecipeSerializer<PanelGridRecipe> = Registry.register(
-            Registries.RECIPE_SERIALIZER,
+            BuiltInRegistries.RECIPE_SERIALIZER,
             IDENTIFIER,
-            SpecialRecipeSerializer(::PanelGridRecipe)
+            RecipeSerializer(MAP_CODEC, STREAM_CODEC)
         )
 
         /** Referenced from common init to register this serializer before datapacks load. */
@@ -61,9 +67,9 @@ class PanelGridRecipe(category: CraftingRecipeCategory) : SpecialCraftingRecipe(
         private fun seedPanel(): Panel.Grid = Panel.Grid.ofSize(2, 2)
     }
 
-    override fun matches(input: CraftingRecipeInput, world: World): Boolean = plan(input) != null
+    override fun matches(input: CraftingInput, world: Level): Boolean = plan(input) != null
 
-    override fun craft(input: CraftingRecipeInput, registries: RegistryWrapper.WrapperLookup): ItemStack {
+    override fun assemble(input: CraftingInput): ItemStack {
         val planned: Plan = plan(input) ?: return ItemStack.EMPTY
         // Copying the source stack carries its other components forward; a seed has none to carry.
         val result: ItemStack = planned.source?.copyWithCount(1) ?: ItemStack(PuzzlePanelItem.ITEM)
@@ -73,24 +79,30 @@ class PanelGridRecipe(category: CraftingRecipeCategory) : SpecialCraftingRecipe(
         }
     }
 
-    override fun getSerializer(): RecipeSerializer<out SpecialCraftingRecipe> = SERIALIZER
+    override fun getSerializer(): RecipeSerializer<out CustomRecipe> = SERIALIZER
 
-    override fun isIgnoredInRecipeBook(): Boolean = false
+    override fun isSpecial(): Boolean = false
+
+    override fun placementInfo(): net.minecraft.world.item.crafting.PlacementInfo =
+        net.minecraft.world.item.crafting.PlacementInfo.NOT_PLACEABLE
+
+    override fun recipeBookCategory(): net.minecraft.world.item.crafting.RecipeBookCategory =
+        net.minecraft.world.item.crafting.RecipeBookCategories.CRAFTING_MISC
 
     /**
      * Representative layouts for the recipe book and JEI. The seed layouts come first because they
      * are the entry point, and they stand in for the nine deleted `puzzle_panel_grid_*.json` recipes
      * so nothing vanishes from the book.
      */
-    override fun getDisplays(): List<RecipeDisplay> = seedDisplays() + growthDisplays()
+    override fun display(): List<RecipeDisplay> = seedDisplays() + growthDisplays()
 
     /** A footprint of nothing but tablets, and the panel it builds from scratch. */
     private fun seedDisplays(): List<RecipeDisplay> = PanelGridLayouts.seedFootprints.map { (cellsWide, cellsHigh) ->
         ShapedCraftingRecipeDisplay(
             cellsWide,
             cellsHigh,
-            List(cellsWide * cellsHigh) { TABLET_INGREDIENT.toDisplay() },
-            SlotDisplay.StackSlotDisplay(panelStack(cellsWide + 1, cellsHigh + 1, cellsWide * cellsHigh)),
+            List(cellsWide * cellsHigh) { TABLET_INGREDIENT.display() },
+            SlotDisplay.ItemStackSlotDisplay(panelTemplate(cellsWide + 1, cellsHigh + 1, cellsWide * cellsHigh)),
             SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)
         )
     }
@@ -104,20 +116,25 @@ class PanelGridRecipe(category: CraftingRecipeCategory) : SpecialCraftingRecipe(
                 val x: Int = slot % layout.layoutWidth
                 val y: Int = slot / layout.layoutWidth
                 if (x == layout.sourceX && y == layout.sourceY) {
-                    SlotDisplay.StackSlotDisplay(panelStack(layout.sourceWidth, layout.sourceHeight, layout.inputCost))
+                    SlotDisplay.ItemStackSlotDisplay(panelTemplate(layout.sourceWidth, layout.sourceHeight, layout.inputCost))
                 } else {
-                    TABLET_INGREDIENT.toDisplay()
+                    TABLET_INGREDIENT.display()
                 }
             },
-            SlotDisplay.StackSlotDisplay(panelStack(layout.targetWidth, layout.targetHeight, layout.inputCost + layout.tabletCount)),
+            SlotDisplay.ItemStackSlotDisplay(
+                panelTemplate(layout.targetWidth, layout.targetHeight, layout.inputCost + layout.tabletCount)
+            ),
             SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)
         )
     }
 
-    private fun panelStack(width: Int, height: Int, cost: Int): ItemStack = ItemStack(PuzzlePanelItem.ITEM).apply {
-        panel = Panel.Grid.ofSize(width, height)
-        this.cost = cost
-    }
+    private fun panelTemplate(width: Int, height: Int, cost: Int): ItemStackTemplate =
+        ItemStackTemplate.fromNonEmptyStack(
+            ItemStack(PuzzlePanelItem.ITEM).apply {
+                panel = Panel.Grid.ofSize(width, height)
+                this.cost = cost
+            }
+        )
 
     /**
      * Returns the panel [input] describes, or null when its shape, source panel, or component data
@@ -128,11 +145,13 @@ class PanelGridRecipe(category: CraftingRecipeCategory) : SpecialCraftingRecipe(
      * makes building from scratch the same arithmetic as growing.  All the tablets in that case are
      * interchangeable, so which one is picked cannot affect the result.
      */
-    internal fun plan(input: CraftingRecipeInput): Plan? {
+    internal fun plan(input: CraftingInput): Plan? {
         val occupied: List<OccupiedSlot> = buildList {
-            for (y in 0 until input.height) {
-                for (x in 0 until input.width) {
-                    input.getStackInSlot(x, y).takeUnless(ItemStack::isEmpty)?.let { stack ->
+            val gridHeight = input.height()
+            val gridWidth = input.width()
+            for (y in 0 until gridHeight) {
+                for (x in 0 until gridWidth) {
+                    input.getItem(x, y).takeUnless(ItemStack::isEmpty)?.let { stack ->
                         add(OccupiedSlot(x, y, stack))
                     }
                 }

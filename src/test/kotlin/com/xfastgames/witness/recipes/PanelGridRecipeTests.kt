@@ -31,7 +31,7 @@ class PanelGridRecipeTests {
      * The nine deleted `puzzle_panel_grid_*.json` base recipes, asserted against the formula that
      * replaced them. A tablet is a 1×1-cell (2×2-node) panel costing 1, so a footprint of pure
      * tablets spends all but one of them growing that seed, and lands on the size the footprint
-     * describes. Targets here are the `width`/`height` the old JSON hardcoded.
+     * describes. InternalTarget here are the `width`/`height` the old JSON hardcoded.
      */
     @Test
     fun `a footprint of pure tablets builds the panel the old base recipes did`() {

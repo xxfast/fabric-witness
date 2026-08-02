@@ -2,12 +2,12 @@ package com.xfastgames.witness.sounds
 
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.sound.AbstractSoundInstance
-import net.minecraft.client.sound.SoundInstance
-import net.minecraft.client.sound.TickableSoundInstance
-import net.minecraft.sound.SoundCategory
-import net.minecraft.util.math.random.Random
+import net.minecraft.client.Minecraft
+import net.minecraft.client.resources.sounds.AbstractSoundInstance
+import net.minecraft.client.resources.sounds.SoundInstance
+import net.minecraft.client.resources.sounds.TickableSoundInstance
+import net.minecraft.sounds.SoundSource
+import net.minecraft.util.RandomSource
 
 /**
  * A sound that loops until [stop] is called, optionally easing up to its mix volume over
@@ -20,9 +20,9 @@ import net.minecraft.util.math.random.Random
 @Environment(EnvType.CLIENT)
 class LoopingSoundInstance(
     sound: WitnessSound,
-    soundCategory: SoundCategory,
+    soundCategory: SoundSource,
     private val fadeInTicks: Int = 0
-) : AbstractSoundInstance(sound.event, soundCategory, Random.create()), TickableSoundInstance {
+) : AbstractSoundInstance(sound.event, soundCategory, RandomSource.create()), TickableSoundInstance {
 
     private val mixVolume: Float = sound.volume
     private var stopped: Boolean = false
@@ -32,23 +32,23 @@ class LoopingSoundInstance(
         // Never start at exactly zero: the sound system skips a sound that is silent on the tick
         // it is played, and the loop would never begin.
         this.volume = fadedVolume(if (fadeInTicks > 0) 1 else fadeInTicks)
-        repeat = true
-        repeatDelay = 0
+        looping = true
+        delay = 0
         relative = true
-        attenuationType = SoundInstance.AttenuationType.NONE
+        attenuation = SoundInstance.Attenuation.NONE
     }
 
     fun play() {
-        MinecraftClient.getInstance().soundManager.play(this)
+        Minecraft.getInstance().soundManager.play(this)
     }
 
     /**
      * Flags the loop as finished. `SoundManager.stop` alone isn't enough: the sound system keeps
-     * ticking the instance until [isDone] reports true, so a stopped-but-not-done loop restarts.
+     * ticking the instance until [isStopped] reports true, so a stopped-but-not-done loop restarts.
      */
     fun stop() {
         stopped = true
-        MinecraftClient.getInstance().soundManager.stop(this)
+        Minecraft.getInstance().soundManager.stop(this)
     }
 
     /** The sound system re-reads [volume] from a tickable instance every tick, so ramping it here
@@ -70,5 +70,5 @@ class LoopingSoundInstance(
         return mixVolume * progress * progress
     }
 
-    override fun isDone(): Boolean = stopped
+    override fun isStopped(): Boolean = stopped
 }

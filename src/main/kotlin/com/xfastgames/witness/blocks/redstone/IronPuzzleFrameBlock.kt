@@ -5,47 +5,58 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.screens.solver.PuzzleSolverScreen
-import com.xfastgames.witness.utils.*
-import net.minecraft.block.*
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.client.MinecraftClient
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.*
-import net.minecraft.sound.BlockSoundGroup
-import net.minecraft.sound.SoundEvent
-import net.minecraft.sound.SoundEvents
-import net.minecraft.state.StateManager
-import net.minecraft.state.property.BooleanProperty
-import net.minecraft.state.property.Properties.HORIZONTAL_FACING
-import net.minecraft.util.ActionResult
-import net.minecraft.util.Hand
-import net.minecraft.util.Identifier
-import net.minecraft.util.hit.BlockHitResult
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.shape.VoxelShape
-import net.minecraft.util.shape.VoxelShapes
-import net.minecraft.world.BlockView
-import net.minecraft.world.World
-import net.minecraft.world.block.WireOrientation
+import com.xfastgames.witness.utils.BlockInventory
+import com.xfastgames.witness.utils.blockSettings
+import com.xfastgames.witness.utils.d
+import com.xfastgames.witness.utils.pc
+import com.xfastgames.witness.utils.registerBlock
+import com.xfastgames.witness.utils.registerBlockItem
+import com.xfastgames.witness.utils.rotateShape
+import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.resources.Identifier
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.context.BlockPlaceContext
+import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.BaseEntityBlock
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.RenderShape
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING
+import net.minecraft.world.level.block.state.properties.BooleanProperty
+import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.shapes.CollisionContext
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.phys.shapes.VoxelShape
 
-class IronPuzzleFrameBlock(settings: AbstractBlock.Settings) : BlockWithEntity(settings) {
+class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBlock(settings) {
     companion object {
-        val ENABLED: BooleanProperty = BooleanProperty.of("enabled")
-        val TOP_CONNECTED: BooleanProperty = BooleanProperty.of("top_connected")
-        val LEFT_CONNECTED: BooleanProperty = BooleanProperty.of("left_connected")
-        val RIGHT_CONNECTED: BooleanProperty = BooleanProperty.of("right_connected")
-        val BOTTOM_CONNECTED: BooleanProperty = BooleanProperty.of("bottom_connected")
+        val ENABLED: BooleanProperty = BooleanProperty.create("enabled")
+        val TOP_CONNECTED: BooleanProperty = BooleanProperty.create("top_connected")
+        val LEFT_CONNECTED: BooleanProperty = BooleanProperty.create("left_connected")
+        val RIGHT_CONNECTED: BooleanProperty = BooleanProperty.create("right_connected")
+        val BOTTOM_CONNECTED: BooleanProperty = BooleanProperty.create("bottom_connected")
 
-        val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "iron_puzzle_frame")
-        val CODEC: MapCodec<IronPuzzleFrameBlock> = createCodec(::IronPuzzleFrameBlock)
+        val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "iron_puzzle_frame")
+        val CODEC: MapCodec<IronPuzzleFrameBlock> = simpleCodec(::IronPuzzleFrameBlock)
         val BLOCK: Block = registerBlock(
             IronPuzzleFrameBlock(
                 blockSettings(IDENTIFIER)
                     .strength(2.5f)
-                    .sounds(BlockSoundGroup.METAL)
-                    .luminance { state -> if (state[ENABLED]) 10 else 0 }
+                    .sound(SoundType.METAL)
+                    .lightLevel { state: BlockState -> if (state.getValue(ENABLED)) 10 else 0 }
             ),
             IDENTIFIER
         )
@@ -53,49 +64,49 @@ class IronPuzzleFrameBlock(settings: AbstractBlock.Settings) : BlockWithEntity(s
     }
 
     init {
-        defaultState = stateManager.defaultState
-            .with(HORIZONTAL_FACING, Direction.NORTH)
-            .with(ENABLED, false)
-            .with(TOP_CONNECTED, false)
-            .with(LEFT_CONNECTED, false)
-            .with(RIGHT_CONNECTED, false)
-            .with(BOTTOM_CONNECTED, false)
+        registerDefaultState(stateDefinition.any()
+            .setValue(HORIZONTAL_FACING, Direction.NORTH)
+            .setValue(ENABLED, false)
+            .setValue(TOP_CONNECTED, false)
+            .setValue(LEFT_CONNECTED, false)
+            .setValue(RIGHT_CONNECTED, false)
+            .setValue(BOTTOM_CONNECTED, false))
     }
 
-    override fun getCodec(): MapCodec<out BlockWithEntity> = CODEC
+    override fun codec(): MapCodec<out BaseEntityBlock> = CODEC
 
-    override fun getRenderType(state: BlockState?): BlockRenderType = BlockRenderType.MODEL
+    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
-    override fun createBlockEntity(pos: BlockPos?, state: BlockState?): BlockEntity? =
+    override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity =
         PuzzleFrameBlockEntity(pos, state)
 
-    override fun getPlacementState(ctx: ItemPlacementContext): BlockState? {
-        val blockBelow: Block = ctx.world.getBlockState(ctx.blockPos.below).block
-        val blockAbove: Block = ctx.world.getBlockState(ctx.blockPos.above).block
-        val blockNorth: Block = ctx.world.getBlockState(ctx.blockPos.north()).block
-        val blockSouth: Block = ctx.world.getBlockState(ctx.blockPos.south()).block
-        val blockEast: Block = ctx.world.getBlockState(ctx.blockPos.east()).block
-        val blockWest: Block = ctx.world.getBlockState(ctx.blockPos.west()).block
+    override fun getStateForPlacement(ctx: BlockPlaceContext): BlockState? {
+        val blockBelow: Block = ctx.level.getBlockState(ctx.clickedPos.below()).block
+        val blockAbove: Block = ctx.level.getBlockState(ctx.clickedPos.above()).block
+        val blockNorth: Block = ctx.level.getBlockState(ctx.clickedPos.north()).block
+        val blockSouth: Block = ctx.level.getBlockState(ctx.clickedPos.south()).block
+        val blockEast: Block = ctx.level.getBlockState(ctx.clickedPos.east()).block
+        val blockWest: Block = ctx.level.getBlockState(ctx.clickedPos.west()).block
 
         val blockLeft: Block =
-            when (ctx.horizontalPlayerFacing.axis) {
-                Direction.Axis.X -> when (ctx.horizontalPlayerFacing.direction) {
+            when (ctx.horizontalDirection.axis) {
+                Direction.Axis.X -> when (ctx.horizontalDirection.axisDirection) {
                     Direction.AxisDirection.POSITIVE -> blockNorth
                     else -> blockSouth
                 }
-                else -> when (ctx.horizontalPlayerFacing.direction) {
+                else -> when (ctx.horizontalDirection.axisDirection) {
                     Direction.AxisDirection.POSITIVE -> blockEast
                     else -> blockWest
                 }
             }
 
         val blockRight: Block =
-            when (ctx.horizontalPlayerFacing.axis) {
-                Direction.Axis.X -> when (ctx.horizontalPlayerFacing.direction) {
+            when (ctx.horizontalDirection.axis) {
+                Direction.Axis.X -> when (ctx.horizontalDirection.axisDirection) {
                     Direction.AxisDirection.POSITIVE -> blockSouth
                     else -> blockNorth
                 }
-                else -> when (ctx.horizontalPlayerFacing.direction) {
+                else -> when (ctx.horizontalDirection.axisDirection) {
                     Direction.AxisDirection.POSITIVE -> blockWest
                     else -> blockEast
                 }
@@ -106,30 +117,23 @@ class IronPuzzleFrameBlock(settings: AbstractBlock.Settings) : BlockWithEntity(s
         val onLeftOfFrame: Boolean = blockRight is IronPuzzleFrameBlock
         val onRightOfFrame: Boolean = blockLeft is IronPuzzleFrameBlock
 
-        return super.getPlacementState(ctx)
-            ?.with(HORIZONTAL_FACING, ctx.horizontalPlayerFacing)
-            ?.with(BOTTOM_CONNECTED, onTopOfFrameOrStand)
-            ?.with(TOP_CONNECTED, onBelowOfFrameOrStand)
-            ?.with(LEFT_CONNECTED, onRightOfFrame)
-            ?.with(RIGHT_CONNECTED, onLeftOfFrame)
+        return super.getStateForPlacement(ctx)
+            ?.setValue(HORIZONTAL_FACING, ctx.horizontalDirection)
+            ?.setValue(BOTTOM_CONNECTED, onTopOfFrameOrStand)
+            ?.setValue(TOP_CONNECTED, onBelowOfFrameOrStand)
+            ?.setValue(LEFT_CONNECTED, onRightOfFrame)
+            ?.setValue(RIGHT_CONNECTED, onLeftOfFrame)
     }
 
-    override fun neighborUpdate(
-        state: BlockState,
-        world: World,
-        pos: BlockPos,
-        sourceBlock: Block,
-        wireOrientation: WireOrientation?,
-        notify: Boolean
-    ) {
-        val blockUp: Block = world.getBlockState(pos.up()).block
-        val blockDown: Block = world.getBlockState(pos.down()).block
+    override fun neighborChanged(state: BlockState, world: Level, pos: BlockPos, sourceBlock: Block, wireOrientation: net.minecraft.world.level.redstone.Orientation?, notify: Boolean) {
+        val blockUp: Block = world.getBlockState(pos.above()).block
+        val blockDown: Block = world.getBlockState(pos.below()).block
         val blockEast: Block = world.getBlockState(pos.east()).block
         val blockWest: Block = world.getBlockState(pos.west()).block
         val blockNorth: Block = world.getBlockState(pos.north()).block
         val blockSouth: Block = world.getBlockState(pos.south()).block
 
-        val isRightConnected: Boolean = when (state[HORIZONTAL_FACING]) {
+        val isRightConnected: Boolean = when (state.getValue(HORIZONTAL_FACING)) {
             Direction.NORTH -> blockEast is IronPuzzleFrameBlock
             Direction.SOUTH -> blockWest is IronPuzzleFrameBlock
             Direction.WEST -> blockNorth is IronPuzzleFrameBlock
@@ -137,7 +141,7 @@ class IronPuzzleFrameBlock(settings: AbstractBlock.Settings) : BlockWithEntity(s
             else -> false
         }
 
-        val isLeftConnected: Boolean = when (state[HORIZONTAL_FACING]) {
+        val isLeftConnected: Boolean = when (state.getValue(HORIZONTAL_FACING)) {
             Direction.NORTH -> blockWest is IronPuzzleFrameBlock
             Direction.SOUTH -> blockEast is IronPuzzleFrameBlock
             Direction.WEST -> blockSouth is IronPuzzleFrameBlock
@@ -148,150 +152,151 @@ class IronPuzzleFrameBlock(settings: AbstractBlock.Settings) : BlockWithEntity(s
         val isTopConnected: Boolean = blockUp is IronPuzzleFrameBlock
         val isBottomConnected: Boolean = blockDown is IronPuzzleFrameBlock || blockDown is IronStandBlock
 
-        world.setBlockState(
+        world.setBlock(
             pos, state
-                .with(RIGHT_CONNECTED, isRightConnected)
-                .with(LEFT_CONNECTED, isLeftConnected)
-                .with(TOP_CONNECTED, isTopConnected)
-                .with(BOTTOM_CONNECTED, isBottomConnected)
+                .setValue(RIGHT_CONNECTED, isRightConnected)
+                .setValue(LEFT_CONNECTED, isLeftConnected)
+                .setValue(TOP_CONNECTED, isTopConnected)
+                .setValue(BOTTOM_CONNECTED, isBottomConnected),
+            Block.UPDATE_ALL
         )
     }
 
-    override fun appendProperties(stateManager: StateManager.Builder<Block, BlockState>) {
-        stateManager.add(HORIZONTAL_FACING)
-        stateManager.add(ENABLED)
-        stateManager.add(TOP_CONNECTED)
-        stateManager.add(LEFT_CONNECTED)
-        stateManager.add(RIGHT_CONNECTED)
-        stateManager.add(BOTTOM_CONNECTED)
+    override fun createBlockStateDefinition(stateDefinition: StateDefinition.Builder<Block, BlockState>) {
+        stateDefinition.add(HORIZONTAL_FACING)
+        stateDefinition.add(ENABLED)
+        stateDefinition.add(TOP_CONNECTED)
+        stateDefinition.add(LEFT_CONNECTED)
+        stateDefinition.add(RIGHT_CONNECTED)
+        stateDefinition.add(BOTTOM_CONNECTED)
     }
 
-    override fun getOutlineShape(
-        state: BlockState?,
-        world: BlockView?,
-        pos: BlockPos?,
-        context: ShapeContext?
+    override fun getShape(
+        state: BlockState,
+        world: BlockGetter,
+        pos: BlockPos,
+        context: CollisionContext
     ): VoxelShape {
-        val shape: VoxelShape = VoxelShapes.union(
-            VoxelShapes.cuboid(1.pc.d, 1.pc.d, 6.pc.d, 15.pc.d, 15.pc.d, 9.pc.d),
-            VoxelShapes.cuboid(0.pc.d, 1.pc.d, 8.pc.d, 1.pc.d, 16.pc.d, 10.pc.d),
-            VoxelShapes.cuboid(0.pc.d, 0.pc.d, 8.pc.d, 16.pc.d, 1.pc.d, 10.pc.d),
-            VoxelShapes.cuboid(0.pc.d, 15.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
-            VoxelShapes.cuboid(15.pc.d, 1.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
+        val shape: VoxelShape = Shapes.or(
+            Shapes.box(1.pc.d, 1.pc.d, 6.pc.d, 15.pc.d, 15.pc.d, 9.pc.d),
+            Shapes.box(0.pc.d, 1.pc.d, 8.pc.d, 1.pc.d, 16.pc.d, 10.pc.d),
+            Shapes.box(0.pc.d, 0.pc.d, 8.pc.d, 16.pc.d, 1.pc.d, 10.pc.d),
+            Shapes.box(0.pc.d, 15.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
+            Shapes.box(15.pc.d, 1.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
         )
 
-        val direction: Direction = requireNotNull(state?.get(HORIZONTAL_FACING))
+        val direction: Direction = requireNotNull(state.getValue(HORIZONTAL_FACING))
         return shape.rotateShape(to = direction)
     }
 
-    override fun onBreak(world: World, pos: BlockPos, state: BlockState, player: PlayerEntity): BlockState {
+    override fun playerWillDestroy(world: Level, pos: BlockPos, state: BlockState, player: Player): BlockState {
         val entity: BlockEntity? = world.getBlockEntity(pos)
         require(entity is PuzzleFrameBlockEntity)
-        entity.inventory.items.forEach { stack -> dropStack(world, pos, stack) }
-        return super.onBreak(world, pos, state, player)
+        entity.inventory.items.forEach { stack -> Block.popResource(world, pos, stack) }
+        return super.playerWillDestroy(world, pos, state, player)
     }
 
-    override fun onPlaced(
-        world: World,
+    override fun setPlacedBy(
+        world: Level,
         pos: BlockPos,
         state: BlockState,
         placer: LivingEntity?,
-        itemStack: ItemStack?
+        itemStack: ItemStack
     ) {
-        if (world.isClient) return
+        if (world.isClientSide) return
         val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
         require(entity is PuzzleFrameBlockEntity)
         entity.sync()
-        world.updateListeners(pos, state, state, 3)
+        world.sendBlockUpdated(pos, state, state, Block.UPDATE_ALL)
     }
 
-    override fun onUse(
+    override fun useWithoutItem(
         state: BlockState,
-        world: World,
+        world: Level,
         pos: BlockPos,
-        player: PlayerEntity,
+        player: Player,
         hit: BlockHitResult
-    ): ActionResult = interact(state, world, pos, player, hit)
+    ): InteractionResult = interact(state, world, pos, player, hit)
 
-    override fun onUseWithItem(
+    override fun useItemOn(
         stack: ItemStack,
         state: BlockState,
-        world: World,
+        world: Level,
         pos: BlockPos,
-        player: PlayerEntity,
-        hand: Hand,
+        player: Player,
+        hand: InteractionHand,
         hit: BlockHitResult
-    ): ActionResult = interact(state, world, pos, player, hit)
+    ): InteractionResult = interact(state, world, pos, player, hit)
 
     private fun interact(
         state: BlockState,
-        world: World,
+        world: Level,
         pos: BlockPos,
-        player: PlayerEntity,
+        player: Player,
         hit: BlockHitResult?
-    ): ActionResult {
+    ): InteractionResult {
         val entity: BlockEntity = requireNotNull(world.getBlockEntity(pos))
         require(entity is PuzzleFrameBlockEntity)
         val inventory: BlockInventory = entity.inventory
         when {
             // when there's no item in the frame, and player is holding a panel
             inventory.items[0].isEmpty &&
-                    (player.mainHandStack.item is PuzzlePanelItem ||
-                            player.offHandStack.item is PuzzlePanelItem) -> {
+                    (player.mainHandItem.item is PuzzlePanelItem ||
+                            player.offhandItem.item is PuzzlePanelItem) -> {
                 val holdingStack: ItemStack =
-                    if (player.mainHandStack.item is PuzzlePanelItem) player.mainHandStack
-                    else player.offHandStack
+                    if (player.mainHandItem.item is PuzzlePanelItem) player.mainHandItem
+                    else player.offhandItem
 
                 val frameStack: ItemStack = holdingStack.split(1)
-                if (player.mainHandStack.item is PuzzlePanelItem)
-                    player.setStackInHand(Hand.MAIN_HAND, holdingStack)
-                else player.setStackInHand(Hand.OFF_HAND, holdingStack)
+                if (player.mainHandItem.item is PuzzlePanelItem)
+                    player.setItemInHand(InteractionHand.MAIN_HAND, holdingStack)
+                else player.setItemInHand(InteractionHand.OFF_HAND, holdingStack)
 
                 inventory.items[0] = frameStack
-                player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_IRON.value(), 1f, 1f)
+                player.playSound(SoundEvents.ARMOR_EQUIP_IRON.value(), 1f, 1f)
             }
 
             // when there is an item in the frame and player is sneaking
-            inventory.items[0].isNotEmpty && player.isInSneakingPose -> {
+            !inventory.items[0].isEmpty && player.isShiftKeyDown -> {
                 val frameStack: ItemStack = inventory.items[0]
                 when {
-                    player.mainHandStack.isEmpty -> {
-                        inventory.removeStack(0)
-                        player.setStackInHand(Hand.MAIN_HAND, frameStack)
+                    player.mainHandItem.isEmpty -> {
+                        inventory.removeItem(0, inventory.getItem(0).count)
+                        player.setItemInHand(InteractionHand.MAIN_HAND, frameStack)
                     }
 
-                    player.offHandStack.isEmpty -> {
-                        inventory.removeStack(0)
-                        player.setStackInHand(Hand.OFF_HAND, frameStack)
+                    player.offhandItem.isEmpty -> {
+                        inventory.removeItem(0, inventory.getItem(0).count)
+                        player.setItemInHand(InteractionHand.OFF_HAND, frameStack)
                     }
 
-                    else -> return ActionResult.FAIL
+                    else -> return InteractionResult.FAIL
                 }
             }
 
             // when there's a panel and player is not sneaking
-            inventory.items[0].isNotEmpty -> {
-                if (hit?.side == state[HORIZONTAL_FACING].opposite) {
+            !inventory.items[0].isEmpty -> {
+                if (hit?.direction == state.getValue(HORIZONTAL_FACING).opposite) {
                     // Pass the frame pos so focus-mode cues (attract / error flash) stick to
                     // this panel instead of whatever screen-centre raycast happens to hit.
-                    if (world.isClient) {
-                        MinecraftClient.getInstance().setScreen(PuzzleSolverScreen(pos.toImmutable()))
+                    if (world.isClientSide) {
+                        Minecraft.getInstance().gui.setScreen(PuzzleSolverScreen(pos.immutable()))
                     }
-                    return ActionResult.CONSUME
+                    return InteractionResult.CONSUME
                 }
-                return ActionResult.FAIL
+                return InteractionResult.FAIL
             }
 
-            else -> return ActionResult.FAIL
+            else -> return InteractionResult.FAIL
         }
 
         // Update block state
-        if (inventory.items[0].isEmpty) world.setBlockState(pos, state.with(ENABLED, false))
-        else world.setBlockState(pos, state.with(ENABLED, true))
+        if (inventory.items[0].isEmpty) world.setBlock(pos, state.setValue(ENABLED, false), Block.UPDATE_ALL)
+        else world.setBlock(pos, state.setValue(ENABLED, true), Block.UPDATE_ALL)
 
-        if (world.isClient) return ActionResult.SUCCESS
+        if (world.isClientSide) return InteractionResult.SUCCESS
         entity.sync()
-        world.updateListeners(pos, state, state, 3)
-        return ActionResult.SUCCESS
+        world.sendBlockUpdated(pos, state, state, Block.UPDATE_ALL)
+        return InteractionResult.SUCCESS
     }
 }

@@ -1,12 +1,12 @@
 package com.xfastgames.witness.utils
 
-import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
-// The 1.17-era Tessellator/BufferBuilder immediate-mode GUI drawing was removed (GUI rendering is
-// state/pipeline based since 1.20+/1.21.6). These helpers are reimplemented on top of DrawContext.fill.
+// The 1.17-era Tesselator/BufferBuilder immediate-mode GUI drawing was removed (GUI rendering is
+// state/pipeline based since 1.20+/1.21.6). These helpers are reimplemented on top of GuiGraphicsExtractor.fill.
 
 private fun argb(r: Float, g: Float, b: Float, a: Float): Int {
     val alpha = (a.coerceIn(0f, 1f) * 255).roundToInt()
@@ -17,7 +17,7 @@ private fun argb(r: Float, g: Float, b: Float, a: Float): Int {
 }
 
 fun fill(
-    context: DrawContext,
+    context: GuiGraphicsExtractor,
     x1: Int,
     y1: Int,
     x2: Int,
@@ -36,7 +36,7 @@ fun fill(
  * and the right half-disc (0..180, matching the old `x = cx + r * sin(theta)` sweep).
  */
 fun circle(
-    context: DrawContext, centerX: Int, centerY: Int, radius: Int,
+    context: GuiGraphicsExtractor, centerX: Int, centerY: Int, radius: Int,
     r: Float, g: Float, b: Float, a: Float,
     arc: IntRange = 0..360,
     @Suppress("UNUSED_PARAMETER") resolution: Double = 15.0
@@ -57,7 +57,7 @@ fun circle(
  * so thin tutorial attract rings stay crisp at small sizes.
  */
 fun ring(
-    context: DrawContext,
+    context: GuiGraphicsExtractor,
     centerX: Int,
     centerY: Int,
     outerRadius: Int,
@@ -79,7 +79,7 @@ fun ring(
         val outerHalf: Int = sqrt((outerSq - ySq).toDouble()).roundToInt()
         if (outerHalf <= 0) continue
         if (ySq >= innerSq || inner <= 0) {
-            // Full chord: inside the hole's vertical range, draw the whole outer span.
+            // PosRot chord: inside the hole's vertical range, draw the whole outer span.
             context.fill(centerX - outerHalf, centerY + dy, centerX + outerHalf, centerY + dy + 1, color)
             continue
         }
@@ -100,17 +100,17 @@ fun ring(
  * the line it sits on rather than wider (rules/witness/04-hexagon-dots.md).
  */
 fun hexagon(
-    context: DrawContext, centerX: Int, centerY: Int, diameter: Int,
+    context: GuiGraphicsExtractor, centerX: Int, centerY: Int, diameter: Int,
     r: Float, g: Float, b: Float, a: Float,
 ) = hexagon(context, centerX, centerY, diameter, argb(r, g, b, a))
 
 /** As above, taking a packed ARGB colour, for callers that already have one (a panel's dye). */
 fun hexagon(
-    context: DrawContext, centerX: Int, centerY: Int, diameter: Int, color: Int
+    context: GuiGraphicsExtractor, centerX: Int, centerY: Int, diameter: Int, color: Int
 ) {
     if (diameter <= 0) return
     val radius: Float = diameter / 2f
-    // Half the width across the flats, i.e. the widest the shape ever gets.
+    // Ray the width across the flats, i.e. the widest the shape ever gets.
     val halfFlats: Float = radius * sqrt(3f) / 2f
 
     for (row in 0 until diameter) {

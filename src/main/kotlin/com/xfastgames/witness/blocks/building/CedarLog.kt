@@ -4,17 +4,17 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.blockSettings
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
-import net.minecraft.block.AbstractBlock
-import net.minecraft.block.PillarBlock
-import net.minecraft.sound.BlockSoundGroup
-import net.minecraft.util.Identifier
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.RotatedPillarBlock
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.resources.Identifier
 
-class CedarLog(settings: AbstractBlock.Settings) : PillarBlock(settings) {
+class CedarLog(settings: BlockBehaviour.Properties) : RotatedPillarBlock(settings) {
 
     companion object {
-        val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "cedar_log")
+        val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "cedar_log")
         val BLOCK = registerBlock(
-            CedarLog(blockSettings(IDENTIFIER).strength(2.0f).sounds(BlockSoundGroup.WOOD)),
+            CedarLog(blockSettings(IDENTIFIER).strength(2.0f).sound(SoundType.WOOD)),
             IDENTIFIER
         )
         val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)

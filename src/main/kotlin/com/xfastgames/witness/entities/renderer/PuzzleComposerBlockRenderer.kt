@@ -5,20 +5,20 @@ import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.renderer.PuzzlePanelRenderer
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_OUTPUT_SLOT_INDEX
-import net.minecraft.client.render.OverlayTexture
-import net.minecraft.client.render.WorldRenderer
-import net.minecraft.client.render.block.entity.BlockEntityRenderer
-import net.minecraft.client.render.block.entity.BlockEntityRendererFactories
-import net.minecraft.client.render.block.entity.state.BlockEntityRenderState
-import net.minecraft.client.render.command.ModelCommandRenderer
-import net.minecraft.client.render.command.OrderedRenderCommandQueue
-import net.minecraft.client.render.state.CameraRenderState
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.item.ItemStack
-import net.minecraft.state.property.Properties
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.RotationAxis
-import net.minecraft.util.math.Vec3d
+import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.math.Axis
+import net.minecraft.client.renderer.SubmitNodeCollector
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer
+import net.minecraft.client.renderer.state.level.CameraRenderState
+import net.minecraft.client.renderer.texture.OverlayTexture
+import net.minecraft.core.Direction
+import net.minecraft.util.LightCoordsUtil
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.phys.Vec3
 
 class PuzzleComposerRenderState : BlockEntityRenderState() {
     var panel: Panel? = null
@@ -30,7 +30,7 @@ class PuzzleComposerBlockRenderer : BlockEntityRenderer<PuzzleComposerBlockEntit
 
     companion object {
         fun register() {
-            BlockEntityRendererFactories.register(PuzzleComposerBlockEntity.ENTITY_TYPE) { PuzzleComposerBlockRenderer() }
+            BlockEntityRenderers.register(PuzzleComposerBlockEntity.ENTITY_TYPE) { PuzzleComposerBlockRenderer() }
         }
     }
 
@@ -38,41 +38,41 @@ class PuzzleComposerBlockRenderer : BlockEntityRenderer<PuzzleComposerBlockEntit
 
     override fun createRenderState(): PuzzleComposerRenderState = PuzzleComposerRenderState()
 
-    override fun updateRenderState(
+    override fun extractRenderState(
         blockEntity: PuzzleComposerBlockEntity,
         state: PuzzleComposerRenderState,
         tickDelta: Float,
-        cameraPos: Vec3d,
-        crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?
+        cameraPos: Vec3,
+        crumblingOverlay: ModelFeatureRenderer.CrumblingOverlay?
     ) {
-        BlockEntityRenderState.updateBlockEntityRenderState(blockEntity, state, crumblingOverlay)
+        BlockEntityRenderState.extractBase(blockEntity, state, crumblingOverlay)
         val itemStack: ItemStack = blockEntity.inventory.items[PUZZLE_OUTPUT_SLOT_INDEX]
         state.panel = if (itemStack.isEmpty) null else itemStack.panel ?: Panel.DEFAULT
-        state.facing = blockEntity.cachedState.get(Properties.HORIZONTAL_FACING)
-        // Get light above
+        state.facing = blockEntity.blockState.getValue(BlockStateProperties.HORIZONTAL_FACING)
+        // Light from the block above the composer surface.
         // TODO: Figure out lighting so that panel is lit properly
-        state.lightAbove = blockEntity.world
-            ?.let { world -> WorldRenderer.getLightmapCoordinates(world, blockEntity.pos.up()) }
-            ?: state.lightmapCoordinates
+        state.lightAbove = blockEntity.level
+            ?.let { level -> LightCoordsUtil.getLightCoords(level, blockEntity.blockPos.above()) }
+            ?: state.lightCoords
     }
 
-    override fun render(
+    override fun submit(
         state: PuzzleComposerRenderState,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         cameraState: CameraRenderState
     ) {
         val panel: Panel = state.panel ?: return
-        matrices.push()
+        matrices.pushPose()
 
         // Move to center
         matrices.translate(.5, .815, .5)
 
-        // Rotate the entity to the direction of the block
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-state.facing.positiveHorizontalDegrees))
+        // Rot the entity to the direction of the block
+        matrices.mulPose(Axis.YP.rotationDegrees(-state.facing.toYRot()))
 
-        // Rotate to horizontal plane
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(90.0f))
+        // Rot to horizontal plane
+        matrices.mulPose(Axis.XP.rotationDegrees(90.0f))
 
         // Scale the panel
         matrices.scale(0.85f, 0.85f, 1f)
@@ -84,8 +84,8 @@ class PuzzleComposerBlockRenderer : BlockEntityRenderer<PuzzleComposerBlockEntit
         matrices.scale(0.95f, 0.95f, 1f)
 
         // Render puzzle panel
-        puzzlePanelRenderer.renderPanel(panel, matrices, queue, state.lightAbove, OverlayTexture.DEFAULT_UV)
+        puzzlePanelRenderer.renderPanel(panel, matrices, queue, state.lightAbove, OverlayTexture.NO_OVERLAY)
 
-        matrices.pop()
+        matrices.popPose()
     }
 }

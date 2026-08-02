@@ -1,9 +1,9 @@
 package com.xfastgames.witness.blocks.building
 
 import com.xfastgames.witness.utils.blockSettings
-import net.minecraft.block.AbstractBlock
-import net.minecraft.sound.BlockSoundGroup
-import net.minecraft.util.Identifier
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.resources.Identifier
 
 /**
  * Builds fresh stained-stone block settings for the given registration [id].
@@ -12,7 +12,7 @@ import net.minecraft.util.Identifier
  * `breakByTool`/`breakByHand` helpers were removed; mining tool requirements are now
  * data-driven via block tags.
  */
-fun stainedStoneSettings(id: Identifier): AbstractBlock.Settings =
+fun stainedStoneSettings(id: Identifier): BlockBehaviour.Properties =
     blockSettings(id)
-        .sounds(BlockSoundGroup.STONE)
+        .sound(SoundType.STONE)
         .strength(1.5f, 6f)

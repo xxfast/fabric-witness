@@ -49,10 +49,10 @@ fun Panel.withNodeReplaced(node: Node, replacement: Node): Panel {
 fun Panel.withSymbolToggled(
     node: Node?,
     edge: EndpointPair<Node>?,
-    symbol: Symbol = Symbol.HEXAGON
+    symbol: Atom = Atom.HEXAGON
 ): Panel? {
     if (node != null) {
-        val next: Symbol = if (node.symbol == symbol) Symbol.NONE else symbol
+        val next: Atom = if (node.symbol == symbol) Atom.NONE else symbol
         return withNodeReplaced(node, node.copy(symbol = next))
     }
 
@@ -60,7 +60,7 @@ fun Panel.withSymbolToggled(
     val current: Edge = graph.edgeValue(edge.nodeU(), edge.nodeV()).orElse(null) ?: return null
     if (current.modifier == Modifier.BREAK) return null
 
-    val next: Symbol = if (current.symbol == symbol) Symbol.NONE else symbol
+    val next: Atom = if (current.symbol == symbol) Atom.NONE else symbol
     val updated: MutableValueGraph<Node, Edge> = Graphs.copyOf(graph)
     updated.putEdgeValue(edge.nodeU(), edge.nodeV(), current.copy(symbol = next))
     return withGraph(updated)

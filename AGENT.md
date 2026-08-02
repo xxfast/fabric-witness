@@ -4,13 +4,19 @@ This file provides guidance to coding agents working with code in this repositor
 
 ## What this is
 
-A Fabric mod (Kotlin, MC 1.21.11, Yarn mappings, Java 21) that adds puzzle panels from The Witness
-to Minecraft, plus decoration blocks. Recently migrated from MC 1.17.1 — see `MIGRATION.md` for
-what changed, known-broken items, and the in-game verification checklist before assuming a bug is new.
+A Fabric mod (Kotlin, MC 26.2, official Mojang names / unobfuscated jar, Java 25) that adds puzzle
+panels from The Witness to Minecraft, plus decoration blocks. Migrated from 1.17.1 → 1.21.11 →
+26.2. See `MIGRATION.md` for what changed, known-broken items, and the in-game verification
+checklist before assuming a bug is new.
 
 ## Commands
 
-Java 21 is pinned via `org.gradle.java.home` in `gradle.properties` — no JAVA_HOME setup needed.
+Java 25 is required (MC 26.2). Do **not** put a machine-local `org.gradle.java.home` in the
+committed `gradle.properties` (Homebrew paths break Linux CI). Use one of:
+- `JAVA_HOME` pointing at JDK 25
+- `org.gradle.java.home` in `~/.gradle/gradle.properties` (local only)
+- IntelliJ Gradle JVM / Project SDK = `jbr-25`
+CI installs Temurin 25 via `actions/setup-java` (see `.github/workflows/`).
 
 - `./gradlew build` — full build + tests; mod jar lands at `build/libs/fabric-witness.jar`
 - `./gradlew runClient` / `./gradlew runServer` — launch a dev client/server with the mod (working dir `run/`)
@@ -19,8 +25,13 @@ Java 21 is pinned via `org.gradle.java.home` in `gradle.properties` — no JAVA_
 
 ## Optional development aids
 
-The project has an IntelliJ run configuration named **`Minecraft Client`**. When the IntelliJ IDEA
-MCP is connected, useful tools include:
+The project has an IntelliJ **Gradle** run configuration named **`Minecraft Client`**
+(`runClient`). Do **not** use a plain Application config on `fabric-witness.main`: that module’s
+classpath is incomplete under Loom 1.17, so the game boots without `witness` and then saves the
+world with panels/frames stripped. Always launch via Gradle (`runClient` / `runServer`) or the
+IDEA Gradle run configs.
+
+When the IntelliJ IDEA MCP is connected, useful tools include:
 
 - `build_project` for compiler errors from IntelliJ's project model.
 - `lint_files` and `get_file_problems` for IDE inspections.
@@ -85,10 +96,11 @@ file per rule, indexed by `rules/witness/README.md`. Check it before touching pu
   `SpecialCraftingRecipe`s that carry the component through), plus vanilla JSON grid recipes in
   `data/witness/recipe/` with inline `components`.
 
-**Rendering.** Block entity renderers use the 1.21 render-state/command-queue system: extract state
-in `updateRenderState`, submit geometry via `OrderedRenderCommandQueue.submitCustom`. Shared vertex
-helpers in `utils/VertexConsumer.kt` / `RenderContext.kt` (JOML math). GUI drawing helpers in
-`utils/DrawableHelper.kt` are `DrawContext`-based.
+**Rendering.** Block entity renderers use the extract/submit system: extract state in
+`extractRenderState`, submit via `SubmitNodeCollector`. Camera type is
+`net.minecraft.client.renderer.state.level.CameraRenderState`. Shared vertex helpers in
+`utils/VertexConsumer.kt` / `RenderContext.kt` (JOML math). GUI drawing helpers in
+`utils/DrawableHelper.kt` are `GuiGraphicsExtractor`-based (26.2 rename of `GuiGraphics`).
 
 **Assets/data specifics that silently fail:** every item needs a model definition JSON under
 `assets/witness/items/` (missing → purple-black placeholder); datapack folders use 1.21 singular
@@ -97,5 +109,12 @@ intentionally inert — registered but not injected into any biome (matches pre-
 
 **Mixins:** `witness.mixins.json`; only `MouseAccessorMixin` (cursor lock for the solver screen).
 Prefer Fabric API events over new mixins.
+
+**26.2 Fabric renames worth knowing:** `ItemGroupEvents` → `CreativeModeTabEvents` (`creativetab.v1`);
+`ExtendedScreenHandler*` → `ExtendedMenu*` (`menu.v1`); `PayloadTypeRegistry.playC2S()` →
+`serverboundPlay()`; screens via `Minecraft.gui.setScreen` / `gui.screen()`; recipe serializers are
+`RecipeSerializer(MapCodec, StreamCodec)` unit codecs (no `CustomRecipe.Serializer`); dyes use
+`DataComponents.DYE` (no `DyeItem.byColor`). `BlockRenderLayerMap` was removed from Fabric API for
+26.x; cutout/translucent must come from models (still TODO for plant blocks).
 
 Release process: see README.md.

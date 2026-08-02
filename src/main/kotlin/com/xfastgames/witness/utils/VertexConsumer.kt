@@ -1,18 +1,18 @@
 package com.xfastgames.witness.utils
 
-import net.minecraft.client.render.VertexConsumer
-import net.minecraft.client.util.math.MatrixStack
+import com.mojang.blaze3d.vertex.VertexConsumer
+import com.mojang.blaze3d.vertex.PoseStack
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import java.lang.Math.toRadians
 import kotlin.math.*
 
-// 1.21 VertexConsumer: positions use org.joml matrices, normals take the MatrixStack.Entry directly,
+// 1.21 VertexConsumer: positions use org.joml matrices, normals take the PoseStack.Pose directly,
 // and vertices auto-advance (the old `.next()` terminator was removed). These helpers operate on a
-// captured MatrixStack.Entry because the render-command-queue hands renderers an entry, not a stack.
+// captured PoseStack.Pose because the render-command-queue hands renderers an entry, not a stack.
 
 fun VertexConsumer.circle(
-    entry: MatrixStack.Entry,
+    entry: PoseStack.Pose,
     center: Vector3f,
     radius: Float,
     light: Int,
@@ -24,31 +24,31 @@ fun VertexConsumer.circle(
     b: Float = 1f,
     a: Float = 1f,
 ) {
-    val model: Matrix4f = entry.positionMatrix
+    val model: Matrix4f = entry.pose()
 
     var theta: Double = arc.first + resolution
     while (theta < arc.last) {
         theta -= resolution
         // Anchor quad to center
-        vertex(model, center.x, center.y, center.z)
-            .color(r, g, b, a)
-            .texture(0f, 1f)
-            .overlay(overlay)
-            .light(light)
-            .normal(entry, .5f, .5f, .5f)
+        this.addVertex(model, center.x, center.y, center.z)
+            .setColor(r, g, b, a)
+            .setUv(0f, 1f)
+            .setOverlay(overlay)
+            .setLight(light)
+            .setNormal(entry, .5f, .5f, .5f)
         // Draw quad segments
         repeat(3) {
-            vertex(
+            this.addVertex(
                 model,
                 center.x + radius * sin(toRadians(theta).toFloat()),
                 center.y + radius * cos(toRadians(theta).toFloat()),
                 center.z
             )
-                .color(r, g, b, a)
-                .texture(0f, 1f)
-                .overlay(overlay)
-                .light(light)
-                .normal(entry, .5f, .5f, .5f)
+                .setColor(r, g, b, a)
+                .setUv(0f, 1f)
+                .setOverlay(overlay)
+                .setLight(light)
+                .setNormal(entry, .5f, .5f, .5f)
             theta += resolution
         }
     }
@@ -59,7 +59,7 @@ fun VertexConsumer.circle(
  * (Witness-style expanding white hint on start / end nodes).
  */
 fun VertexConsumer.ring(
-    entry: MatrixStack.Entry,
+    entry: PoseStack.Pose,
     center: Vector3f,
     innerRadius: Float,
     outerRadius: Float,
@@ -72,21 +72,21 @@ fun VertexConsumer.ring(
     resolution: Double = 8.0
 ) {
     if (a <= 0f || outerRadius <= 0f || outerRadius <= innerRadius) return
-    val model: Matrix4f = entry.positionMatrix
+    val model: Matrix4f = entry.pose()
     val inner: Float = innerRadius.coerceAtLeast(0f)
 
     fun vert(radius: Float, thetaRad: Float) {
-        vertex(
+        this.addVertex(
             model,
             center.x + radius * sin(thetaRad),
             center.y + radius * cos(thetaRad),
             center.z
         )
-            .color(r, g, b, a)
-            .texture(0f, 1f)
-            .overlay(overlay)
-            .light(light)
-            .normal(entry, .5f, .5f, .5f)
+            .setColor(r, g, b, a)
+            .setUv(0f, 1f)
+            .setOverlay(overlay)
+            .setLight(light)
+            .setNormal(entry, .5f, .5f, .5f)
     }
 
     var theta: Double = 0.0
@@ -102,21 +102,21 @@ fun VertexConsumer.ring(
     }
 }
 
-fun VertexConsumer.square(entry: MatrixStack.Entry, position: Vector3f, length: Float, light: Int, overlay: Int) {
+fun VertexConsumer.square(entry: PoseStack.Pose, position: Vector3f, length: Float, light: Int, overlay: Int) {
     val offSets: List<Pair<Float, Float>> = listOf(0f to 0f, 1f to 0f, 1f to 1f, 0f to 1f).reversed()
     offSets.forEach { (offsetX, offsetY) ->
-        val model: Matrix4f = entry.positionMatrix
-        vertex(model, position.x + offsetX * length, position.y + offsetY * length, position.z)
-            .color(1f, 1f, 1f, 1f)
-            .texture(offsetX, offsetY)
-            .overlay(overlay)
-            .light(light)
-            .normal(entry, 1f, 1f, 1f)
+        val model: Matrix4f = entry.pose()
+        this.addVertex(model, position.x + offsetX * length, position.y + offsetY * length, position.z)
+            .setColor(1f, 1f, 1f, 1f)
+            .setUv(offsetX, offsetY)
+            .setOverlay(overlay)
+            .setLight(light)
+            .setNormal(entry, 1f, 1f, 1f)
     }
 }
 
 fun VertexConsumer.rectangle(
-    entry: MatrixStack.Entry,
+    entry: PoseStack.Pose,
     position: Vector3f,
     width: Float,
     height: Float,
@@ -125,18 +125,18 @@ fun VertexConsumer.rectangle(
 ) {
     val offSets: List<Pair<Float, Float>> = listOf(0f to 0f, 1f to 0f, 1f to 1f, 0f to 1f).reversed()
     offSets.forEach { (offsetX, offsetY) ->
-        val model: Matrix4f = entry.positionMatrix
-        vertex(model, position.x + offsetX * width, position.y + offsetY * height, position.z)
-            .color(1f, 1f, 1f, 1f)
-            .texture(offsetX, offsetY)
-            .overlay(overlay)
-            .light(light)
-            .normal(entry, .5f, .5f, .5f)
+        val model: Matrix4f = entry.pose()
+        this.addVertex(model, position.x + offsetX * width, position.y + offsetY * height, position.z)
+            .setColor(1f, 1f, 1f, 1f)
+            .setUv(offsetX, offsetY)
+            .setOverlay(overlay)
+            .setLight(light)
+            .setNormal(entry, .5f, .5f, .5f)
     }
 }
 
 fun VertexConsumer.line(
-    entry: MatrixStack.Entry,
+    entry: PoseStack.Pose,
     u: Vector3f,
     v: Vector3f,
     thickness: Float,
@@ -166,12 +166,12 @@ fun VertexConsumer.line(
     }
 
     vertices.forEach { position ->
-        val model: Matrix4f = entry.positionMatrix
-        vertex(model, position.x, position.y, position.z)
-            .color(1f, 1f, 1f, 1f)
-            .texture(0f, 1f)
-            .overlay(overlay)
-            .light(light)
-            .normal(entry, .5f, .5f, .5f)
+        val model: Matrix4f = entry.pose()
+        this.addVertex(model, position.x, position.y, position.z)
+            .setColor(1f, 1f, 1f, 1f)
+            .setUv(0f, 1f)
+            .setOverlay(overlay)
+            .setLight(light)
+            .setNormal(entry, .5f, .5f, .5f)
     }
 }

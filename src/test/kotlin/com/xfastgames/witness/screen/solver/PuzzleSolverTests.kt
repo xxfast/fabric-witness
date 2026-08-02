@@ -8,13 +8,13 @@ import com.xfastgames.witness.items.data.Edge
 import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
-import com.xfastgames.witness.items.data.Symbol
+import com.xfastgames.witness.items.data.Atom
 import com.xfastgames.witness.screens.solver.PuzzleSolverData
 import com.xfastgames.witness.screens.solver.PuzzleSolver
 import com.xfastgames.witness.utils.guava.emptyGraph
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import net.minecraft.util.DyeColor
+import net.minecraft.world.item.DyeColor
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -162,7 +162,7 @@ class PuzzleSolverTests {
 
         val stub: Graph<Node> = requireNotNull(solver.move(brokenPanel, 1f, 0f))
 
-        // Half the edge, less one line thickness for the gap and the line's round tip.
+        // Ray the edge, less one line thickness for the gap and the line's round tip.
         assertThat(stub.nodes()).doesNotContain(corner)
         assertThat(solver.tracingTip()).isEqualTo(Node(0.25f, 0f, Modifier.END))
 
@@ -264,7 +264,7 @@ class PuzzleSolverTests {
     fun `Rejects a path that reaches the end but misses a hexagon`() {
         // The hexagon sits on the far side of a detour the short path never takes
         // (rules/witness/04-hexagon-dots.md).
-        val detour = Node(0f, 1f, symbol = Symbol.HEXAGON)
+        val detour = Node(0f, 1f, symbol = Atom.HEXAGON)
         val hexagonPanel: Panel = panelOf(
             start to corner,
             corner to finish,
@@ -283,7 +283,7 @@ class PuzzleSolverTests {
 
     @Test
     fun `Accepts a path that reaches the end covering every hexagon`() {
-        val detour = Node(0f, 1f, symbol = Symbol.HEXAGON)
+        val detour = Node(0f, 1f, symbol = Atom.HEXAGON)
         val hexagonPanel: Panel = panelOf(
             start to corner,
             corner to finish,
@@ -304,7 +304,7 @@ class PuzzleSolverTests {
     fun `A dotted edge traces exactly like a plain one`() {
         // A symbol never changes how the line moves; only the traversal state does.
         val dottedPanel: Panel = panelOf(
-            Triple(start, corner, Edge(Modifier.NORMAL, Symbol.HEXAGON)),
+            Triple(start, corner, Edge(Modifier.NORMAL, Atom.HEXAGON)),
             Triple(corner, finish, Edge.NORMAL)
         )
         solver.startTracingLine(dottedPanel, start)

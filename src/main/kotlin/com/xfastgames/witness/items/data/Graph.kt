@@ -6,9 +6,9 @@ import com.google.common.graph.*
 import com.xfastgames.witness.utils.getIntListTolerant
 import com.xfastgames.witness.utils.guava.add
 import com.xfastgames.witness.utils.guava.adjacencyMatrix
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.nbt.NbtIntArray
-import net.minecraft.nbt.NbtList
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.IntArrayTag
+import net.minecraft.nbt.ListTag
 import kotlin.math.pow
 
 private const val KEY_EDGES = "edges"
@@ -16,7 +16,7 @@ private const val KEY_EDGE_SYMBOLS = "edgeSymbols"
 private const val KEY_NODES = "nodes"
 private const val KEY_FILL = "fill"
 
-fun NbtCompound.getValueGraph(key: String): ValueGraph<Node, Edge> =
+fun CompoundTag.getValueGraph(key: String): ValueGraph<Node, Edge> =
     getCompoundOrEmpty(key).let { tag ->
         ValueGraphBuilder
             .undirected()
@@ -25,7 +25,7 @@ fun NbtCompound.getValueGraph(key: String): ValueGraph<Node, Edge> =
                 if (tag.isEmpty) return@apply
 
                 val nodes: List<Node> = tag.getListOrEmpty(KEY_NODES)
-                    .filterIsInstance<NbtCompound>()
+                    .filterIsInstance<CompoundTag>()
                     .map { it.getNode() }
 
                 if (nodes.isEmpty()) return@apply
@@ -43,7 +43,7 @@ fun NbtCompound.getValueGraph(key: String): ValueGraph<Node, Edge> =
                             Modifier.NONE -> null
                             // Legacy: a hexagon used to be the edge's own value, which cost the
                             // edge its traversal state. It was always a traversable edge.
-                            Modifier.DOT -> Edge(Modifier.NORMAL, Symbol.HEXAGON)
+                            Modifier.DOT -> Edge(Modifier.NORMAL, Atom.HEXAGON)
                             else -> Edge(modifier, symbols.getOrElse(index) { 0 }.toSymbol())
                         }
                     }
@@ -53,12 +53,12 @@ fun NbtCompound.getValueGraph(key: String): ValueGraph<Node, Edge> =
             }
     }
 
-fun NbtCompound.putValueGraph(key: String, graph: ValueGraph<Node, Edge>) {
-    put(key, NbtCompound().apply {
+fun CompoundTag.putValueGraph(key: String, graph: ValueGraph<Node, Edge>) {
+    put(key, CompoundTag().apply {
         val nodes: Set<Node> = graph.nodes()
-        put(KEY_NODES, NbtList().apply {
+        put(KEY_NODES, ListTag().apply {
             nodes.forEach { node ->
-                add(NbtCompound().apply { putNode(node) })
+                add(CompoundTag().apply { putNode(node) })
             }
         })
         val edges: List<Edge?> = graph.adjacencyMatrix.flatten()
@@ -66,13 +66,13 @@ fun NbtCompound.putValueGraph(key: String, graph: ValueGraph<Node, Edge>) {
             edges.getOrNull(index)?.modifier?.ordinal ?: Modifier.NONE.ordinal
         })
         putIntArray(KEY_EDGE_SYMBOLS, IntArray(nodes.size * nodes.size) { index ->
-            edges.getOrNull(index)?.symbol?.ordinal ?: Symbol.NONE.ordinal
+            edges.getOrNull(index)?.symbol?.ordinal ?: Atom.NONE.ordinal
         })
     })
 }
 
 @Suppress("UnstableApiUsage")
-fun NbtCompound.getGraph(key: String): Graph<Node> =
+fun CompoundTag.getGraph(key: String): Graph<Node> =
     getCompoundOrEmpty(key).let { tag ->
         GraphBuilder
             .undirected()
@@ -81,7 +81,7 @@ fun NbtCompound.getGraph(key: String): Graph<Node> =
                 if (tag.isEmpty) return@apply
 
                 val nodes: List<Node> = tag.getListOrEmpty(KEY_NODES)
-                    .filterIsInstance<NbtCompound>()
+                    .filterIsInstance<CompoundTag>()
                     .map { it.getNode() }
 
                 if (nodes.isEmpty()) return@apply
@@ -95,15 +95,15 @@ fun NbtCompound.getGraph(key: String): Graph<Node> =
             }
     }
 
-fun NbtCompound.putGraph(key: String, graph: Graph<Node>) {
-    put(key, NbtCompound().apply {
+fun CompoundTag.putGraph(key: String, graph: Graph<Node>) {
+    put(key, CompoundTag().apply {
         val nodes: Set<Node> = graph.nodes()
-        put(KEY_NODES, NbtList().apply {
+        put(KEY_NODES, ListTag().apply {
             nodes.forEach { node ->
-                add(NbtCompound().apply { putNode(node) })
+                add(CompoundTag().apply { putNode(node) })
             }
         })
-        put(KEY_FILL, NbtIntArray(graph.adjacencyMatrix.flatten().map { value -> if (value) 1 else 0 }.toIntArray()))
+        put(KEY_FILL, IntArrayTag(graph.adjacencyMatrix.flatten().map { value -> if (value) 1 else 0 }.toIntArray()))
     })
 }
 

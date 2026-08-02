@@ -7,7 +7,7 @@ import com.xfastgames.witness.items.data.putPanel
 import com.xfastgames.witness.items.data.toNbt
 import com.xfastgames.witness.items.data.toPanel
 import com.xfastgames.witness.items.data.withTutorial
-import net.minecraft.nbt.NbtCompound
+import net.minecraft.nbt.CompoundTag
 import org.junit.jupiter.api.Test
 
 private const val TEST_KEY_GRAPH = "panel"
@@ -15,7 +15,7 @@ class PanelTests {
     @Test
     fun `Test grid panel serialisation and deserialization`() {
         val gridPanel: Panel.Grid = Panel.Grid.ofSize(2, 4)
-        val tag: NbtCompound = NbtCompound().apply { putPanel(TEST_KEY_GRAPH, gridPanel) }
+        val tag: CompoundTag = CompoundTag().apply { putPanel(TEST_KEY_GRAPH, gridPanel) }
         println(tag)
         val actual: Panel? = tag.getPanel(TEST_KEY_GRAPH)
         assertThat(actual).isEqualTo(gridPanel)
@@ -24,7 +24,7 @@ class PanelTests {
     @Test
     fun `Test tree panel serialisation and deserialization`() {
         val treePanel: Panel.Tree = Panel.Tree.ofSize(2)
-        val tag: NbtCompound = NbtCompound().apply { putPanel(TEST_KEY_GRAPH, treePanel) }
+        val tag: CompoundTag = CompoundTag().apply { putPanel(TEST_KEY_GRAPH, treePanel) }
         println(tag)
         val actual: Panel? = tag.getPanel(TEST_KEY_GRAPH)
         assertThat(actual).isEqualTo(treePanel)
@@ -33,11 +33,11 @@ class PanelTests {
     @Test
     fun `Tutorial flag round-trips and defaults off on legacy tags`() {
         val tutorial: Panel = Panel.Grid.ofSize(2).withTutorial(true)
-        val tag: NbtCompound = NbtCompound().apply { putPanel(TEST_KEY_GRAPH, tutorial) }
+        val tag: CompoundTag = CompoundTag().apply { putPanel(TEST_KEY_GRAPH, tutorial) }
         assertThat(tag.getPanel(TEST_KEY_GRAPH)).isEqualTo(tutorial)
 
         // Pre-flag panels have no "tutorial" key; they must read as non-tutorial.
-        val legacyTag: NbtCompound = Panel.Grid.ofSize(2).toNbt().also { it.remove("tutorial") }
+        val legacyTag: CompoundTag = Panel.Grid.ofSize(2).toNbt().also { it.remove("tutorial") }
         assertThat(legacyTag.toPanel().tutorial).isFalse()
     }
 

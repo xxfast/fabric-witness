@@ -1,12 +1,13 @@
 object Jetbrains {
     object Kotlin {
-        const val version = "2.4.0"
+        // Must match fabric-language-kotlin's bundled Kotlin.
+        const val version = "2.4.10"
     }
 }
 
 object Mods {
-    const val modmenu = "com.terraformersmc:modmenu:17.0.0"
-    const val libgui = "io.github.cottonmc:LibGui:15.1.0+${Minecraft.version}"
+    const val modmenu = "com.terraformersmc:modmenu:20.0.1"
+    const val libgui = "io.github.cottonmc:LibGui:17.0.0+${Minecraft.version}"
 }
 
 object Google {
@@ -19,11 +20,11 @@ object JUnit {
     const val platform_launcher = "org.junit.platform:junit-platform-launcher:1.10.2"
 }
 
-/** Check these on https://modmuss50.me/fabric.html */
+/** Check these on https://fabricmc.net/develop */
 object Fabric {
 
     object Kotlin {
-        const val version = "1.13.12+kotlin.${Jetbrains.Kotlin.version}"
+        const val version = "1.13.13+kotlin.${Jetbrains.Kotlin.version}"
     }
 
     object Loader {
@@ -32,19 +33,17 @@ object Fabric {
     }
 
     object API {
-        const val version = "0.141.4+1.21.11"
+        const val version = "0.156.0+26.2"
     }
 
     object Loom {
-        const val version = "1.17.13"
+        // Example mod for 26.2 uses 1.17-SNAPSHOT; pin a stable 1.17.x when available.
+        const val version = "1.17.17"
     }
 
-    object YarnMappings {
-        const val version = "${Minecraft.version}+build.6"
-        const val classifier = "v2"
-    }
+    // 26.1+ is unobfuscated: do not declare mappings (see Fabric 26.1 porting guide).
 }
 
 object Minecraft {
-    const val version = "1.21.11"
+    const val version = "26.2"
 }

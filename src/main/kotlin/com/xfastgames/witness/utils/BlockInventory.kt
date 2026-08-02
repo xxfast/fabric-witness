@@ -1,58 +1,59 @@
 package com.xfastgames.witness.utils
 
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.inventory.Inventories
-import net.minecraft.inventory.SidedInventory
-import net.minecraft.item.ItemStack
-import net.minecraft.util.collection.DefaultedList
-import net.minecraft.util.math.Direction
+import net.minecraft.core.Direction
+import net.minecraft.core.NonNullList
+import net.minecraft.world.ContainerHelper
+import net.minecraft.world.WorldlyContainer
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.block.entity.BlockEntity
 
-class BlockInventory(size: Int, val owner: BlockEntity) : SidedInventory {
+class BlockInventory(size: Int, val owner: BlockEntity) : WorldlyContainer {
 
-    val items: DefaultedList<ItemStack> = DefaultedList.ofSize(size, ItemStack.EMPTY)
+    val items: NonNullList<ItemStack> = NonNullList.withSize(size, ItemStack.EMPTY)
 
-    override fun clear() = items.clear()
-    override fun size(): Int = items.size
-    override fun isEmpty(): Boolean = items.isEmpty()
-    override fun getStack(slot: Int): ItemStack = items[slot]
-    override fun removeStack(slot: Int): ItemStack {
-        val itemStack: ItemStack = Inventories.removeStack(items, slot)
-        markDirty()
+    override fun clearContent() {
+        items.clear()
+    }
+
+    override fun getContainerSize(): Int = items.size
+
+    override fun isEmpty(): Boolean = items.all { it.isEmpty }
+
+    override fun getItem(slot: Int): ItemStack = items[slot]
+
+    override fun removeItemNoUpdate(slot: Int): ItemStack {
+        val itemStack = ContainerHelper.takeItem(items, slot)
+        setChanged()
         return itemStack
     }
 
-    override fun removeStack(slot: Int, amount: Int): ItemStack {
-        val itemStack: ItemStack = Inventories.splitStack(items, slot, amount)
-        markDirty()
+    override fun removeItem(slot: Int, amount: Int): ItemStack {
+        val itemStack = ContainerHelper.removeItem(items, slot, amount)
+        setChanged()
         return itemStack
     }
 
-    override fun setStack(slot: Int, stack: ItemStack) {
+    override fun setItem(slot: Int, stack: ItemStack) {
         items[slot] = stack
-        if (stack.count > maxCountPerStack) {
-            stack.count = maxCountPerStack
+        if (stack.count > maxStackSize) {
+            stack.count = maxStackSize
         }
-        markDirty()
+        setChanged()
     }
 
-    override fun getAvailableSlots(side: Direction?): IntArray {
-        // Just return an array of all slots
-        val result = IntArray(items.size)
-        for (i in result.indices) {
-            result[i] = i
-        }
-
-        return result
+    override fun getSlotsForFace(side: Direction): IntArray {
+        return IntArray(items.size) { it }
     }
 
-    override fun canPlayerUse(player: PlayerEntity?): Boolean = true
-    override fun canInsert(slot: Int, stack: ItemStack?, dir: Direction?): Boolean = true
+    override fun stillValid(player: Player): Boolean = true
 
-    override fun canExtract(slot: Int, stack: ItemStack?, dir: Direction?): Boolean = true
+    override fun canPlaceItemThroughFace(slot: Int, stack: ItemStack, dir: Direction?): Boolean = true
 
-    override fun markDirty() {
-        owner.markDirty()
-        if (owner is Syncable && owner.world?.isClient == false) owner.sync()
+    override fun canTakeItemThroughFace(slot: Int, stack: ItemStack, dir: Direction): Boolean = true
+
+    override fun setChanged() {
+        owner.setChanged()
+        if (owner is Syncable && owner.level?.isClientSide == false) owner.sync()
     }
 }

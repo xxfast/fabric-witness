@@ -5,12 +5,12 @@ import io.github.cottonmc.cotton.gui.client.ScreenDrawing
 import io.github.cottonmc.cotton.gui.widget.WWidget
 import io.github.cottonmc.cotton.gui.widget.data.InputResult
 import io.github.cottonmc.cotton.gui.widget.icon.Icon
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.gui.Click
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.sound.PositionedSoundInstance
-import net.minecraft.sound.SoundEvents
-import net.minecraft.util.Identifier
+import net.minecraft.client.Minecraft
+import net.minecraft.client.input.MouseButtonEvent
+import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.resources.sounds.SimpleSoundInstance
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.resources.Identifier
 
 class WRadioImageButton(
     val icon: Icon? = null,
@@ -21,7 +21,7 @@ class WRadioImageButton(
 
     private enum class RenderState { Normal, Selected, Disabled, Highlighted }
 
-    private val texture = Identifier.of(Witness.IDENTIFIER, "textures/gui/toggle_image_button.png")
+    private val texture = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "textures/gui/toggle_image_button.png")
     private var isHovered = false
 
     init {
@@ -32,12 +32,12 @@ class WRadioImageButton(
     override fun canResize(): Boolean = false
     override fun canFocus(): Boolean = true
 
-    override fun onClick(click: Click, doubled: Boolean): InputResult {
+    override fun onClick(click: MouseButtonEvent, doubled: Boolean): InputResult {
         if (!isEnabled) return InputResult.IGNORED
         isSelected = !isSelected
         group?.select(this)
-        MinecraftClient.getInstance().soundManager.play(
-            PositionedSoundInstance.ui(
+        Minecraft.getInstance().soundManager.play(
+            SimpleSoundInstance.forUI(
                 SoundEvents.UI_BUTTON_CLICK,
                 1.0f
             )
@@ -45,7 +45,7 @@ class WRadioImageButton(
         return InputResult.PROCESSED
     }
 
-    override fun paint(context: DrawContext, x: Int, y: Int, mouseX: Int, mouseY: Int) {
+    override fun paint(context: GuiGraphicsExtractor, x: Int, y: Int, mouseX: Int, mouseY: Int) {
         isHovered = mouseX >= 0 && mouseY >= 0 && mouseX < width && mouseY < height
         val renderState: RenderState = when {
             isSelected -> RenderState.Selected

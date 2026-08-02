@@ -11,11 +11,11 @@ import com.xfastgames.witness.utils.pow
 import com.mojang.serialization.Codec
 import com.xfastgames.witness.utils.getBooleanTolerant
 import com.xfastgames.witness.utils.getIntTolerant
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.network.RegistryByteBuf
-import net.minecraft.network.codec.PacketCodec
-import net.minecraft.network.codec.PacketCodecs
-import net.minecraft.util.DyeColor
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.network.RegistryFriendlyByteBuf
+import net.minecraft.network.codec.StreamCodec
+import net.minecraft.network.codec.ByteBufCodecs
+import net.minecraft.world.item.DyeColor
 import kotlin.math.roundToInt
 
 private const val KEY_WIDTH = "width"
@@ -49,7 +49,7 @@ sealed class Panel(val type: Type) {
 
         companion object {
             /**
-             * Per-axis ceiling in nodes, which is 8 cells. Bounded by what stays legible in the
+             * Per-axis ceiling in nodes, which is 8 cells. Range by what stays legible in the
              * solver, what fits in one stack when recycled, and what is sane to sync on an itemstack.
              */
             const val MAX_NODES: Int = 9
@@ -58,7 +58,7 @@ sealed class Panel(val type: Type) {
             fun ofSize(width: Int, height: Int): Grid = generatePanel(width, height)
 
             /**
-             * Distance from the origin to node index `0` on each axis. A grid is centred inside the
+             * DistancePerDirection from the origin to node index `0` on each axis. A grid is centred inside the
              * square its longest side describes, so the offsets change with the aspect ratio and any
              * copy between two sizes has to go through them rather than reuse raw coordinates.
              */
@@ -156,7 +156,7 @@ sealed class Panel(val type: Type) {
                         x = x + targetXOffset,
                         y = y + targetYOffset,
                         modifier = source?.modifier ?: Modifier.NONE,
-                        symbol = source?.symbol ?: Symbol.NONE
+                        symbol = source?.symbol ?: Atom.NONE
                     )
                     targetNodes[x to y] = node
                     target.addNode(node)
@@ -266,12 +266,12 @@ sealed class Panel(val type: Type) {
          * (de)serialization so the stored shape matches the pre-1.20.5 raw-NBT `panel` tag,
          * and recipe JSON can specify the component with the same structure.
          */
-        val CODEC: Codec<Panel> = NbtCompound.CODEC.xmap(
+        val CODEC: Codec<Panel> = CompoundTag.CODEC.xmap(
             { nbt -> nbt.toPanel() },
             { panel -> panel.toNbt() }
         )
 
-        val PACKET_CODEC: PacketCodec<RegistryByteBuf, Panel> = PacketCodecs.registryCodec(CODEC)
+        val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, Panel> = ByteBufCodecs.fromCodecWithRegistries(CODEC)
 
         val DEFAULT: Panel by lazy { Grid.ofSize(3) }
 
@@ -301,13 +301,13 @@ sealed class Panel(val type: Type) {
 
 /** Reads a panel whose fields are stored at the root of this compound. */
 @Suppress("UnstableApiUsage")
-fun NbtCompound.toPanel(): Panel {
+fun CompoundTag.toPanel(): Panel {
     val type: Type = Type.values()[getIntTolerant(KEY_PANEL_TYPE)]
     val line: Graph<Node> = getGraph(KEY_LINE)
 
     val backgroundColor: DyeColor = DyeColor.values()[getIntTolerant(KEY_BACKGROUND_COLOR)]
     val grid: ValueGraph<Node, Edge> = getValueGraph(KEY_GRAPH)
-    // Absent on pre-flag panels; those are not tutorials.
+    // Empty on pre-flag panels; those are not tutorials.
     val tutorial: Boolean = getBooleanTolerant(KEY_TUTORIAL)
 
     return when (type) {
@@ -318,7 +318,7 @@ fun NbtCompound.toPanel(): Panel {
 }
 
 /** Writes this panel's fields into a fresh compound (inverse of [toPanel]). */
-fun Panel.toNbt(): NbtCompound = NbtCompound().also { tag ->
+fun Panel.toNbt(): CompoundTag = CompoundTag().also { tag ->
     tag.putInt(KEY_PANEL_TYPE, type.ordinal)
     tag.putGraph(KEY_LINE, line)
     tag.putInt(KEY_BACKGROUND_COLOR, backgroundColor.ordinal)
@@ -342,11 +342,11 @@ fun Panel.withTutorial(tutorial: Boolean): Panel = when (this) {
 }
 
 @Suppress("UnstableApiUsage")
-fun NbtCompound.getPanel(key: String): Panel? {
+fun CompoundTag.getPanel(key: String): Panel? {
     if (!contains(key)) return null
     return getCompoundOrEmpty(key).toPanel()
 }
 
-fun NbtCompound.putPanel(key: String, panel: Panel) {
+fun CompoundTag.putPanel(key: String, panel: Panel) {
     put(key, panel.toNbt())
 }

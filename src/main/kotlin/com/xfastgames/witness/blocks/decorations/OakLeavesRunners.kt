@@ -5,26 +5,24 @@ import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.blockSettings
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
-import net.fabricmc.fabric.api.client.rendering.v1.BlockRenderLayerMap
-import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry
-import net.minecraft.block.AbstractBlock
-import net.minecraft.block.VineBlock
-import net.minecraft.client.color.block.BlockColorProvider
-import net.minecraft.client.render.BlockRenderLayer
-import net.minecraft.sound.BlockSoundGroup
-import net.minecraft.util.Identifier
+import net.fabricmc.fabric.api.client.rendering.v1.BlockColorRegistry
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.VineBlock
+import net.minecraft.client.color.block.BlockTintSources
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.resources.Identifier
 
-class OakLeavesRunners(settings: AbstractBlock.Settings) : VineBlock(settings), Clientside {
+class OakLeavesRunners(settings: BlockBehaviour.Properties) : VineBlock(settings), Clientside {
 
     companion object {
-        val IDENTIFIER = Identifier.of(Witness.IDENTIFIER, "oak_leaves_runners")
+        val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "oak_leaves_runners")
         val BLOCK = registerBlock(
             OakLeavesRunners(
                 blockSettings(IDENTIFIER)
                     .noCollision()
-                    .ticksRandomly()
+                    .randomTicks()
                     .strength(0.2f)
-                    .sounds(BlockSoundGroup.GRASS)
+                    .sound(SoundType.GRASS)
             ),
             IDENTIFIER
         )
@@ -32,9 +30,8 @@ class OakLeavesRunners(settings: AbstractBlock.Settings) : VineBlock(settings), 
     }
 
     override fun onClient() {
-        ColorProviderRegistry.BLOCK.register(BlockColorProvider { _, _, _, _ -> 0xA0AB42 }, BLOCK)
-        // NOTE(migration): ColorProviderRegistry.ITEM was removed; item tints are now driven by the
-        // item model's `tintindex`/tint sources (data-driven). The item colour is therefore dropped here.
-        BlockRenderLayerMap.putBlock(BLOCK, BlockRenderLayer.TRANSLUCENT)
+        // Fixed foliage tint. Item tints are data-driven via the item model (no ITEM colour registry).
+        // BlockRenderLayerMap was removed in Fabric 26.x; translucent layer must come from the model.
+        BlockColorRegistry.register(listOf(BlockTintSources.constant(0xA0AB42)), BLOCK)
     }
 }

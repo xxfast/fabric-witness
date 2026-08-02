@@ -3,7 +3,7 @@ package com.xfastgames.witness.items.data
 import com.google.common.graph.EndpointPair
 import com.xfastgames.witness.utils.getFloatTolerant
 import com.xfastgames.witness.utils.getIntTolerant
-import net.minecraft.nbt.NbtCompound
+import net.minecraft.nbt.CompoundTag
 import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -17,10 +17,10 @@ data class Node(
     val x: Float,
     val y: Float,
     val modifier: Modifier = Modifier.NONE,
-    val symbol: Symbol = Symbol.NONE
+    val symbol: Atom = Atom.NONE
 )
 
-fun NbtCompound.getNode(): Node {
+fun CompoundTag.getNode(): Node {
     val modifier: Modifier = getIntTolerant(KEY_NODE_MODIFIER).toModifier()
     // Panels written before hexagons moved to their own field stored one as the node's modifier,
     // which cost the node its role. Read it back as a symbol on a roleless node; the key is absent
@@ -29,7 +29,7 @@ fun NbtCompound.getNode(): Node {
         x = getFloatTolerant(KEY_NODE_X),
         y = getFloatTolerant(KEY_NODE_Y),
         modifier = Modifier.NONE,
-        symbol = Symbol.HEXAGON
+        symbol = Atom.HEXAGON
     )
     return Node(
         x = getFloatTolerant(KEY_NODE_X),
@@ -39,7 +39,7 @@ fun NbtCompound.getNode(): Node {
     )
 }
 
-fun NbtCompound.putNode(node: Node) {
+fun CompoundTag.putNode(node: Node) {
     putFloat(KEY_NODE_X, node.x)
     putFloat(KEY_NODE_Y, node.y)
     putInt(KEY_NODE_MODIFIER, node.modifier.ordinal)

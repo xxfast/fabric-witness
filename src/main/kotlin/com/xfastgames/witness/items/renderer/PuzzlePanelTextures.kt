@@ -1,8 +1,8 @@
 package com.xfastgames.witness.items.renderer
 
 import com.xfastgames.witness.Witness
-import net.minecraft.util.DyeColor
-import net.minecraft.util.Identifier
+import net.minecraft.world.item.DyeColor
+import net.minecraft.resources.Identifier
 import java.util.Locale
 
 /**
@@ -10,12 +10,12 @@ import java.util.Locale
  */
 object PuzzlePanelTextures {
     val lineFill: Identifier =
-        Identifier.of(Witness.IDENTIFIER, "textures/entity/puzzle_panel_line_fill.png")
+        Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "textures/entity/puzzle_panel_line_fill.png")
     val solutionFill: Identifier =
-        Identifier.of(Witness.IDENTIFIER, "textures/entity/puzzle_panel_solution_fill.png")
+        Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "textures/entity/puzzle_panel_solution_fill.png")
 
     fun backdrop(color: DyeColor): Identifier =
-        Identifier.of(
+        Identifier.fromNamespaceAndPath(
             Witness.IDENTIFIER,
             "textures/entity/puzzle_panel_backdrop_${color.name.lowercase(Locale.ROOT)}.png"
         )

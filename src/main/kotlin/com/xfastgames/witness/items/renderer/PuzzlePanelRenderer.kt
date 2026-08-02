@@ -7,12 +7,12 @@ import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.utils.*
 import com.xfastgames.witness.utils.guava.edgeValueOf
 import com.xfastgames.witness.utils.guava.incidentEdges
-import net.minecraft.client.render.RenderLayers
-import net.minecraft.client.render.command.OrderedRenderCommandQueue
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.item.ItemStack
-import net.minecraft.util.DyeColor
-import net.minecraft.util.math.BlockPos
+import net.minecraft.client.renderer.rendertype.RenderTypes
+import net.minecraft.client.renderer.SubmitNodeCollector
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.DyeColor
+import net.minecraft.core.BlockPos
 import org.joml.Vector3f
 import kotlin.math.*
 
@@ -23,8 +23,8 @@ import kotlin.math.*
  * - The old `BuiltinItemRendererRegistry.DynamicItemRenderer` (custom in-hand / GUI / ground item
  *   rendering incl. the custom arm pose) was removed with the 1.21.4 item model rework. See
  *   TODO(migration) in [com.xfastgames.witness.items.PuzzlePanelItem].
- * - World rendering now goes through the ordered render command queue instead of a
- *   VertexConsumerProvider; geometry is submitted per render layer via `submitCustom`.
+ * - Level rendering now goes through the ordered render command queue instead of a
+ *   MultiBufferSource; geometry is submitted per render layer via `submitCustom`.
  */
 @Suppress("UnstableApiUsage")
 object PuzzlePanelRenderer {
@@ -56,7 +56,7 @@ object PuzzlePanelRenderer {
     //   the face reads.
     //
     // What a real fix needs (not more Z bias):
-    //   1. A dedicated RenderLayer / RenderPipeline for these cues that either
+    //   1. A dedicated RenderType / RenderPipeline for these cues that either
     //        - depth-tests with a small reliable polygon/Z offset that stays coplanar under
     //          perspective, or
     //        - disables depth test (or ALWAYS) for this overlay only, depth-write off, so on-face
@@ -80,8 +80,8 @@ object PuzzlePanelRenderer {
 
     fun renderPanel(
         stack: ItemStack,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         light: Int,
         overlay: Int,
         framePos: BlockPos? = null,
@@ -97,8 +97,8 @@ object PuzzlePanelRenderer {
      */
     fun renderPanel(
         puzzle: Panel,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         light: Int,
         overlay: Int,
         framePos: BlockPos? = null,
@@ -128,12 +128,12 @@ object PuzzlePanelRenderer {
     private fun renderAttractPulse(
         puzzle: Panel,
         framePos: BlockPos,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         light: Int,
         overlay: Int
     ) {
-        val frame: PanelAttractPulse.Frame = PanelAttractPulse.sample(framePos) ?: return
+        val frame: PanelAttractPulse.Sample = PanelAttractPulse.sample(framePos) ?: return
         val nodes: List<Node> = when (frame.kind) {
             PanelAttractPulse.Kind.START ->
                 puzzle.graph.nodes().filter { it.modifier == Modifier.START }
@@ -175,12 +175,12 @@ object PuzzlePanelRenderer {
         val maxDimension: Int = maxOf(puzzle.width, puzzle.height)
         val maxScale: Float = 1f / maxDimension
 
-        matrices.push()
+        matrices.pushPose()
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, CUE_Z_BIAS)
 
         val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) FULL_BRIGHT else light
-        queue.submitCustom(matrices, panelCueLayer()) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, panelCueLayer()) { entry, consumer ->
             withRenderContext(entry, consumer, layerLight, overlay) {
                 nodes.forEach { node ->
                     ring(
@@ -196,7 +196,7 @@ object PuzzlePanelRenderer {
             }
         }
 
-        matrices.pop()
+        matrices.popPose()
     }
 
     /**
@@ -205,18 +205,18 @@ object PuzzlePanelRenderer {
     private fun renderErrorFlash(
         puzzle: Panel,
         framePos: BlockPos,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         light: Int,
         overlay: Int
     ) {
-        val frame: PanelErrorFlash.Frame = PanelErrorFlash.sample(framePos) ?: return
+        val frame: PanelErrorFlash.Sample = PanelErrorFlash.sample(framePos) ?: return
         if (frame.alpha <= 0.02f || frame.positions.isEmpty()) return
 
         val maxDimension: Int = maxOf(puzzle.width, puzzle.height)
         val maxScale: Float = 1f / maxDimension
 
-        matrices.push()
+        matrices.pushPose()
         matrices.scale(maxScale, maxScale, 1f)
         // Slightly further out than the attract ring so red wins when both are live.
         matrices.translate(.0, .0, CUE_Z_BIAS - 0.005)
@@ -224,7 +224,7 @@ object PuzzlePanelRenderer {
         val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) FULL_BRIGHT else light
         // Translucent: alpha from blink. Opaque: solid on/off (alpha ignored).
         val a: Float = if (USE_TRANSLUCENT_PANEL_CUES) frame.alpha else 1f
-        queue.submitCustom(matrices, panelCueLayer()) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, panelCueLayer()) { entry, consumer ->
             withRenderContext(entry, consumer, layerLight, overlay) {
                 frame.positions.forEach { (x, y) ->
                     hexagon(
@@ -239,19 +239,19 @@ object PuzzlePanelRenderer {
             }
         }
 
-        matrices.pop()
+        matrices.popPose()
     }
 
     private fun panelCueLayer() =
         if (USE_TRANSLUCENT_PANEL_CUES) {
-            RenderLayers.entityTranslucentEmissive(PuzzlePanelTextures.solutionFill)
+            RenderTypes.entityTranslucentEmissive(PuzzlePanelTextures.solutionFill)
         } else {
-            RenderLayers.beaconBeam(PuzzlePanelTextures.solutionFill, false)
+            RenderTypes.beaconBeam(PuzzlePanelTextures.solutionFill, false)
         }
 
     /** Dye entity RGB as 0..1 floats. */
     private fun dyeRgb(color: DyeColor): Triple<Float, Float, Float> {
-        val rgb: Int = color.entityColor
+        val rgb: Int = color.getTextureDiffuseColor()
         return Triple(
             ((rgb shr 16) and 0xFF) / 255f,
             ((rgb shr 8) and 0xFF) / 255f,
@@ -272,8 +272,8 @@ object PuzzlePanelRenderer {
         backgroundColor: DyeColor,
         width: Int,
         height: Int,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         light: Int,
         overlay: Int
     ) {
@@ -282,27 +282,27 @@ object PuzzlePanelRenderer {
         val maxDimension: Int = maxOf(width, height)
         val maxScale: Float = 1f / maxDimension
 
-        matrices.push()
+        matrices.pushPose()
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.012)
 
         val backdrop = PuzzlePanelTextures.backdrop(backgroundColor)
-        queue.submitCustom(matrices, RenderLayers.beaconBeam(backdrop, false)) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, RenderTypes.beaconBeam(backdrop, false)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 hexagons.forEach { position -> hexagon(position, HEXAGON_RADIUS) }
             }
         }
 
-        matrices.pop()
+        matrices.popPose()
     }
 
     /** Where every hexagon on [graph] sits: on its node, or at the midpoint of its edge. */
     private fun symbolPositions(graph: ValueGraph<Node, Edge>): List<Vector3f> {
         val nodes: List<Vector3f> = graph.nodes()
-            .filter { node -> node.symbol == Symbol.HEXAGON }
+            .filter { node -> node.symbol == Atom.HEXAGON }
             .map { node -> Vector3f(node.x, node.y, 0f) }
         val edges: List<Vector3f> = graph.edges()
-            .filter { side -> graph.edgeValueOf(side)?.symbol == Symbol.HEXAGON }
+            .filter { side -> graph.edgeValueOf(side)?.symbol == Atom.HEXAGON }
             .map { side ->
                 val u: Node = side.nodeU()
                 val v: Node = side.nodeV()
@@ -313,17 +313,17 @@ object PuzzlePanelRenderer {
 
     fun renderBackground(
         dyeColor: DyeColor,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         light: Int,
         overlay: Int
     ) {
-        matrices.push()
+        matrices.pushPose()
         val backdropTexture = PuzzlePanelTextures.backdrop(dyeColor)
-        queue.submitCustom(matrices, RenderLayers.beaconBeam(backdropTexture, false)) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, RenderTypes.beaconBeam(backdropTexture, false)) { entry, consumer ->
             consumer.square(entry, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
         }
-        matrices.pop()
+        matrices.popPose()
     }
 
     private fun numberOfEdgesVisible(graph: ValueGraph<Node, Edge>, node: Node): Int =
@@ -353,8 +353,8 @@ object PuzzlePanelRenderer {
         graph: ValueGraph<Node, Edge>,
         width: Int,
         height: Int,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         light: Int,
         overlay: Int
     ) {
@@ -362,38 +362,38 @@ object PuzzlePanelRenderer {
         val maxDimension: Int = maxOf(width, height)
         val maxScale: Float = 1f / maxDimension
 
-        matrices.push()
+        matrices.pushPose()
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.01)
 
-        queue.submitCustom(matrices, RenderLayers.beaconBeam(PuzzlePanelTextures.lineFill, false)) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, RenderTypes.beaconBeam(PuzzlePanelTextures.lineFill, false)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 graph.nodes().forEach { node -> renderNode(graph, node) }
                 graph.edges().forEach { side -> renderEdge(graph, side) }
             }
         }
 
-        matrices.pop()
+        matrices.popPose()
     }
 
     fun renderLine(
         line: Graph<Node>,
         width: Int,
         height: Int,
-        matrices: MatrixStack,
-        queue: OrderedRenderCommandQueue,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
         light: Int,
         overlay: Int
     ) {
-        matrices.push()
-        if (line.nodes().isEmpty()) return matrices.pop()
+        matrices.pushPose()
+        if (line.nodes().isEmpty()) return matrices.popPose()
         val maxDimension: Int = maxOf(width, height)
         val maxScale: Float = 1f / maxDimension
 
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.011)
 
-        queue.submitCustom(matrices, RenderLayers.beaconBeam(PuzzlePanelTextures.solutionFill, false)) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, RenderTypes.beaconBeam(PuzzlePanelTextures.solutionFill, false)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 line.nodes().forEach { node ->
                     // Only the start point the line was picked up from fills its whole circle. A
@@ -413,7 +413,7 @@ object PuzzlePanelRenderer {
             }
         }
 
-        return matrices.pop()
+        return matrices.popPose()
     }
 
     private fun RenderContext.edge(start: Vector3f, end: Vector3f, thickness: Float, edge: Edge) {
@@ -447,12 +447,12 @@ object PuzzlePanelRenderer {
             }
 
             vertices.forEach { position ->
-                vertexConsumer.vertex(entry.positionMatrix, position.x, position.y, position.z)
-                    .color(1f, 1f, 1f, 1f)
-                    .texture(0f, 1f)
-                    .overlay(overlay)
-                    .light(light)
-                    .normal(entry, .5f, .5f, .5f)
+                vertexConsumer.addVertex(entry.pose(), position.x, position.y, position.z)
+                    .setColor(1f, 1f, 1f, 1f)
+                    .setUv(0f, 1f)
+                    .setOverlay(overlay)
+                    .setLight(light)
+                    .setNormal(entry, .5f, .5f, .5f)
             }
         }
 

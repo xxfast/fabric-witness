@@ -1,26 +1,44 @@
 package com.xfastgames.witness.utils
 
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.Mouse
-import net.minecraft.client.util.InputUtil
+import com.mojang.blaze3d.platform.InputConstants
+import net.minecraft.client.Minecraft
+import net.minecraft.client.MouseHandler
 import org.lwjgl.glfw.GLFW.GLFW_CURSOR_HIDDEN
 import org.lwjgl.glfw.GLFW.GLFW_CURSOR_NORMAL
 
-fun Mouse.show() =
-    InputUtil.setCursorParameters(MinecraftClient.getInstance().window, GLFW_CURSOR_NORMAL, this.x, this.y)
+fun MouseHandler.show() =
+    InputConstants.grabOrReleaseMouse(Minecraft.getInstance().window, GLFW_CURSOR_NORMAL, this.xpos(), this.ypos())
 
-fun Mouse.hide() =
-    InputUtil.setCursorParameters(MinecraftClient.getInstance().window, GLFW_CURSOR_HIDDEN, this.x, this.y)
+fun MouseHandler.hide() =
+    InputConstants.grabOrReleaseMouse(Minecraft.getInstance().window, GLFW_CURSOR_HIDDEN, this.xpos(), this.ypos())
 
-fun Mouse.setPosition(x: Double = this.x, y: Double = this.y, state: Int = GLFW_CURSOR_NORMAL) {
-    val client: MinecraftClient = MinecraftClient.getInstance()
-    InputUtil.setCursorParameters(client.window, state, x, y)
+/**
+ * [x]/[y] are **GLFW screen** coordinates (same space as [MouseHandler.xpos]/[ypos]),
+ * not framebuffer pixels and not GUI-scaled coords.
+ */
+fun MouseHandler.setPosition(x: Double = this.xpos(), y: Double = this.ypos(), state: Int = GLFW_CURSOR_NORMAL) {
+    val client: Minecraft = Minecraft.getInstance()
+    InputConstants.grabOrReleaseMouse(client.window, state, x, y)
 }
 
-fun Mouse.setPosition(position: MousePosition) {
+fun MouseHandler.setPosition(position: MousePosition) {
     setPosition(position.x, position.y)
+}
+
+/**
+ * Move the OS cursor to a **GUI-scaled** position (Screen / mouseMoved space).
+ *
+ * 26.2 Window splits sizes: [com.mojang.blaze3d.platform.Window.getWidth] is framebuffer,
+ * [com.mojang.blaze3d.platform.Window.getScreenWidth] is what GLFW uses for the cursor.
+ * Multiplying by framebuffer/guiScale on retina warps 2× off and breaks solver tip-lock.
+ */
+fun MouseHandler.setGuiPosition(guiX: Double, guiY: Double, state: Int = GLFW_CURSOR_HIDDEN) {
+    val window = Minecraft.getInstance().window
+    val screenX = guiX * window.screenWidth / window.guiScaledWidth
+    val screenY = guiY * window.screenHeight / window.guiScaledHeight
+    setPosition(screenX, screenY, state)
 }
 
 class MousePosition(val x: Double, val y: Double)
 
-fun Mouse.position(): MousePosition = MousePosition(this.x, this.y)
+fun MouseHandler.position(): MousePosition = MousePosition(this.xpos(), this.ypos())

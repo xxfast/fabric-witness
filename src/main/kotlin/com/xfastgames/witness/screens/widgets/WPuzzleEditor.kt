@@ -7,7 +7,7 @@ import com.xfastgames.witness.items.data.Edge
 import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
-import com.xfastgames.witness.items.data.Symbol
+import com.xfastgames.witness.items.data.Atom
 import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.renderer.PuzzlePanelTextures
 import com.xfastgames.witness.utils.fill
@@ -21,11 +21,11 @@ import io.github.cottonmc.cotton.gui.widget.WWidget
 import io.github.cottonmc.cotton.gui.widget.data.InputResult
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
-import net.minecraft.client.gui.Click
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.inventory.Inventory
-import net.minecraft.item.ItemStack
-import net.minecraft.util.Identifier
+import net.minecraft.client.input.MouseButtonEvent
+import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.world.Container
+import net.minecraft.world.item.ItemStack
+import net.minecraft.resources.Identifier
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -48,7 +48,7 @@ private const val HEXAGON_LINE_FRACTION = 3f / 4f
 private const val TEXTURE_COLOR = -1
 
 class WPuzzleEditor(
-    private val inventory: Inventory,
+    private val inventory: Container,
     private val outputSlotIndex: Int
 ) : WWidget() {
 
@@ -73,15 +73,15 @@ class WPuzzleEditor(
     }
 
     /**
-     * The editor stays in DrawContext space so its pixels and click targets share one transform.
+     * The editor stays in GuiGraphicsExtractor space so its pixels and click targets share one transform.
      * Its backdrop, graph shapes, edge modifiers, and solution overlay deliberately mirror
      * [com.xfastgames.witness.items.renderer.PuzzlePanelRenderer].
      */
     @Environment(EnvType.CLIENT)
     @Suppress("UnstableApiUsage")
-    override fun paint(context: DrawContext, x: Int, y: Int, mouseX: Int, mouseY: Int) {
+    override fun paint(context: GuiGraphicsExtractor, x: Int, y: Int, mouseX: Int, mouseY: Int) {
         backgroundPainter.paintBackground(context, x, y, this)
-        val puzzleStack: ItemStack = inventory.getStack(outputSlotIndex)
+        val puzzleStack: ItemStack = inventory.getItem(outputSlotIndex)
         if (puzzleStack.isEmpty) return
 
         val puzzle: Panel = puzzleStack.panel ?: Panel.DEFAULT
@@ -113,7 +113,7 @@ class WPuzzleEditor(
     }
 
     private fun drawGraph(
-        context: DrawContext,
+        context: GuiGraphicsExtractor,
         graph: ValueGraph<Node, Edge>,
         px: (Float) -> Int,
         py: (Float) -> Int,
@@ -154,7 +154,7 @@ class WPuzzleEditor(
     }
 
     private fun drawSymbols(
-        context: DrawContext,
+        context: GuiGraphicsExtractor,
         puzzle: Panel,
         px: (Float) -> Int,
         py: (Float) -> Int,
@@ -163,16 +163,16 @@ class WPuzzleEditor(
         val graph: ValueGraph<Node, Edge> = puzzle.graph
         // The panel's own backdrop colour, so a hexagon reads as a notch punched through whatever
         // covers it: the grid line while untraced, the solution line once drawn.
-        val color: Int = 0xFF000000.toInt() or (puzzle.backgroundColor.entityColor and 0xFFFFFF)
+        val color: Int = 0xFF000000.toInt() or (puzzle.backgroundColor.getTextureDiffuseColor() and 0xFFFFFF)
         val diameter: Int = (lineThickness * HEXAGON_LINE_FRACTION).roundToInt().coerceAtLeast(1)
 
         graph.nodes()
-            .filter { node -> node.symbol == Symbol.HEXAGON }
+            .filter { node -> node.symbol == Atom.HEXAGON }
             .forEach { node -> hexagon(context, px(node.x), py(node.y), diameter, color) }
 
         graph.edges().forEach { side ->
             val edge: Edge = graph.edgeValueOf(side) ?: return@forEach
-            if (edge.symbol != Symbol.HEXAGON) return@forEach
+            if (edge.symbol != Atom.HEXAGON) return@forEach
             val u: Node = side.nodeU()
             val v: Node = side.nodeV()
             // An edge hexagon marks the edge as a whole, so it sits at the midpoint.
@@ -181,7 +181,7 @@ class WPuzzleEditor(
     }
 
     private fun drawSolution(
-        context: DrawContext,
+        context: GuiGraphicsExtractor,
         line: Graph<Node>,
         px: (Float) -> Int,
         py: (Float) -> Int,
@@ -197,7 +197,7 @@ class WPuzzleEditor(
     }
 
     private fun drawBrokenLine(
-        context: DrawContext,
+        context: GuiGraphicsExtractor,
         side: EndpointPair<Node>,
         px: (Float) -> Int,
         py: (Float) -> Int,
@@ -218,7 +218,7 @@ class WPuzzleEditor(
     }
 
     private fun drawLine(
-        context: DrawContext,
+        context: GuiGraphicsExtractor,
         side: EndpointPair<Node>,
         px: (Float) -> Int,
         py: (Float) -> Int,
@@ -237,7 +237,7 @@ class WPuzzleEditor(
     }
 
     private fun drawLine(
-        context: DrawContext,
+        context: GuiGraphicsExtractor,
         x1: Float,
         y1: Float,
         x2: Float,
@@ -273,7 +273,7 @@ class WPuzzleEditor(
             return
         }
 
-        val matrices = context.matrices
+        val matrices = context.pose()
         matrices.pushMatrix()
         matrices.translate(x1, y1)
         matrices.rotate(atan2(dy, dx))
@@ -290,7 +290,7 @@ class WPuzzleEditor(
     }
 
     private fun drawSquare(
-        context: DrawContext,
+        context: GuiGraphicsExtractor,
         centerX: Int,
         centerY: Int,
         size: Int,
@@ -311,7 +311,7 @@ class WPuzzleEditor(
      * Rasterizes a disc into an exact [diameter]-pixel box. This matters for odd line widths:
      * rounding a 4.5px radius to 5 made every 9px junction protrude by one pixel.
      */
-    private fun drawCircle(context: DrawContext, x: Int, y: Int, diameter: Int, solution: Boolean) {
+    private fun drawCircle(context: GuiGraphicsExtractor, x: Int, y: Int, diameter: Int, solution: Boolean) {
         val red: Float = if (solution) SOLUTION_RED else GRAPH_RED
         val green: Float = if (solution) SOLUTION_GREEN else GRAPH_GREEN
         val blue: Float = if (solution) SOLUTION_BLUE else GRAPH_BLUE
@@ -350,10 +350,10 @@ class WPuzzleEditor(
         start + (end - start) * fraction
 
     @Suppress("UnstableApiUsage")
-    override fun onClick(click: Click, doubled: Boolean): InputResult {
+    override fun onClick(click: MouseButtonEvent, doubled: Boolean): InputResult {
         val x: Int = click.x().toInt()
         val y: Int = click.y().toInt()
-        val inputStack: ItemStack = inventory.getStack(outputSlotIndex)
+        val inputStack: ItemStack = inventory.getItem(outputSlotIndex)
         if (inputStack.isEmpty) return InputResult.IGNORED
         val inputPuzzle: Panel = inputStack.panel ?: return InputResult.IGNORED
 

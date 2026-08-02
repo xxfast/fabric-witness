@@ -1,8 +1,14 @@
 package com.xfastgames.witness.utils
 
-import net.minecraft.client.MinecraftClient
+import net.minecraft.client.Minecraft
 
-fun MinecraftClient.closeScreen() {
-    this.currentScreen?.close()
-    this.setScreen(null)
+fun Minecraft.closeScreen() {
+    this.gui.screen()?.onClose()
+    this.gui.setScreen(null)
+}
+
+/** Hud only exposes toggle/isHidden; flip until it matches [hidden]. */
+fun Minecraft.setHudHidden(hidden: Boolean) {
+    val hud = gui.hud
+    if (hud.isHidden != hidden) hud.toggle()
 }

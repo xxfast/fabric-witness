@@ -19,16 +19,19 @@ This is also a companion mod for The Witness Minecraft [youtube](https://www.you
 - Load it up with [fabric mod loader](https://fabricmc.net/)
 
 ## Requirements
-This build targets **Minecraft 1.21.11** (Java 21). 
+This build targets **Minecraft 26.2** (Java 25, official Mojang names).
 
-For the details of the migration from 1.17.1, see [`MIGRATION.md`](MIGRATION.md).
+For the migration notes (1.17.1 → 1.21.11 → 26.2), see [`MIGRATION.md`](MIGRATION.md).
 
-Make sure to also load in these dependencies
+| Dependency                                                                | Version                        | Required             |
+|---------------------------------------------------------------------------|--------------------------------|----------------------|
+| [Fabric Loader](https://fabricmc.net/)                                    | `>=0.19.3`                     | yes                  |
+| [Fabric API](https://modrinth.com/mod/fabric-api)                         | `0.156.0+26.2`                 | yes                  |
+| [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) | `1.13.13+kotlin.2.4.10`        | yes                  |
+| [LibGui](https://github.com/CottonMC/LibGui)                              | `17.0.0+26.2`                  | bundled (jar-in-jar) |
+| [ModMenu](https://modrinth.com/mod/modmenu)                               | `20.0.1`                       | optional             |
 
-1. [fabric-api](https://www.curseforge.com/minecraft/mc-mods/fabric-api)
-2. [fabric-language-kotlin](https://www.curseforge.com/minecraft/mc-mods/fabric-language-kotlin)
-3. [LibGui](https://github.com/CottonMC/LibGui) 
-4. [ModMenu](https://www.curseforge.com/minecraft/mc-mods/modmenu)
+Versions are pinned in `buildSrc/src/main/kotlin/Dependencies.kt`.
 
 ## Releasing
 

@@ -14,15 +14,21 @@ import com.xfastgames.witness.recipes.PanelDyeRecipe
 import com.xfastgames.witness.screens.composer.PUZZLE_COMPOSER_SCREEN_HANDLER
 import com.xfastgames.witness.sounds.WitnessSounds
 import net.fabricmc.api.ModInitializer
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
-import net.minecraft.block.Block
-import net.minecraft.item.Item
-import net.minecraft.item.ItemGroups
+import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.item.CreativeModeTab
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.item.Item
 
 class Witness : ModInitializer {
 
     companion object {
         const val IDENTIFIER = "witness"
+
+        private fun creativeTab(path: String): ResourceKey<CreativeModeTab> =
+            ResourceKey.create(Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace(path))
 
         val BLOCKS: List<Block> = listOf(
             StainedStone.BLOCK,
@@ -48,7 +54,7 @@ class Witness : ModInitializer {
             IronStandBlock.BLOCK
         )
 
-        /** Items shown in the building blocks creative tab (was ItemGroup.BUILDING_BLOCKS). */
+        /** Items shown in the building blocks creative tab (was CreativeModeTab.BUILDING_BLOCKS). */
         val BUILDING_ITEMS: List<Item> = listOf(
             StainedStone.BLOCK_ITEM,
             StainedStoneStairs.BLOCK_ITEM,
@@ -61,7 +67,7 @@ class Witness : ModInitializer {
             CedarLog.BLOCK_ITEM
         )
 
-        /** Items shown in the natural tab (was ItemGroup.DECORATIONS, removed in 1.19.3+). */
+        /** Items shown in the natural tab (was CreativeModeTab.DECORATIONS, removed in 1.19.3+). */
         val NATURAL_ITEMS: List<Item> = listOf(
             OakLeavesRunners.BLOCK_ITEM,
             Yucca.BLOCK_ITEM,
@@ -73,7 +79,7 @@ class Witness : ModInitializer {
             PinkCedarLeaves.BLOCK_ITEM
         )
 
-        /** Items shown in the redstone tab (was ItemGroup.REDSTONE). */
+        /** Items shown in the redstone tab (was CreativeModeTab.REDSTONE). */
         val REDSTONE_ITEMS: List<Item> = listOf(
             StainedStoneBricksButton.BLOCK_ITEM,
             IronPuzzleFrameBlock.BLOCK_ITEM,
@@ -82,7 +88,7 @@ class Witness : ModInitializer {
             PuzzlePanelItem.ITEM
         )
 
-        /** Items shown in the ingredients tab (was ItemGroup.MATERIALS). */
+        /** Items shown in the ingredients tab (was CreativeModeTab.MATERIALS). */
         val INGREDIENT_ITEMS: List<Item> = listOf(
             AncientPuzzleTablet.ITEM
         )
@@ -106,14 +112,15 @@ class Witness : ModInitializer {
         // Screen handler must be registered during common init (registries freeze afterwards).
         PUZZLE_COMPOSER_SCREEN_HANDLER
 
-        // Item groups: the `Item.Settings().group(...)` API was replaced by ItemGroupEvents (1.19.3+).
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS)
-            .register { entries -> BUILDING_ITEMS.forEach(entries::add) }
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.NATURAL)
-            .register { entries -> NATURAL_ITEMS.forEach(entries::add) }
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.REDSTONE)
-            .register { entries -> REDSTONE_ITEMS.forEach(entries::add) }
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS)
-            .register { entries -> INGREDIENT_ITEMS.forEach(entries::add) }
+        // Item groups: CreativeModeTabs.* keys are private in 1.21.11, so build ResourceKeys by path.
+        // FabricItemGroupEntries implements CreativeModeTab.Output → accept(ItemLike).
+        CreativeModeTabEvents.modifyOutputEvent(creativeTab("building_blocks"))
+            .register { entries -> BUILDING_ITEMS.forEach { entries.accept(it) } }
+        CreativeModeTabEvents.modifyOutputEvent(creativeTab("natural_blocks"))
+            .register { entries -> NATURAL_ITEMS.forEach { entries.accept(it) } }
+        CreativeModeTabEvents.modifyOutputEvent(creativeTab("redstone_blocks"))
+            .register { entries -> REDSTONE_ITEMS.forEach { entries.accept(it) } }
+        CreativeModeTabEvents.modifyOutputEvent(creativeTab("ingredients"))
+            .register { entries -> INGREDIENT_ITEMS.forEach { entries.accept(it) } }
     }
 }

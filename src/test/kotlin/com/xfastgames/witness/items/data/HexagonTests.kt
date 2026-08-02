@@ -4,7 +4,7 @@ import com.google.common.graph.MutableValueGraph
 import com.google.common.graph.ValueGraphBuilder
 import com.google.common.truth.Truth.assertThat
 import com.xfastgames.witness.utils.guava.emptyGraph
-import net.minecraft.util.DyeColor
+import net.minecraft.world.item.DyeColor
 import org.junit.jupiter.api.Test
 
 /**
@@ -56,7 +56,7 @@ class HexagonTests {
         val panel: Panel = panelOf(nodeHexagons = setOf(topLeft))
 
         assertThat(panel.unsatisfiedHexagons(panel.shortWay()))
-            .containsExactly(Hexagon.OnNode(topLeft.copy(symbol = Symbol.HEXAGON)))
+            .containsExactly(Hexagon.OnNode(topLeft.copy(symbol = Atom.HEXAGON)))
     }
 
     @Test
@@ -91,7 +91,7 @@ class HexagonTests {
     }
 
     @Test
-    fun `Order of crossing does not matter`() {
+    fun `OrderPolicy of crossing does not matter`() {
         val panel: Panel = panelOf(nodeHexagons = setOf(corner, topRight))
 
         assertThat(panel.unsatisfiedHexagons(panel.shortWay())).isEmpty()
@@ -122,13 +122,13 @@ class HexagonTests {
         edgeHexagons: Set<Pair<Node, Node>> = emptySet()
     ): Panel {
         fun mark(node: Node): Node =
-            if (node in nodeHexagons) node.copy(symbol = Symbol.HEXAGON) else node
+            if (node in nodeHexagons) node.copy(symbol = Atom.HEXAGON) else node
 
         fun edgeFor(u: Node, v: Node): Edge {
             val dotted: Boolean = edgeHexagons.any { (a, b) ->
                 (a == u && b == v) || (a == v && b == u)
             }
-            return Edge(Modifier.NORMAL, if (dotted) Symbol.HEXAGON else Symbol.NONE)
+            return Edge(Modifier.NORMAL, if (dotted) Atom.HEXAGON else Atom.NONE)
         }
 
         val graph: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected().build()

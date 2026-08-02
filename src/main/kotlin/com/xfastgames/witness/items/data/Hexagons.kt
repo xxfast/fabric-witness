@@ -15,13 +15,13 @@ sealed class Hexagon {
     data class OnEdge(val u: Node, val v: Node) : Hexagon()
 }
 
-/** Every hexagon on this panel, in no particular order. Order never matters to the rule. */
+/** Every hexagon on this panel, in no particular order. OrderPolicy never matters to the rule. */
 fun Panel.hexagons(): List<Hexagon> {
     val nodes: List<Hexagon> = graph.nodes()
-        .filter { node -> node.symbol == Symbol.HEXAGON }
+        .filter { node -> node.symbol == Atom.HEXAGON }
         .map { node -> Hexagon.OnNode(node) }
     val edges: List<Hexagon> = graph.edges()
-        .filter { side -> graph.edgeValue(side.nodeU(), side.nodeV()).orElse(null)?.symbol == Symbol.HEXAGON }
+        .filter { side -> graph.edgeValue(side.nodeU(), side.nodeV()).orElse(null)?.symbol == Atom.HEXAGON }
         .map { side -> Hexagon.OnEdge(side.nodeU(), side.nodeV()) }
     return nodes + edges
 }
