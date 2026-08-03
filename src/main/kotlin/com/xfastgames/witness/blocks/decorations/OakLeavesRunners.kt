@@ -32,6 +32,8 @@ class OakLeavesRunners(settings: BlockBehaviour.Properties) : VineBlock(settings
     override fun onClient() {
         // Fixed foliage tint. Item tints are data-driven via the item model (no ITEM colour registry).
         // BlockRenderLayerMap was removed in Fabric 26.x; translucent layer must come from the model.
-        BlockColorRegistry.register(listOf(BlockTintSources.constant(0xA0AB42)), BLOCK)
+        // Tints are ARGB in 26.x and multiplied into the quad alpha as well, so the alpha byte must
+        // be set: a bare 0xRRGGBB has alpha 0 and renders the block fully transparent.
+        BlockColorRegistry.register(listOf(BlockTintSources.constant(0xFFA0AB42.toInt())), BLOCK)
     }
 }
