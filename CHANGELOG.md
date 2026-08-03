@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-08-03
+
+### Added
+
+- Puzzle panels can actually be solved
+  - The line traces from a start point, refuses to cross itself, and won't cross broken edges
+  - Right-click submits. Releasing anywhere but an end point aborts instead of failing
+  - Hexagon dots must all be covered; miss one and the solution is rejected
+
+- Added hexagon dots
+  - Place them on nodes or edges in the composer
+
+- Added tutorial panels
+  - New per-panel tutorial flag, toggled from the composer
+  - Tutorial panels pulse their start and end points, and flash the dots you missed on a rejection
+  - Panels made before this version read as not-tutorial
+
+- Added the full panel sound set
+  - Tracing start/abort, path complete, success, failure, potential failure, and start/end point
+    scintillation, plus composer menu sounds
+
+- Added the grid upgrade recipe
+  - Feed a panel and ancient puzzle tablets back into a crafting table to grow its grid
+  - Keeps the panel's colour, its marks, and its accumulated cost
+
+### Changed
+
+- Support for **Minecraft 26.2** (up from 1.17.1)
+  - Needs Java 25. See the README for the Fabric API, Fabric Language Kotlin, and LibGui versions
+
+- Panel data now lives in a `witness:panel` data component instead of stack NBT
+  - Note: panels crafted before 1.20.5 lose their puzzle on load. Blocks and world state are fine
+
+- Crafting recipes collapsed from 76 JSONs to 23
+  - Per-colour dye and per-size grid recipes are now component-aware recipes that carry the panel through
+
+- The composer lost its dye slot; recolouring is the `panel_dye` recipe
+
+- The composer's editor preview now matches how the panel renders in the world: same dyed backdrop,
+  same node, endpoint, start, break, and solution styling
+
+### Fixed
+
+- Panels can be retrieved from an iron puzzle frame by attacking it again
+- Puzzle panels render their live puzzle in hand, on the ground, and in the GUI again
+- Dye and recycle recipes show up in the recipe book again
+- Grid upgrade recipes no longer silently fail to load
+- Click coordinates on a panel no longer drift from where the line actually goes
+- `OakLeavesRunners` got its item tint back
+
 ## [0.11.0] - 2021-08-14
 
 ### Added

@@ -37,9 +37,15 @@ Versions are pinned in `buildSrc/src/main/kotlin/Dependencies.kt`.
 
 1. Update the mod version in `buildSrc/src/main/kotlin/Info.kt`
 2. Add a changelog entry in `CHANGELOG.md`
-3. Commit with a message like `Prepare for relase vX.Y.Z`
-4. Tag with `vX.Y.Z`
-5. Push branch, and the tags
+3. Run `./gradlew clean build` and check `fabric.mod.json` in the jar reports the new version.
+   `clean` is not optional: `processResources` doesn't track `Info.kt` as an input, so a plain
+   `build` after a version bump ships a jar with the old version in it.
+4. Commit with a message like `Prepare for release vX.Y.Z`
+5. Tag with `vX.Y.Z`. The tag always goes on the version-bump commit, so anything else that belongs
+   in the release (CI changes, unrelated fixes) is reordered to land *before* it. A tag push runs
+   `.github/workflows/release.yml` as it exists in that tag's tree, so a workflow fix that isn't an
+   ancestor of the tag doesn't run.
+6. Push the branch first, then the tag, so the release build has the history it needs
 
 ## License
 
