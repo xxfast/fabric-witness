@@ -23,3 +23,7 @@ run/
 # Sounds
 /src/main/resources/assets/witness/sounds/pixelated/
 /src/main/resources/assets/witness/sounds/raw/
+
+# macos
+
+.DS_Store
