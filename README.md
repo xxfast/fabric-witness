@@ -3,7 +3,9 @@
 # fabric-witness
 
 ![Gradle build](https://github.com/xxfast/fabric-witness/workflows/Gradle%20build/badge.svg)
-[![Release](https://img.shields.io/github/v/release/xxfast/fabric-witness.svg?include_prereleases&logo=mojang-studios)](https://github.com/xxfast/fabric-witness/releases)
+[![Release](https://img.shields.io/github/v/release/xxfast/fabric-witness.svg?include_prereleases)](https://github.com/xxfast/fabric-witness/releases)
+![Minecraft](https://img.shields.io/badge/Minecraft-26.2-62B47A?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4IDgiIGZpbGw9IiNmZmYiPjxwYXRoIGQ9Ik0xIDFoMnYySDF6TTUgMWgydjJINXpNMyAzaDJ2MUgzek0yIDRoNHYySDJ6TTIgNmgxdjFIMnpNNSA2aDF2MUg1eiIvPjwvc3ZnPg==)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)
 
 <img src="https://user-images.githubusercontent.com/13775137/95962402-0e99ce00-0e52-11eb-87a4-a8959bb7aefe.png" align="center">
 
