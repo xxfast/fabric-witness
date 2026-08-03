@@ -25,13 +25,11 @@ This build targets **Minecraft 26.2** (Java 25, official Mojang names).
 
 For the migration notes (1.17.1 → 1.21.11 → 26.2), see [`MIGRATION.md`](MIGRATION.md).
 
-| Dependency                                                                | Version                        | Required             |
-|---------------------------------------------------------------------------|--------------------------------|----------------------|
-| [Fabric Loader](https://fabricmc.net/)                                    | `>=0.19.3`                     | yes                  |
-| [Fabric API](https://modrinth.com/mod/fabric-api)                         | `0.156.0+26.2`                 | yes                  |
-| [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) | `1.13.13+kotlin.2.4.10`        | yes                  |
-| [LibGui](https://github.com/CottonMC/LibGui)                              | `17.0.0+26.2`                  | bundled (jar-in-jar) |
-| [ModMenu](https://modrinth.com/mod/modmenu)                               | `20.0.1`                       | optional             |
+| Dependency                                                                | Version                 |
+|---------------------------------------------------------------------------|-------------------------|
+| [Fabric Loader](https://fabricmc.net/)                                    | `>=0.19.3`              |
+| [Fabric API](https://modrinth.com/mod/fabric-api)                         | `0.156.0+26.2`          |
+| [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) | `1.13.13+kotlin.2.4.10` |
 
 Versions are pinned in `buildSrc/src/main/kotlin/Dependencies.kt`.
 
