@@ -15,6 +15,7 @@ import com.xfastgames.witness.screens.composer.PUZZLE_COMPOSER_SCREEN_HANDLER
 import com.xfastgames.witness.sounds.WitnessSounds
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents
+import net.fabricmc.fabric.api.event.player.AttackBlockCallback
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
@@ -111,6 +112,12 @@ class Witness : ModInitializer {
         ENTITIES.size
         // Screen handler must be registered during common init (registries freeze afterwards).
         PUZZLE_COMPOSER_SCREEN_HANDLER
+
+        // Attacking a loaded puzzle frame pops the panel instead of breaking the frame, the way
+        // hitting an item frame drops its item. Returning SUCCESS cancels the break on both sides.
+        AttackBlockCallback.EVENT.register { player, world, _, pos, _ ->
+            IronPuzzleFrameBlock.retrieveOnAttack(player, world, pos)
+        }
 
         // Item groups: CreativeModeTabs.* keys are private in 1.21.11, so build ResourceKeys by path.
         // FabricItemGroupEntries implements CreativeModeTab.Output → accept(ItemLike).

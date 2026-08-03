@@ -17,6 +17,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
 import net.minecraft.sounds.SoundEvents
+import net.minecraft.sounds.SoundSource
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.LivingEntity
@@ -61,6 +62,35 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             IDENTIFIER
         )
         val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER)
+
+        /**
+         * Left-click retrieval, mirroring vanilla item frames: attacking a loaded frame pops the
+         * panel out and leaves the frame standing, so the frame only starts breaking once it is
+         * empty. Wired to `AttackBlockCallback` in [com.xfastgames.witness.Witness.onInitialize].
+         */
+        fun retrieveOnAttack(player: Player, world: Level, pos: BlockPos): InteractionResult {
+            // Cheap state check first, this runs for every block the player left-clicks.
+            val state: BlockState = world.getBlockState(pos)
+            if (state.block !is IronPuzzleFrameBlock) return InteractionResult.PASS
+
+            val entity: BlockEntity = world.getBlockEntity(pos) ?: return InteractionResult.PASS
+            if (entity !is PuzzleFrameBlockEntity) return InteractionResult.PASS
+            // An empty frame breaks normally, same as an empty item frame.
+            if (entity.inventory.items[0].isEmpty) return InteractionResult.PASS
+
+            // removeItemNoUpdate hands back the stack itself. removeItem(slot, amount) would
+            // split it, which empties the stack still sitting in the slot list.
+            val frameStack: ItemStack = entity.inventory.removeItemNoUpdate(0)
+
+            // ItemFrame.dropItem swallows the drop for creative players. popResource is already
+            // server-side only and respects the blockDrops gamerule.
+            if (!player.hasInfiniteMaterials())
+                Block.popResourceFromFace(world, pos, state.getValue(HORIZONTAL_FACING).opposite, frameStack)
+
+            world.playSound(player, pos, SoundEvents.ITEM_FRAME_REMOVE_ITEM, SoundSource.BLOCKS, 1f, 1f)
+            world.setBlock(pos, state.setValue(ENABLED, false), Block.UPDATE_ALL)
+            return InteractionResult.SUCCESS
+        }
     }
 
     init {
@@ -258,20 +288,16 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
 
             // when there is an item in the frame and player is sneaking
             !inventory.items[0].isEmpty && player.isShiftKeyDown -> {
-                val frameStack: ItemStack = inventory.items[0]
-                when {
-                    player.mainHandItem.isEmpty -> {
-                        inventory.removeItem(0, inventory.getItem(0).count)
-                        player.setItemInHand(InteractionHand.MAIN_HAND, frameStack)
-                    }
-
-                    player.offhandItem.isEmpty -> {
-                        inventory.removeItem(0, inventory.getItem(0).count)
-                        player.setItemInHand(InteractionHand.OFF_HAND, frameStack)
-                    }
-
+                val freeHand: InteractionHand = when {
+                    player.mainHandItem.isEmpty -> InteractionHand.MAIN_HAND
+                    player.offhandItem.isEmpty -> InteractionHand.OFF_HAND
                     else -> return InteractionResult.FAIL
                 }
+
+                // removeItemNoUpdate hands back the stack itself. removeItem(slot, amount) would
+                // split it, which empties the stack still sitting in the slot list.
+                val frameStack: ItemStack = inventory.removeItemNoUpdate(0)
+                player.setItemInHand(freeHand, frameStack)
             }
 
             // when there's a panel and player is not sneaking
