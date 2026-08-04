@@ -12,9 +12,16 @@ import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PU
 import com.xfastgames.witness.screens.widgets.WPuzzleEditor
 import com.xfastgames.witness.screens.widgets.WRadioGroup
 import com.xfastgames.witness.screens.widgets.WRadioImageButton
+import com.xfastgames.witness.screens.widgets.WSideTab
+import com.xfastgames.witness.screens.widgets.WSideTabGroup
+import com.xfastgames.witness.screens.widgets.WSideTabPosition
 import com.xfastgames.witness.screens.widgets.icons.BreakIcon
 import com.xfastgames.witness.screens.widgets.icons.EndIcon
+import com.xfastgames.witness.screens.widgets.icons.EraserIcon
+import com.xfastgames.witness.screens.widgets.icons.GridTabIcon
 import com.xfastgames.witness.screens.widgets.icons.HexagonDotIcon
+import com.xfastgames.witness.screens.widgets.icons.ModifiersTabIcon
+import com.xfastgames.witness.screens.widgets.icons.PencilIcon
 import com.xfastgames.witness.screens.widgets.icons.StartIcon
 import com.xfastgames.witness.utils.*
 import com.xfastgames.witness.utils.guava.edgeValueOf
@@ -23,11 +30,13 @@ import io.github.cottonmc.cotton.gui.SyncedGuiDescription
 import io.github.cottonmc.cotton.gui.client.BackgroundPainter
 import io.github.cottonmc.cotton.gui.client.CottonInventoryScreen
 import io.github.cottonmc.cotton.gui.client.ScreenDrawing
+import io.github.cottonmc.cotton.gui.widget.WCardPanel
 import io.github.cottonmc.cotton.gui.widget.WItemSlot
 import io.github.cottonmc.cotton.gui.widget.WPlainPanel
 import io.github.cottonmc.cotton.gui.widget.WPlayerInvPanel
 import io.github.cottonmc.cotton.gui.widget.WToggleButton
 import io.github.cottonmc.cotton.gui.widget.WWidget
+import io.github.cottonmc.cotton.gui.widget.data.Vec2i
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType
@@ -106,7 +115,11 @@ class PuzzleComposerScreenDescription(
     composerInventory,
     null
 ) {
-    private val root: WPlainPanel = WPlainPanel().apply { setSize(170, 220) }
+    // Root is the whole window, tabs included: 32px wider than the panel body so the vanilla-style
+    // side tabs (rules/minecraft/04-puzzle-composer.md) have somewhere to live outside it. It has
+    // no background of its own; only [body] paints the vanilla panel.
+    private val root: WPlainPanel = WPlainPanel().apply { setSize(170 + 32, 220) }
+    private val body: WPlainPanel = WPlainPanel().apply { setSize(170, 220) }
     private val inputSlot = WItemSlot(composerInventory, PUZZLE_INPUT_SLOT_INDEX, 1, 1, true)
     private val outputSlot: WItemSlot = WItemSlot(composerInventory, PUZZLE_OUTPUT_SLOT_INDEX, 1, 1, true)
 
@@ -119,6 +132,37 @@ class PuzzleComposerScreenDescription(
     private val removeButton = WRadioImageButton(group = toggleGroup)
 
     private val editor = WPuzzleEditor(composerInventory, PUZZLE_OUTPUT_SLOT_INDEX)
+
+    // Two tabs (rules/minecraft/04-puzzle-composer.md): Modifiers, what a click already does above,
+    // and Grid (rules/minecraft/04-2-puzzle-composer-grid.md), what a click means once this second
+    // rail is showing. Selection is pure client state: never synced, never persisted.
+    private val tabGroup = WSideTabGroup()
+    private val modifiersTab = WSideTab(icon = ModifiersTabIcon, position = WSideTabPosition.TOP, group = tabGroup, isSelected = true)
+    private val gridTab = WSideTab(icon = GridTabIcon, position = WSideTabPosition.BOTTOM, group = tabGroup)
+
+    private val modifiersCard: WPlainPanel = WPlainPanel().apply {
+        add(startButton, 0, 0)
+        add(endButton, startButton.width + 2, 0)
+        add(breakButton, 0, 16)
+        add(hexagonDotButton, startButton.width + 2, 16)
+        add(addButton, 0, 32)
+        add(removeButton, startButton.width + 2, 32)
+    }
+    // The Grid rail is two tools rather than two actions: which one is armed decides whether a
+    // gesture draws or erases, the same shape of rail as the Modifiers tab above
+    // (rules/minecraft/04-2-puzzle-composer-grid.md#pencil-and-eraser).
+    private val gridToolGroup = WRadioGroup()
+    private val pencilButton = WRadioImageButton(icon = PencilIcon, group = gridToolGroup, isSelected = true)
+    private val eraserButton = WRadioImageButton(icon = EraserIcon, group = gridToolGroup)
+    private val gridCard: WPlainPanel = WPlainPanel().apply {
+        add(pencilButton, 0, 0)
+        add(eraserButton, pencilButton.width + 2, 0)
+    }
+    private val toolCards: WCardPanel = WCardPanel().apply {
+        add(modifiersCard, modifiersCard.width, modifiersCard.height)
+        add(gridCard, modifiersCard.width, modifiersCard.height)
+    }
+
     private val tutorialToggle = WToggleButton()
     private val playerInventoryPanel: WPlayerInvPanel = this.createPlayerInventoryPanel()
 
@@ -179,6 +223,9 @@ class PuzzleComposerScreenDescription(
 
     init {
         setRootPanel(root)
+        // The root origin is now the gutter to the left of the body (the side tabs live there), so
+        // the title needs to shift right by the same 32px; its vertical position is untouched.
+        setTitlePos(Vec2i(32 + 8, 6))
         inputSlot.setInputFilter { itemStack -> itemStack.item is PuzzlePanelItem }
         outputSlot.setInputFilter { itemStack -> itemStack.item is PuzzlePanelItem }
         inputSlot.setInsertingAllowed(true)
@@ -288,6 +335,44 @@ class PuzzleComposerScreenDescription(
             commit(updatedPuzzle)
         }
 
+        // Grid tab (rules/minecraft/04-2-puzzle-composer-grid.md): the editor reports where a
+        // gesture landed on the lattice, and the armed tool decides whether that draws or erases.
+        editor.setAnchorClickListener { x, y ->
+            val outputPuzzle: Panel =
+                composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: return@setAnchorClickListener
+            val updated: Panel = when {
+                // The pencil places a node joined to every neighbour already present, so restoring
+                // a chunk of carved grid is one click per node rather than one per segment.
+                gridToolGroup.selected != eraserButton -> outputPuzzle.withNodeAdded(x, y)
+                else -> outputPuzzle.nodeAt(x, y)
+                    ?.let { node -> outputPuzzle.withNodeRemoved(node) }
+                    ?: return@setAnchorClickListener
+            }
+            commit(updated)
+        }
+
+        // Fires for a click that landed on a segment and for every step of a stroke, since both mean
+        // the same thing: the pencil joins that pair, the eraser lifts it without taking its
+        // endpoints with it.
+        editor.setSegmentListener { fromX, fromY, toX, toY ->
+            val outputPuzzle: Panel =
+                composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: return@setSegmentListener
+            val updated: Panel = when {
+                gridToolGroup.selected != eraserButton -> outputPuzzle.withSegmentAdded(fromX, fromY, toX, toY)
+                else -> outputPuzzle.withSegmentRemoved(fromX, fromY, toX, toY)
+            } ?: return@setSegmentListener
+            commit(updated)
+        }
+
+        // Which tab is selected is pure client state: nothing to sync, nothing to persist.
+        tabGroup.onSelected = { selected ->
+            val mode: WPuzzleEditor.EditorMode =
+                if (selected == gridTab) WPuzzleEditor.EditorMode.GRID
+                else WPuzzleEditor.EditorMode.MODIFIERS
+            editor.mode = mode
+            toolCards.selectedIndex = if (mode == WPuzzleEditor.EditorMode.GRID) 1 else 0
+        }
+
         // TODO: Re-enable once these are implemented
         addButton.isEnabled = false
         removeButton.isEnabled = false
@@ -308,36 +393,52 @@ class PuzzleComposerScreenDescription(
         // Top-right inside the panel border (LibGui paints the bevel inward, so 0-edge clips).
         val toggleSize = 18
         val panelInset = 7
-        root.add(
+        body.add(
             tutorialToggle,
-            root.width - toggleSize - panelInset,
+            body.width - toggleSize - panelInset,
             panelInset,
             toggleSize,
             toggleSize
         )
+
         y += 8
-        root.add(editor, 46, y, editor.width, editor.height)
+        body.add(editor, 46, y, editor.width, editor.height)
         y += 3
-        root.add(inputSlot, 12, y)
+        body.add(inputSlot, 12, y)
         y += 24
-        root.add(startButton, marginStart, y)
-        root.add(endButton, marginStart + startButton.width + 2, y)
-        y += 16
-        root.add(breakButton, marginStart, y)
-        root.add(hexagonDotButton, marginStart + startButton.width + 2, y)
-        y += 16
-        root.add(addButton, marginStart, y)
-        root.add(removeButton, marginStart + startButton.width + 2, y)
-        y += 22
-        root.add(outputSlot, 12, y)
+        body.add(toolCards, marginStart, y, toolCards.width, toolCards.height)
+        y += toolCards.height + 6
+        body.add(outputSlot, 12, y)
         y += outputSlot.height + 10
-        root.add(playerInventoryPanel, marginStart, y)
+        body.add(playerInventoryPanel, marginStart, y)
+
+        // Body sits to the right of the gutter the side tabs live in, at the root's origin's
+        // former spot, so every coordinate above is unchanged from the single-panel layout.
+        val bodyX = 32
+        root.add(body, bodyX, 0, body.width, body.height)
+
+        // Two vanilla-style tabs (rules/minecraft/04-puzzle-composer.md) protruding from the
+        // outside left edge, like the advancements screen. tabX overlaps the body's left edge by
+        // 4px (bodyX=32, tabX=4, tab width=32: 4+32=36) so the sprite's seam reads as joined to the
+        // panel rather than floating next to it; tabs are added after body so that overlap paints
+        // on top of the panel border, matching how vanilla layers its own tab strip.
+        val tabX = 4
+        val tabTopY = 8
+        root.add(modifiersTab, tabX, tabTopY)
+        root.add(gridTab, tabX, tabTopY + modifiersTab.height)
+
         root.validate(this)
     }
 
     @Environment(EnvType.CLIENT)
     override fun addPainters() {
+        // Do not re-derive this from `root.backgroundPainter == null`: LibGui's own addPainters
+        // sets the *root* to VANILLA unless this flag is off, which would paint the window across
+        // the full root width and swallow the gutter the side tabs protrude from.
+        setUseDefaultRootBackground(false)
         super.addPainters()
+        // Only the body looks like a vanilla panel; the root is the window plus its tab gutter.
+        body.backgroundPainter = BackgroundPainter.VANILLA
         inputSlot.backgroundPainter = InputSlotBackgroundPainter(inputSlot, placeholderPuzzleTexture)
     }
 }

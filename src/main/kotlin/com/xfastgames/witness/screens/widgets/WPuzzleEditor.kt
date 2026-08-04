@@ -8,6 +8,10 @@ import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.Atom
+import com.xfastgames.witness.items.data.anchorPathBetween
+import com.xfastgames.witness.items.data.anchors
+import com.xfastgames.witness.items.data.nearestJoinablePair
+import com.xfastgames.witness.items.data.nodeAt
 import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.renderer.PuzzlePanelTextures
 import com.xfastgames.witness.utils.fill
@@ -33,6 +37,14 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 private const val CLICK_PADDING = 0.2f
+
+/**
+ * How near a Grid-tab drag has to pass an anchor to paint it, in panel units. Half a cell, so every
+ * point on the panel snaps to some anchor once a stroke is under way: a pencil that only registered
+ * within [CLICK_PADDING] of a centre would drop steps the moment the cursor drifted off the line.
+ * Clicks stay on the tighter [CLICK_PADDING], where landing between anchors should do nothing.
+ */
+private const val DRAG_PADDING = 0.5f
 private const val GRAPH_RED = .25f
 private const val GRAPH_GREEN = .25f
 private const val GRAPH_BLUE = .25f
@@ -46,20 +58,57 @@ private const val SOLUTION_BLUE = .9f
  */
 private const val HEXAGON_LINE_FRACTION = 3f / 4f
 private const val TEXTURE_COLOR = -1
+/**
+ * Anchor dots (rules/minecraft/04-2-puzzle-composer-grid.md) mark where a node *may* sit, not where
+ * one does, so they draw at a fraction of a real node's opacity: present enough to aim at, faint
+ * enough never to be mistaken for the node itself.
+ */
+private const val ANCHOR_DOT_ALPHA = 0.35f
 
 class WPuzzleEditor(
     private val inventory: Container,
     private val outputSlotIndex: Int
 ) : WWidget() {
 
+    /** Which tab this editor is currently serving: paint meaning onto the graph, or shape it. */
+    enum class EditorMode { MODIFIERS, GRID }
+
     @Suppress("UnstableApiUsage")
     fun interface OnClickListener {
         fun onClick(node: Node?, edge: Edge?, edgeNodePair: EndpointPair<Node>?)
     }
 
+    /** Reports an anchor *position*, in panel coordinates, clicked on the Grid tab. */
+    fun interface OnAnchorClickListener {
+        fun onAnchorClick(x: Float, y: Float)
+    }
+
+    /**
+     * Reports a Grid-tab gesture aimed at the segment between two adjacent anchor *positions*.
+     *
+     * Fires for a click that landed on a segment rather than a node, and once per anchor crossed
+     * during a drag, so a sweep paints along its whole stroke instead of only between where the
+     * press and the release landed. Both mean the same thing to the panel, so they share a listener.
+     */
+    fun interface OnSegmentListener {
+        fun onSegment(fromX: Float, fromY: Float, toX: Float, toY: Float)
+    }
+
     private val backgroundPainter: BackgroundPainter by lazy { BackgroundPainter.SLOT }
 
     private var onClickListener: OnClickListener? = null
+    private var onAnchorClickListener: OnAnchorClickListener? = null
+    private var onSegmentListener: OnSegmentListener? = null
+
+    var mode: EditorMode = EditorMode.MODIFIERS
+
+    /** What a Grid-tab press landed on: an anchor, or failing that the segment nearest the cursor. */
+    private var pressedAnchor: Node? = null
+    private var pressedSegment: Pair<Node, Node>? = null
+
+    /** The last anchor a drag painted, and whether it painted anything at all. */
+    private var lastPaintedAnchor: Node? = null
+    private var paintedDuringDrag: Boolean = false
 
     override fun getWidth(): Int = 18 * 6
     override fun getHeight(): Int = 18 * 6
@@ -70,6 +119,14 @@ class WPuzzleEditor(
 
     fun setClickListener(clickListener: OnClickListener) {
         onClickListener = clickListener
+    }
+
+    fun setAnchorClickListener(anchorClickListener: OnAnchorClickListener) {
+        onAnchorClickListener = anchorClickListener
+    }
+
+    fun setSegmentListener(segmentListener: OnSegmentListener) {
+        onSegmentListener = segmentListener
     }
 
     /**
@@ -104,12 +161,62 @@ class WPuzzleEditor(
 
         val lineThickness: Int = thickness(4f / 16f)
 
+        // A finished panel can never show a node that isn't there. This tab is the one place that
+        // does, so it draws under everything else the Modifiers tab already shows.
+        if (mode == EditorMode.GRID) drawLattice(context, puzzle, ::px, ::py, lineThickness)
+
         drawGraph(context, puzzle.graph, ::px, ::py, lineThickness)
         drawSolution(context, puzzle.line, ::px, ::py, lineThickness)
         // Symbols draw last, over the solution as well as the grid: a hexagon stays visible once
         // the line covers it, which is the only way a player can tell it was crossed
         // (rules/witness/04-hexagon-dots.md).
         drawSymbols(context, puzzle, ::px, ::py, lineThickness)
+    }
+
+    /**
+     * The lattice under the panel, and the nodes sitting on it that nothing else draws. Grid tab
+     * only: the item, the block face, and the panel in the world never show either.
+     *
+     * A faint dot goes at **every** anchor, occupied or not, so it means "a node can go here"
+     * rather than "no node is here". That distinction is the whole point: a mark that appears only
+     * where something is *missing* inverts the panel's own language, where a dot has always meant a
+     * node. Drawn first, so anything real paints over it.
+     *
+     * On top of that, a solid dot at every node with nothing joined to it. [drawGraph] draws such a
+     * node as nothing at all, correctly, since it is invisible on a finished panel, which would
+     * otherwise leave it indistinguishable from a bare anchor while answering the tools completely
+     * differently.
+     */
+    private fun drawLattice(
+        context: GuiGraphicsExtractor,
+        puzzle: Panel,
+        px: (Float) -> Int,
+        py: (Float) -> Int,
+        lineThickness: Int
+    ) {
+        val anchorDiameter: Int = (lineThickness / 2f).roundToInt().coerceAtLeast(1)
+        puzzle.anchors().forEach { anchor ->
+            drawCircle(
+                context,
+                px(anchor.x),
+                py(anchor.y),
+                anchorDiameter,
+                solution = false,
+                alpha = ANCHOR_DOT_ALPHA
+            )
+        }
+
+        // At a junction's own size rather than the anchor dot's, because it is a real node.
+        // START and END carry their own shapes in drawGraph even with nothing joined to them.
+        puzzle.graph.nodes()
+            .filter { node ->
+                node.modifier != Modifier.START &&
+                    node.modifier != Modifier.END &&
+                    puzzle.graph.visibleEdgeCount(node) == 0
+            }
+            .forEach { node ->
+                drawCircle(context, px(node.x), py(node.y), lineThickness, solution = false)
+            }
     }
 
     private fun drawGraph(
@@ -120,9 +227,7 @@ class WPuzzleEditor(
         lineThickness: Int
     ) {
         graph.nodes().forEach { node ->
-            val visibleEdges: Int = graph.incidentEdges(node).count { side ->
-                graph.edgeValueOf(side)?.modifier !in listOf(Modifier.NONE, Modifier.HIDDEN)
-            }
+            val visibleEdges: Int = graph.visibleEdgeCount(node)
             when {
                 node.modifier == Modifier.START ->
                     drawCircle(context, px(node.x), py(node.y), lineThickness * 2, solution = false)
@@ -311,7 +416,14 @@ class WPuzzleEditor(
      * Rasterizes a disc into an exact [diameter]-pixel box. This matters for odd line widths:
      * rounding a 4.5px radius to 5 made every 9px junction protrude by one pixel.
      */
-    private fun drawCircle(context: GuiGraphicsExtractor, x: Int, y: Int, diameter: Int, solution: Boolean) {
+    private fun drawCircle(
+        context: GuiGraphicsExtractor,
+        x: Int,
+        y: Int,
+        diameter: Int,
+        solution: Boolean,
+        alpha: Float = 1f
+    ) {
         val red: Float = if (solution) SOLUTION_RED else GRAPH_RED
         val green: Float = if (solution) SOLUTION_GREEN else GRAPH_GREEN
         val blue: Float = if (solution) SOLUTION_BLUE else GRAPH_BLUE
@@ -340,7 +452,7 @@ class WPuzzleEditor(
                     red,
                     green,
                     blue,
-                    1f
+                    alpha
                 )
             }
         }
@@ -349,8 +461,115 @@ class WPuzzleEditor(
     private fun lerp(start: Float, end: Float, fraction: Float): Float =
         start + (end - start) * fraction
 
+    /**
+     * How many of [node]'s segments actually draw. A `NONE` or `HIDDEN` edge is still in the graph
+     * but invisible, so a node holding only those reads as joined to nothing, exactly as if the
+     * edges had been erased.
+     */
+    @Suppress("UnstableApiUsage")
+    private fun ValueGraph<Node, Edge>.visibleEdgeCount(node: Node): Int =
+        incidentEdges(node).count { side ->
+            edgeValueOf(side)?.modifier !in listOf(Modifier.NONE, Modifier.HIDDEN)
+        }
+
+    @Suppress("UnstableApiUsage")
+    override fun onMouseDown(click: MouseButtonEvent, doubled: Boolean): InputResult {
+        if (mode != EditorMode.GRID) return InputResult.IGNORED
+
+        val puzzle: Panel = outputPanel() ?: return InputResult.IGNORED
+        val (x: Float, y: Float) = panelPosition(click, puzzle)
+
+        // A node wins over a segment, since a position near a node is near every segment meeting
+        // it. Only when the press missed every anchor does it fall through to a segment.
+        pressedAnchor = nearestAnchor(click, puzzle, CLICK_PADDING)
+        pressedSegment =
+            if (pressedAnchor != null) null
+            else puzzle.nearestJoinablePair(x, y, CLICK_PADDING)
+
+        // A drag may start off-anchor and still be a stroke, so the walk starts from whatever
+        // anchor is nearest under the press, at the looser drag tolerance.
+        lastPaintedAnchor = nearestAnchor(click, puzzle, DRAG_PADDING)
+        paintedDuringDrag = false
+        return InputResult.PROCESSED
+    }
+
+    @Suppress("UnstableApiUsage")
+    override fun onMouseDrag(click: MouseButtonEvent, offsetX: Double, offsetY: Double): InputResult {
+        if (mode != EditorMode.GRID) return InputResult.IGNORED
+
+        val puzzle: Panel = outputPanel() ?: return InputResult.IGNORED
+        val current: Node = nearestAnchor(click, puzzle, DRAG_PADDING) ?: return InputResult.PROCESSED
+        val last: Node = lastPaintedAnchor ?: run {
+            lastPaintedAnchor = current
+            return InputResult.PROCESSED
+        }
+
+        // One event can span several anchors when the cursor moves fast, so walk the lattice
+        // between them and report every unit step rather than leaving a gap in the stroke.
+        var cursor: Node = last
+        puzzle.anchorPathBetween(last, current).forEach { next ->
+            onSegmentListener?.onSegment(cursor.x, cursor.y, next.x, next.y)
+            cursor = next
+            paintedDuringDrag = true
+        }
+        lastPaintedAnchor = cursor
+        return InputResult.PROCESSED
+    }
+
+    @Suppress("UnstableApiUsage")
+    override fun onMouseUp(click: MouseButtonEvent): InputResult {
+        if (mode != EditorMode.GRID) return InputResult.IGNORED
+
+        val anchor: Node? = pressedAnchor
+        val segment: Pair<Node, Node>? = pressedSegment
+        val dragged: Boolean = paintedDuringDrag
+        pressedAnchor = null
+        pressedSegment = null
+        lastPaintedAnchor = null
+        paintedDuringDrag = false
+
+        // A stroke has already reported itself step by step, so releasing it must not also fire a
+        // click. A press that painted nothing acts on whatever it landed on.
+        if (dragged) return InputResult.PROCESSED
+        when {
+            anchor != null -> onAnchorClickListener?.onAnchorClick(anchor.x, anchor.y)
+            segment != null -> onSegmentListener?.onSegment(
+                segment.first.x, segment.first.y, segment.second.x, segment.second.y
+            )
+        }
+        return InputResult.PROCESSED
+    }
+
+    private fun outputPanel(): Panel? {
+        val puzzleStack: ItemStack = inventory.getItem(outputSlotIndex)
+        if (puzzleStack.isEmpty) return null
+        return puzzleStack.panel
+    }
+
+    /**
+     * The anchor nearest [click] within [padding] panel units on both axes, or null if the cursor
+     * is not near one. Nearest rather than first: a click inside the tolerance of two anchors has
+     * to resolve to the one actually under the cursor, or a stroke wanders off its own line.
+     */
+    private fun nearestAnchor(click: MouseButtonEvent, puzzle: Panel, padding: Float): Node? {
+        val (x: Float, y: Float) = panelPosition(click, puzzle)
+        return puzzle.anchors()
+            .filter { anchor -> abs(anchor.x - x) <= padding && abs(anchor.y - y) <= padding }
+            .minByOrNull { anchor -> (anchor.x - x) * (anchor.x - x) + (anchor.y - y) * (anchor.y - y) }
+    }
+
+    /** [click], which arrives in widget space, as a position in the panel's own coordinates. */
+    private fun panelPosition(click: MouseButtonEvent, puzzle: Panel): Pair<Float, Float> {
+        val scale: Int = maxOf(puzzle.width, puzzle.height)
+        val x: Float = (1 - (click.x().toInt().toFloat() / width)) * scale
+        val y: Float = (1 - (click.y().toInt().toFloat() / height)) * scale
+        return x to y
+    }
+
     @Suppress("UnstableApiUsage")
     override fun onClick(click: MouseButtonEvent, doubled: Boolean): InputResult {
+        if (mode == EditorMode.GRID) return InputResult.PROCESSED
+
         val x: Int = click.x().toInt()
         val y: Int = click.y().toInt()
         val inputStack: ItemStack = inventory.getItem(outputSlotIndex)

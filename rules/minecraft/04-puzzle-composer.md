@@ -1,14 +1,22 @@
-# 04 — Puzzle composer
+# 04: Puzzle composer
 
 **Category:** workstation (block + screen)
 
-The block where a blank (or existing) puzzle panel becomes a puzzle. You put a panel in, paint
-start/end/hexagon/break marks onto its grid, and take the edited panel out. The face of the block
-shows the work-in-progress live.
+The block where a blank (or existing) puzzle panel becomes a puzzle. You put a panel in, shape its
+grid and mark it up, and take the edited panel out. The face of the block shows the work-in-progress
+live.
+
+This file is the workstation: the block, the slots, and how a panel gets in and out. The editing
+itself is split across two tabs, one file each:
+
+- **[04-1](04-1-puzzle-composer-modifiers.md) Modifiers**, what the panel *means*: start, end,
+  break, hexagon.
+- **[04-2](04-2-puzzle-composer-grid.md) Grid**, what the panel *is*: which nodes exist and which of
+  them are joined.
 
 This is composing, not solving. Solving happens on a frame (see the solver screen). Crafting sizes
 and colours panels ([01](01-puzzle-panel-crafting.md), [02](02-panel-dye.md)); the composer only
-edits the marks on a panel you already have.
+edits a panel you already have.
 
 ---
 
@@ -16,64 +24,65 @@ edits the marks on a panel you already have.
 
 ## The rule
 
-Right-click a placed Puzzle Composer to open it. A left rail of slots + tools, a large editor on the
-right, player inventory under both.
+Right-click a placed Puzzle Composer to open it. Two tabs down the left edge, a rail of slots and
+tools, a large editor on the right, player inventory under both.
 
 ```
-  ┌─ Puzzle Composer ─────────────────┐
-  │  [in]  │                          │
-  │        │                          │
-  │  ●  ⊣  │      [ editor grid ]     │
-  │  ─  ◆  │                          │
-  │  +  −  │                          │
-  │        │                          │
-  │  [out] │                          │
-  │  ─── Inventory ─────────────────  │
-  │  ████████████████████████████     │
-  └───────────────────────────────────┘
+      ┌─ Puzzle Composer ─────────────────┐
+ ┌──┐ │  [in]  │                          │
+ │● │ │        │                          │
+ ├──┤ │  ●  ⊣  │      [ editor grid ]     │
+ │⋮⋮│ │  ─  ◆  │                          │
+ └──┤ │  ·  ·  │                          │
+      │        │                          │
+      │  [out] │                          │
+      │  ─── Inventory ─────────────────  │
+      │  ████████████████████████████     │
+      └───────────────────────────────────┘
 ```
 
-- **Input** (top-left) — one slot, puzzle panels only. Empty look is a faint panel watermark.
-- **Tools** (middle-left, 2×3) — radio group, one mode at a time. Top four live; bottom two
-  (add / remove) render darker and do nothing.
-- **Output** (bottom-left) — working copy. Take-only; you cannot put a panel into it.
-- **Editor** (right, large square) — live drawing of the **output** panel. Clicks apply the
-  selected tool.
-- **Tutorial toggle** (top-right) — LibGui switch that sets `Panel.tutorial` on the working
+- **Tabs** (left edge): **Modifiers** and **Grid**, hanging off the outside of the window the way
+  vanilla's do. The selected one is joined to the panel, the other is closed off and darker. They
+  swap the tool rail and what a click in the editor does. Everything else stays put.
+- **Input** (top-left): one slot, puzzle panels only. Empty look is a faint panel watermark.
+- **Tools** (middle-left): radio group, one mode at a time. Contents depend on the tab.
+- **Output** (bottom-left): working copy. Take-only; you cannot put a panel into it.
+- **Editor** (right, large square): live drawing of the **output** panel, on both tabs.
+- **Tutorial toggle** (top-right): LibGui switch that sets `Panel.tutorial` on the working
   copy. Not a paint tool; panel-level authoring flag. Off by default; legacy panels without the
   key read as off.
-- **Player inventory** — ordinary inventory strip under the workstation.
+- **Player inventory**: ordinary inventory strip under the workstation.
 
 Putting a panel in the input clones it into the output (if the output is empty). Edits land on the
 output only. Taking the output clears the input, so composing consumes the source panel: one in,
-one out, no free duplication. Colour is not changed here; recolour is the crafting recipe
-([02](02-panel-dye.md)).
+one out, no free duplication.
 
-## Tools
+## Why two tabs
 
-Exactly one tool is selected. Clicking a node or segment in the editor applies that tool:
+The split is what a click is talking about:
 
-| Tool    | Target        | Effect |
-|---------|---------------|--------|
-| Start   | node          | Toggle start disc on / off (`START` ↔ bare). Segments ignore this tool. |
-| End     | border node   | Hang / cycle / remove an end-point nub. Interior nodes refuse. See [../witness/02-end-points.md](../witness/02-end-points.md). |
-| Break   | segment       | Toggle the segment between normal and broken (a gap the line cannot cross). See [../witness/03-broken-edges.md](../witness/03-broken-edges.md). |
-| Hexagon | node or segment | Toggle a hexagon dot on that node or edge. See [../witness/04-hexagon-dots.md](../witness/04-hexagon-dots.md). |
-| Add     | —             | Disabled. Intended to grow the lattice; not wired. |
-| Remove  | —             | Disabled. Intended to shrink the lattice; not wired. |
+- **Grid** decides **what exists**: which nodes are on the panel and which of them are joined.
+- **Modifiers** decides **what it means**: which node starts, which one ends, which segment is
+  broken, where the hexagons are.
 
-Each click commits immediately to the output panel. There is no undo beyond taking the panel out and
-putting a fresh one in.
+Every modifier is a statement about a node or a segment that is already there, so in practice the
+two are ordered: shape the grid, then mark it up. Nothing stops you going back and forth, and
+re-shaping a marked-up panel is fine; the marks on whatever you deleted go with it.
 
-Start, end, break, and hexagon are pure marks: they do not spend tablets, change size, or change
-`cost`. Growing a panel still goes through [crafting](01-puzzle-panel-crafting.md).
+The tabs are also what lets each side stay simple. A tool that paints meaning and a gesture that
+adds or removes geometry want different hit targets and different things drawn under the cursor. A
+finished panel cannot show you a node that is not there, so cramming both into one rail means
+faking the missing half on top of a preview that is trying to be accurate.
 
 ## Tutorial flag
 
-A top-level boolean on the panel (`tutorial`, NBT key `tutorial`). Composer toggle at the top
-right flips it on the working copy via `Panel.withTutorial`. It is authoring metadata only:
-solvers, rendering, and crafting ignore it for now. Advanced item tooltip shows "Tutorial" when
-set. Absent on old saves → false.
+A top-level boolean on the panel (`tutorial`, NBT key `tutorial`). The toggle at the top right flips
+it on the working copy via `Panel.withTutorial`. It is authoring metadata only: solvers, rendering,
+and crafting ignore it for now. Advanced item tooltip shows "Tutorial" when set. Absent on old saves
+→ false.
+
+It sits outside the tabs on purpose: it is a statement about the whole panel rather than about
+anything on it, and neither tab is about the panel as a whole.
 
 ## Colour
 
@@ -90,9 +99,11 @@ a GUI.
 
 ## Cost
 
-None for the edit itself. The panel keeps whatever `witness:cost` it already had. Tablets are only
-spent at craft time ([01](01-puzzle-panel-crafting.md)); recycle still returns that cost
-([03](03-panel-recycle.md)).
+None for the edit itself, on either tab. The panel keeps whatever `witness:cost` it already had.
+Tablets are only spent at craft time ([01](01-puzzle-panel-crafting.md)); recycle still returns that
+cost ([03](03-panel-recycle.md)). Shape is free and size is paid for, which is what keeps this block
+from competing with the crafting table
+([04-2](04-2-puzzle-composer-grid.md#cost)).
 
 Crafting the block itself: 1 Ancient Puzzle Tablet + 8 iron ingots (shaped, tablet on top centre).
 
@@ -112,10 +123,9 @@ Crafting the block itself: 1 Ancient Puzzle Tablet + 8 iron ingots (shaped, tabl
 - **Breaking the block** drops every slot except the output. The working copy is discarded on
   break, so an unclaimed edit is lost (by design: it was a clone of the input, which was either
   still in the machine or already taken).
-- **Add / Remove tools do nothing.** They render disabled. Size changes are crafting's job until
-  those tools exist.
-- **No validation of a "solvable" panel.** The composer will happily compose an isolated start, zero
-  ends, or a lattice full of broken edges. Malformed panels are a content problem, not a UI reject.
+- **No validation of a "solvable" panel.** Neither tab checks anything. The composer will happily
+  produce an isolated start, zero ends, a lattice full of broken edges, or a panel cleared to
+  nothing. Malformed panels are a content problem, not a UI reject.
 
 ---
 
@@ -123,10 +133,18 @@ Crafting the block itself: 1 Ancient Puzzle Tablet + 8 iron ingots (shaped, tabl
 
 ## Status in this mod
 
-Implemented and live as a block, block entity, LibGui screen, and block-entity renderer. Tools
-start / end / break / hexagon work. Add / Remove tools exist as disabled radio buttons. Tutorial
+Implemented and live as a block, block entity, LibGui screen, and block-entity renderer. Tutorial
 toggle at the top right sets `Panel.tutorial`. Dye and side storage slots are gone; inventory is
 input + output only.
+
+**Both tabs exist.** `WSideTab` paints the vanilla advancements tab sprites down the outside left
+edge, and a `WCardPanel` swaps the rail beneath them. Modifiers holds the four tools
+([04-1](04-1-puzzle-composer-modifiers.md#status-in-this-mod)); Grid holds the pencil and the eraser
+([04-2](04-2-puzzle-composer-grid.md#status-in-this-mod)).
+
+The root panel is 32px wider than the window body so the tabs have a gutter to protrude into.
+That means `setUseDefaultRootBackground(false)`, with `BackgroundPainter.VANILLA` on the body
+instead: left on, LibGui paints the window across the whole root and swallows the gutter.
 
 ## Inventory layout
 
@@ -160,20 +178,7 @@ storage indices on load; only slots 0 and 1 are read into the new size.
   vanilla slot sync pushes the result to the client.
 
 That split exists because `WPuzzleEditor` clicks only fire client-side, while LibGui item-slot
-listeners run on the server handler.
-
-## Tool → panel transforms
-
-| Tool | Code path |
-|------|-----------|
-| End | `Panel.withEndPointToggled(node)` (`items/data/EndPoints.kt`) |
-| Hexagon | `Panel.withSymbolToggled(node, edgeNodePair)` (`items/data/Symbols.kt`) |
-| Start | cycle node modifier `START` ↔ `NORMAL` via `nextIn`, then rebuild the graph node in place |
-| Break | cycle edge modifier `BREAK` ↔ `NORMAL` via `nextIn`, then re-put the edge |
-
-Start and break still do the graph rewrite by hand (copy graph, remove/re-add node or edge). End and
-hexagon already live on `Panel` helpers with unit tests. The `when (Panel.Grid / Tree / Freeform)`
-copy in `commit`'s call sites is the same sealed-type tax the dye recipe pays.
+listeners run on the server handler. Any new tab's gestures land on the same path.
 
 ## Networking and persistence
 
@@ -184,6 +189,9 @@ copy in `commit`'s call sites is the same sealed-type tax the dye recipe pays.
 - Screen opens as `ExtendedScreenHandlerFactory<BlockPos>` so the client gets the block position
   and rebuilds `ScreenHandlerContext` against the right entity.
 
+Which tab is selected is pure client state. It never leaves the screen, so it needs no payload and
+no persistence.
+
 ## World render
 
 `PuzzleComposerBlockRenderer` reads the output slot, falls back to `Panel.DEFAULT` when the stack
@@ -192,30 +200,22 @@ has no component, and draws via `PuzzlePanelRenderer` on the top face, rotated t
 
 ## Not done
 
-- **Add / Remove tools disabled.** Lattice grow/shrink at the composer is intentionally off; size
-  changes go through [01](01-puzzle-panel-crafting.md).
+- **No undo, on either tab.** Every gesture commits straight to the output panel. See
+  [04-2](04-2-puzzle-composer-grid.md#not-done) for why the eraser stands in for it and what real
+  undo would cost.
+- Per-tab gaps are listed in [04-1](04-1-puzzle-composer-modifiers.md#not-done) and
+  [04-2](04-2-puzzle-composer-grid.md#not-done).
 - **No compose-time validation** of solvable / well-formed panels (isolated starts, missing ends,
   etc.). Same stance as the witness rule docs: compose freely, solver / validation catches later.
-- **No solution-line editing.** The editor draws an existing line if the panel carries one, but no
-  tool clears or draws it. Growing a panel already drops the line in craft; the composer does not
-  mirror that on edit.
 
 ## Sources
 
-- `src/main/kotlin/com/xfastgames/witness/blocks/redstone/PuzzleComposerBlock.kt` — block, open
+- `src/main/kotlin/com/xfastgames/witness/blocks/redstone/PuzzleComposerBlock.kt`: block, open
   screen, drop policy (output discarded on break).
-- `src/main/kotlin/com/xfastgames/witness/entities/PuzzleComposerBlockEntity.kt` — inventory,
+- `src/main/kotlin/com/xfastgames/witness/entities/PuzzleComposerBlockEntity.kt`: inventory,
   screen factory, C2S slot sync payload.
-- `src/main/kotlin/com/xfastgames/witness/screens/composer/PuzzleComposerScreen.kt` — screen,
-  description, tools, clone / commit / take flow.
-- `src/main/kotlin/com/xfastgames/witness/screens/widgets/WPuzzleEditor.kt` — editor paint + hit
-  testing.
-- `src/main/kotlin/com/xfastgames/witness/entities/renderer/PuzzleComposerBlockRenderer.kt` —
-  world face.
-- `src/main/kotlin/com/xfastgames/witness/items/data/EndPoints.kt`, `Symbols.kt` — end / hexagon
-  panel transforms.
-- `src/main/resources/data/witness/recipe/puzzle_composer.json` — block recipe.
-- Witness rules this screen composes: [../witness/01-start-points.md](../witness/01-start-points.md),
-  [../witness/02-end-points.md](../witness/02-end-points.md),
-  [../witness/03-broken-edges.md](../witness/03-broken-edges.md),
-  [../witness/04-hexagon-dots.md](../witness/04-hexagon-dots.md).
+- `src/main/kotlin/com/xfastgames/witness/screens/composer/PuzzleComposerScreen.kt`: screen,
+  description, clone / commit / take flow.
+- `src/main/kotlin/com/xfastgames/witness/entities/renderer/PuzzleComposerBlockRenderer.kt`: world
+  face.
+- `src/main/resources/data/witness/recipe/puzzle_composer.json`: block recipe.
