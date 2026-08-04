@@ -57,6 +57,13 @@ private const val DEBUG_SHOW_CURSOR_WHILE_TRACING = false
 private const val CURSOR_WARP_EPSILON = 1.0
 /** How close to a node's centre, in panel units, a click or a hover counts as being on it. */
 private const val NODE_HIT_RADIUS = 0.25f
+/**
+ * How near a start point a click lands and still grabs it, in GUI pixels.
+ *
+ * About the radius of the cursor dot this screen draws, so anything the cursor visibly covers is
+ * grabbable.
+ */
+private const val START_SNAP_RADIUS = 10.0
 /** Three seconds, at 20 ticks a second: the idle bed creeps in rather than landing on the ear. */
 private const val IDLE_AMBIENCE_FADE_IN_TICKS = 60
 /** How long the panel goes untouched before attract cues start advertising themselves. */
@@ -250,6 +257,42 @@ class PuzzleSolverScreen(
                     panelY in (node.y - NODE_HIT_RADIUS)..(node.y + NODE_HIT_RADIUS)
         }
 
+    /**
+     * The start point a click grabs: the nearest one drawn within [START_SNAP_RADIUS] pixels of the
+     * cursor, or failing that whichever one the click landed dead on.
+     *
+     * Hit testing in panel units alone shrinks the target as the grid grows. A frame is always
+     * `PUZZLE_FRAME_SCALE` wide however many cells it holds, so one panel unit is `1 / scale` of it
+     * and a 9x9's start dot is half the size of a 4x4's. Measuring against the projected dot instead
+     * (the exact inverse of the raycast that produced this click) keeps the grab the same size on
+     * screen at any grid size and any viewing distance.
+     *
+     * While idle a start point is the only thing on a panel worth clicking, so snapping to the
+     * nearest one can't steal a click from anything else. The panel space fallback covers a
+     * projection that can't resolve, and never fires in practice for a panel the click just hit.
+     */
+    private fun startPointNear(
+        blockEntity: PuzzleFrameBlockEntity,
+        puzzle: Panel,
+        mouseX: Double,
+        mouseY: Double,
+        panelX: Float,
+        panelY: Float
+    ): Node? {
+        val snapped: Node? = puzzle.graph.nodes()
+            .asSequence()
+            .filter { node -> node.modifier == Modifier.START }
+            .mapNotNull { node ->
+                val position: MousePosition =
+                    projectPanelPosition(blockEntity, puzzle, node.x, node.y) ?: return@mapNotNull null
+                node to hypot(position.x - mouseX, position.y - mouseY)
+            }
+            .filter { (_, distance) -> distance <= START_SNAP_RADIUS }
+            .minByOrNull { (_, distance) -> distance }
+            ?.first
+        return snapped ?: puzzle.nodeAt(panelX, panelY, Modifier.START)
+    }
+
     override fun mouseClicked(click: MouseButtonEvent, doubled: Boolean): Boolean {
         val mc: Minecraft = Minecraft.getInstance()
         val player: LocalPlayer = requireNotNull(Minecraft.getInstance().player)
@@ -280,7 +323,7 @@ class PuzzleSolverScreen(
         val (clickX, clickY) = panelHitResult.position
         val blockEntity: PuzzleFrameBlockEntity = panelHitResult.blockEntity
 
-        val overNode: Node? = puzzlePanel.nodeAt(clickX, clickY, Modifier.START)
+        val overNode: Node? = startPointNear(blockEntity, puzzlePanel, mouseX, mouseY, clickX, clickY)
 
         overNode?.let {
             panelScreenBasis = calculatePanelScreenBasis(blockEntity, puzzlePanel, overNode)
