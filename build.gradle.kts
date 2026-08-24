@@ -14,6 +14,10 @@ repositories {
     maven(url = "https://maven.fabricmc.net/") { name = "Fabric" }
     maven(url = "https://staging.alexiil.uk/maven/") { name = "AlexIIL" }
     maven(url = "https://maven.terraformersmc.com/") { name = "TerraformersMC" }
+    maven(url = "https://api.modrinth.com/maven") {
+        name = "Modrinth"
+        content { includeGroup("maven.modrinth") }
+    }
 }
 
 tasks.test {
@@ -31,6 +35,11 @@ dependencies {
 
     implementation(include(Mods.libgui)!!)
     implementation(Mods.modmenu)
+
+    // Dev-run only (localRuntime keeps them off the published POM). Modrinth's maven has no
+    // dependency metadata, so Sodium must be declared alongside Iris explicitly.
+    localRuntime(Mods.sodium)
+    localRuntime(Mods.iris)
 
     testRuntimeOnly(JUnit.jupiter_engine)
     testRuntimeOnly(JUnit.platform_launcher)

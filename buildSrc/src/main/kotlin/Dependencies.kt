@@ -8,6 +8,10 @@ object Jetbrains {
 object Mods {
     const val modmenu = "com.terraformersmc:modmenu:20.0.1"
     const val libgui = "io.github.cottonmc:LibGui:17.0.0+${Minecraft.version}"
+
+    // Dev-only, for verifying shader compatibility. Iris pins this exact Sodium version.
+    const val sodium = "maven.modrinth:sodium:mc${Minecraft.version}-0.9.1-fabric"
+    const val iris = "maven.modrinth:iris:1.11.2+${Minecraft.version}-fabric"
 }
 
 object Google {
