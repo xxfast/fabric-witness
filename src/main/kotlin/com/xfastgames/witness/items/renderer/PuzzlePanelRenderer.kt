@@ -9,6 +9,7 @@ import com.xfastgames.witness.utils.guava.edgeValueOf
 import com.xfastgames.witness.utils.guava.incidentEdges
 import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.client.renderer.SubmitNodeCollector
+import net.minecraft.util.LightCoordsUtil
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.DyeColor
@@ -32,8 +33,8 @@ object PuzzlePanelRenderer {
     /**
      * Attract / error-cue draw path.
      *
-     * - `false` (default): opaque `beaconBeam`, same pass as the solution line. Fade is white →
-     *   panel backdrop (no grey). Reliable on the face.
+     * - `false` (default): opaque quads on the `text` layer, same pass as the solution line. Fade
+     *   is white → panel backdrop (no grey). Reliable on the face.
      * - `true`: `entityTranslucentEmissive` + vertex alpha. Softer look; broken on-face today —
      *   see TODO(panel-cues) below before turning on.
      */
@@ -70,7 +71,15 @@ object PuzzlePanelRenderer {
     //
     // Until then leave USE_TRANSLUCENT_PANEL_CUES false and CUE_Z_BIAS small.
 
-    private val FULL_BRIGHT: Int = 0x00F000F0
+    /**
+     * Panels read as lit screens: their block light is floored at this emission (glowstone-ish) so
+     * they stay readable in the dark — but only via the vanilla lightmap. Never draw panel
+     * geometry on a fullbright layer (`beaconBeam` & co) to get this effect: shader packs route
+     * those layers through their beacon/emissive programs and bloom the whole face into a
+     * blinding light source. The `text` layer is the flat, lightmap-lit pass vanilla uses for
+     * maps in item frames, which is exactly what a panel face is.
+     */
+    private const val PANEL_GLOW: Int = 12
 
     /**
      * Centre to point, so a hexagon is 3.pc across corners against the 4.pc line it marks. Narrower
@@ -103,21 +112,26 @@ object PuzzlePanelRenderer {
         overlay: Int,
         framePos: BlockPos? = null,
     ) {
-        renderBackground(puzzle.backgroundColor, matrices, queue, light, overlay)
-        renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, light, overlay)
-        renderLine(puzzle.line, puzzle.width, puzzle.height, matrices, queue, light, overlay)
+        val panelLight: Int = LightCoordsUtil.lightCoordsWithEmission(light, PANEL_GLOW)
+
+        renderBackground(puzzle.backgroundColor, matrices, queue, panelLight, overlay)
+        renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, panelLight, overlay)
+        // The traced line caps the lightmap instead of the glow floor: it should pop against the
+        // backdrop like the lit line in The Witness, and a maxed lightmap does that without
+        // tripping shader-pack bloom.
+        renderLine(puzzle.line, puzzle.width, puzzle.height, matrices, queue, LightCoordsUtil.FULL_BRIGHT, overlay)
         // Symbols go in front of both, so a hexagon stays visible once the line covers it: that is
         // the only way a player can tell it was crossed (rules/witness/04-hexagon-dots.md).
         renderSymbols(
             puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
-            matrices, queue, light, overlay
+            matrices, queue, panelLight, overlay
         )
         // Cue drawing is gated by the effect's own frame-pos match (set at trigger), not by
         // re-reading tutorial here — trigger already required tutorial, and a missing/stale
         // component must not silently drop an in-flight flash.
         if (framePos != null) {
-            renderAttractPulse(puzzle, framePos, matrices, queue, light, overlay)
-            renderErrorFlash(puzzle, framePos, matrices, queue, light, overlay)
+            renderAttractPulse(puzzle, framePos, matrices, queue, panelLight, overlay)
+            renderErrorFlash(puzzle, framePos, matrices, queue, panelLight, overlay)
         }
     }
 
@@ -179,7 +193,7 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, CUE_Z_BIAS)
 
-        val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) FULL_BRIGHT else light
+        val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) LightCoordsUtil.FULL_BRIGHT else light
         queue.submitCustomGeometry(matrices, panelCueLayer()) { entry, consumer ->
             withRenderContext(entry, consumer, layerLight, overlay) {
                 nodes.forEach { node ->
@@ -221,7 +235,7 @@ object PuzzlePanelRenderer {
         // Slightly further out than the attract ring so red wins when both are live.
         matrices.translate(.0, .0, CUE_Z_BIAS - 0.005)
 
-        val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) FULL_BRIGHT else light
+        val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) LightCoordsUtil.FULL_BRIGHT else light
         // Translucent: alpha from blink. Opaque: solid on/off (alpha ignored).
         val a: Float = if (USE_TRANSLUCENT_PANEL_CUES) frame.alpha else 1f
         queue.submitCustomGeometry(matrices, panelCueLayer()) { entry, consumer ->
@@ -246,7 +260,7 @@ object PuzzlePanelRenderer {
         if (USE_TRANSLUCENT_PANEL_CUES) {
             RenderTypes.entityTranslucentEmissive(PuzzlePanelTextures.solutionFill)
         } else {
-            RenderTypes.beaconBeam(PuzzlePanelTextures.solutionFill, false)
+            RenderTypes.text(PuzzlePanelTextures.solutionFill)
         }
 
     /** Dye entity RGB as 0..1 floats. */
@@ -287,7 +301,7 @@ object PuzzlePanelRenderer {
         matrices.translate(.0, .0, -.012)
 
         val backdrop = PuzzlePanelTextures.backdrop(backgroundColor)
-        queue.submitCustomGeometry(matrices, RenderTypes.beaconBeam(backdrop, false)) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, RenderTypes.text(backdrop)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 hexagons.forEach { position -> hexagon(position, HEXAGON_RADIUS) }
             }
@@ -320,7 +334,7 @@ object PuzzlePanelRenderer {
     ) {
         matrices.pushPose()
         val backdropTexture = PuzzlePanelTextures.backdrop(dyeColor)
-        queue.submitCustomGeometry(matrices, RenderTypes.beaconBeam(backdropTexture, false)) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, RenderTypes.text(backdropTexture)) { entry, consumer ->
             consumer.square(entry, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
         }
         matrices.popPose()
@@ -366,7 +380,7 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.01)
 
-        queue.submitCustomGeometry(matrices, RenderTypes.beaconBeam(PuzzlePanelTextures.lineFill, false)) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.lineFill)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 graph.nodes().forEach { node -> renderNode(graph, node) }
                 graph.edges().forEach { side -> renderEdge(graph, side) }
@@ -393,7 +407,7 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.011)
 
-        queue.submitCustomGeometry(matrices, RenderTypes.beaconBeam(PuzzlePanelTextures.solutionFill, false)) { entry, consumer ->
+        queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 line.nodes().forEach { node ->
                     // Only the start point the line was picked up from fills its whole circle. A
