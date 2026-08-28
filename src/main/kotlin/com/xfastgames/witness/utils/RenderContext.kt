@@ -4,8 +4,40 @@ import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.blaze3d.vertex.PoseStack
 import org.joml.Vector3f
 
-fun RenderContext.rectangle(position: Vector3f, width: Float, height: Float) =
-    vertexConsumer.rectangle(entry, position, width, height, light, overlay)
+fun RenderContext.rectangle(
+    position: Vector3f,
+    width: Float,
+    height: Float,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
+) = vertexConsumer.rectangle(entry, position, width, height, light, overlay, r, g, b, a)
+
+/**
+ * A square of [side] centred on [center] with corners rounded to [radius]: a cross of two
+ * rectangles plus a quarter disc in each corner. [circle]'s arc runs clockwise from +y, so 0..90 is
+ * the top-right corner and each further quarter turn walks round clockwise.
+ */
+fun RenderContext.roundedSquare(
+    center: Vector3f,
+    side: Float,
+    radius: Float,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
+) {
+    val half: Float = side / 2
+    val inner: Float = half - radius
+    rectangle(Vector3f(center.x - inner, center.y - half, center.z), side - 2 * radius, side, r, g, b, a)
+    rectangle(Vector3f(center.x - half, center.y - inner, center.z), radius, side - 2 * radius, r, g, b, a)
+    rectangle(Vector3f(center.x + inner, center.y - inner, center.z), radius, side - 2 * radius, r, g, b, a)
+    circle(Vector3f(center.x + inner, center.y + inner, center.z), radius, arc = 0..90, r = r, g = g, b = b, a = a)
+    circle(Vector3f(center.x + inner, center.y - inner, center.z), radius, arc = 90..180, r = r, g = g, b = b, a = a)
+    circle(Vector3f(center.x - inner, center.y - inner, center.z), radius, arc = 180..270, r = r, g = g, b = b, a = a)
+    circle(Vector3f(center.x - inner, center.y + inner, center.z), radius, arc = 270..360, r = r, g = g, b = b, a = a)
+}
 
 fun RenderContext.square(
     position: Vector3f,

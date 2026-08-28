@@ -93,6 +93,30 @@ fun ring(
 }
 
 /**
+ * A filled square of [side] pixels centred on ([centerX], [centerY]) with corners rounded to
+ * [radius]. Scanlines, like [circle]: each row is inset by however much the corner disc leaves
+ * uncovered at that height, so the result sits in an exact [side] box at small sizes.
+ */
+fun roundedSquare(
+    context: GuiGraphicsExtractor, centerX: Int, centerY: Int, side: Int, radius: Int, color: Int
+) {
+    if (side <= 0) return
+    val left: Int = centerX - side / 2
+    val top: Int = centerY - side / 2
+    val r: Int = radius.coerceIn(0, side / 2)
+    for (row in 0 until side) {
+        // Distance of this row's centre from the nearest corner-disc centre, along y.
+        val dy: Float = when {
+            row < r -> r - (row + .5f)
+            row >= side - r -> (row + .5f) - (side - r)
+            else -> 0f
+        }
+        val inset: Int = if (dy <= 0f) 0 else (r - sqrt((r * r - dy * dy).coerceAtLeast(0f))).roundToInt()
+        context.fill(left + inset, top + row, left + side - inset, top + row + 1, color)
+    }
+}
+
+/**
  * Draws a filled regular hexagon centred on ([centerX], [centerY]), point up, [diameter] pixels from
  * point to point. Scanlines, like [circle], so it sits correctly in an exact box at small sizes.
  *

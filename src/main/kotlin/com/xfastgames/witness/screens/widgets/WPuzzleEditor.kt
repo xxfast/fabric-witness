@@ -17,6 +17,7 @@ import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.renderer.PuzzlePanelTextures
 import com.xfastgames.witness.utils.fill
 import com.xfastgames.witness.utils.hexagon
+import com.xfastgames.witness.utils.roundedSquare
 import com.xfastgames.witness.utils.guava.edgeValueOf
 import com.xfastgames.witness.utils.guava.incidentEdges
 import com.xfastgames.witness.utils.intersects
@@ -293,18 +294,13 @@ class WPuzzleEditor(
             hexagon(context, px((u.x + v.x) / 2), py((u.y + v.y) / 2), diameter, color)
         }
 
-        // A square sits in its cell in its own dye colour (rules/witness/06-colored-squares.md).
+        // A square sits in its cell in its own dye colour, its corners rounded to the line's cap
+        // radius (rules/witness/06-colored-squares.md).
         val side: Int = thickness(SQUARE_SIDE)
         puzzle.symbols.forEach { symbol ->
             val argb: Int = 0xFF000000.toInt() or (symbol.color.getTextureDiffuseColor() and 0xFFFFFF)
             when (symbol.figure) {
-                Figure.SQUARE -> context.fill(
-                    px(symbol.x) - side / 2,
-                    py(symbol.y) - side / 2,
-                    px(symbol.x) - side / 2 + side,
-                    py(symbol.y) - side / 2 + side,
-                    argb
-                )
+                Figure.SQUARE -> roundedSquare(context, px(symbol.x), py(symbol.y), side, lineThickness / 2, argb)
             }
         }
     }

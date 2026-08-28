@@ -93,6 +93,9 @@ object PuzzlePanelRenderer {
     /** Side of a coloured square in panel units: well inside its one-unit cell, clear of the line. */
     private const val SQUARE_SIDE: Float = 0.4f
 
+    /** Corner radius of a square: the line's own cap radius (half its 4.pc width), so the two read as one family. */
+    private val SQUARE_CORNER_RADIUS: Float = 2.pc
+
     fun renderPanel(
         stack: ItemStack,
         matrices: PoseStack,
@@ -259,9 +262,10 @@ object PuzzlePanelRenderer {
                             r = 1f, g = 0.12f, b = 0.08f, a = a
                         )
 
-                        PanelErrorFlash.Shape.SQUARE -> square(
-                            Vector3f(mark.x - SQUARE_SIDE / 2, mark.y - SQUARE_SIDE / 2, 0f),
+                        PanelErrorFlash.Shape.SQUARE -> roundedSquare(
+                            Vector3f(mark.x, mark.y, 0f),
                             SQUARE_SIDE,
+                            SQUARE_CORNER_RADIUS,
                             r = 1f, g = 0.12f, b = 0.08f, a = a
                         )
                     }
@@ -353,9 +357,10 @@ object PuzzlePanelRenderer {
                 symbols.forEach { symbol ->
                     val (r, g, b) = dyeRgb(symbol.color)
                     when (symbol.figure) {
-                        Figure.SQUARE -> square(
-                            Vector3f(symbol.x - SQUARE_SIDE / 2, symbol.y - SQUARE_SIDE / 2, 0f),
+                        Figure.SQUARE -> roundedSquare(
+                            Vector3f(symbol.x, symbol.y, 0f),
                             SQUARE_SIDE,
+                            SQUARE_CORNER_RADIUS,
                             r = r, g = g, b = b
                         )
                     }

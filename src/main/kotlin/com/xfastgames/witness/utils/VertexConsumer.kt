@@ -131,13 +131,17 @@ fun VertexConsumer.rectangle(
     width: Float,
     height: Float,
     light: Int,
-    overlay: Int
+    overlay: Int,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
 ) {
     val offSets: List<Pair<Float, Float>> = listOf(0f to 0f, 1f to 0f, 1f to 1f, 0f to 1f).reversed()
     offSets.forEach { (offsetX, offsetY) ->
         val model: Matrix4f = entry.pose()
         this.addVertex(model, position.x + offsetX * width, position.y + offsetY * height, position.z)
-            .setColor(1f, 1f, 1f, 1f)
+            .setColor(r, g, b, a)
             .setUv(offsetX, offsetY)
             .setOverlay(overlay)
             .setLight(light)

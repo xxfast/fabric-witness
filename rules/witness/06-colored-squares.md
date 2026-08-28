@@ -190,10 +190,12 @@ rather than hexagons so both can flash on a tutorial panel.
 
 ## Rendering
 
-A square is a rounded square of side about 0.4 panel units, centred in its cell, in its dye colour.
-The world renderer draws it in the symbols pass in front of the line (same `text` layer, own colour
-via the vertex tint on `solutionFill`); the composer preview draws it with `fill`. Corner rounding
-is a nicety; a plain square ships first.
+A square is a rounded square of side 0.4 panel units, centred in its cell, in its dye colour, with
+its corners rounded to the line's own cap radius (`2.pc`, half the line width) so the two read as
+one family. The world renderer draws it in the symbols pass in front of the line (same `text`
+layer, own colour via the vertex tint on `solutionFill`) as `RenderContext.roundedSquare`, a cross
+of rectangles plus four quarter discs; the composer preview uses a scanline
+`DrawableHelper.roundedSquare` with the radius at half the editor's line thickness.
 
 ## Authoring
 
@@ -211,7 +213,6 @@ returns null when `(x, y)` is not a cell. `SQUARE_PALETTE` is the one list to ex
 
 - **A palette.** Cycling reaches black and white only. A real "tool plus parameter" rail is the
   same work stars and polyominoes need, so it waits for the second consumer.
-- **Rounded corners** on the square, if the plain one reads wrong in game.
 - **The rail still does not follow the panel type.** The square tool is always present and refuses
   on a tree ([04-1](../minecraft/04-1-puzzle-composer-modifiers.md#the-rail-is-a-function-of-the-panels-type)).
 - **Eliminator and star interaction**, which need their own rules first.
