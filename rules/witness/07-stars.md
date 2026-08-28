@@ -51,9 +51,9 @@ Hexagon dots and broken edges have no color at all and never count toward any st
 
 ## Interactions with other rules
 
-- Region membership is decided entirely by the line ([00](00-line-and-path.md)) and any broken
-  edges ([03](03-broken-edges.md)) that cut a region in two; stars must be evaluated per resulting
-  region, not per whole panel.
+- Region membership is decided entirely by the line ([00](00-line-and-path.md)); broken edges
+  ([03](03-broken-edges.md)) do not cut regions. Stars must be evaluated per resulting region, not
+  per whole panel.
 - Squares ([06](06-colored-squares.md)) are validated independently (all squares in a region must
   share one color) and then, separately, participate in star counting for their own color.
 - Polyominoes ([08](08-polyominoes.md), [09](09-negative-polyominoes.md)) are validated
@@ -70,7 +70,9 @@ To validate computationally:
    Polyomino | Eliminator | ...`, attached to a cell (not a node/edge, since stars live inside
    grid cells). None of this currently exists in this mod; see "Status in this mod" below.
 2. After tracing the line, partition the grid into regions (flood fill across cells, blocked by
-   the drawn line and by `BREAK` edges).
+   the drawn line **only**; a broken edge does not cut a region, see
+   [06](06-colored-squares.md#what-cuts-a-region)). `Panel.regions(path)` in
+   `items/data/Regions.kt` already does this.
 3. For each region, group its colored symbols by color. For every color `c` present on at least
    one star, assert `count(color == c) == 2`.
 4. Feed eliminators in as a separate pass: an eliminator may cancel exactly one failing group

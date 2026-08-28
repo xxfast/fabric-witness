@@ -25,6 +25,7 @@ private const val KEY_GRAPH = "graph"
 private const val KEY_BACKGROUND_COLOR = "backgroundColor"
 private const val KEY_PANEL_TYPE = "type"
 private const val KEY_TUTORIAL = "tutorial"
+private const val KEY_SYMBOLS = "symbols"
 
 @Suppress("UnstableApiUsage")
 sealed class Panel(val type: Type) {
@@ -35,6 +36,8 @@ sealed class Panel(val type: Type) {
     abstract val height: Int
     /** When true, this panel is authored as a tutorial panel (composer flag; no runtime effect yet). */
     abstract val tutorial: Boolean
+    /** Region symbols, one per occupied cell (rules/witness/06-colored-squares.md). */
+    abstract val symbols: List<CellSymbol>
 
     abstract fun resize(length: Int): Panel
 
@@ -45,6 +48,7 @@ sealed class Panel(val type: Type) {
         override val width: Int,
         override val height: Int,
         override val tutorial: Boolean = false,
+        override val symbols: List<CellSymbol> = emptyList(),
     ) : Panel(Type.Grid) {
 
         companion object {
@@ -183,7 +187,17 @@ sealed class Panel(val type: Type) {
                 }
             }
 
-            return copy(line = emptyGraph(), graph = target, width = width, height = height)
+            // Cell centres are panel-unit positions, and the lattice recentres when the aspect
+            // ratio changes, so a symbol goes through the same offset arithmetic as the nodes.
+            // Copying its coordinates raw would silently shift every square on a grow.
+            val movedSymbols: List<CellSymbol> = symbols.map { symbol ->
+                symbol.copy(
+                    x = symbol.x - sourceXOffset + targetXOffset + offsetX,
+                    y = symbol.y - sourceYOffset + targetYOffset + offsetY
+                )
+            }
+
+            return copy(line = emptyGraph(), graph = target, width = width, height = height, symbols = movedSymbols)
         }
 
         private fun grow(by: Int): Grid {
@@ -209,6 +223,7 @@ sealed class Panel(val type: Type) {
         override val width: Int,
         override val height: Int,
         override val tutorial: Boolean = false,
+        override val symbols: List<CellSymbol> = emptyList(),
     ) : Panel(Type.Tree) {
 
         companion object {
@@ -256,6 +271,7 @@ sealed class Panel(val type: Type) {
         override val width: Int,
         override val height: Int,
         override val tutorial: Boolean = false,
+        override val symbols: List<CellSymbol> = emptyList(),
     ) : Panel(Type.Freeform) {
         override fun resize(length: Int): Freeform = TODO()
     }
@@ -309,11 +325,13 @@ fun CompoundTag.toPanel(): Panel {
     val grid: ValueGraph<Node, Edge> = getValueGraph(KEY_GRAPH)
     // Empty on pre-flag panels; those are not tutorials.
     val tutorial: Boolean = getBooleanTolerant(KEY_TUTORIAL)
+    // Absent on every panel saved before region symbols existed.
+    val symbols: List<CellSymbol> = getCellSymbols(KEY_SYMBOLS)
 
     return when (type) {
-        Type.Grid -> Panel.Grid(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial)
-        Type.Tree -> Panel.Tree(line, grid, backgroundColor, getIntTolerant(KEY_HEIGHT), getIntTolerant(KEY_HEIGHT), tutorial)
-        Type.Freeform -> Panel.Freeform(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial)
+        Type.Grid -> Panel.Grid(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial, symbols)
+        Type.Tree -> Panel.Tree(line, grid, backgroundColor, getIntTolerant(KEY_HEIGHT), getIntTolerant(KEY_HEIGHT), tutorial, symbols)
+        Type.Freeform -> Panel.Freeform(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial, symbols)
     }
 }
 
@@ -324,6 +342,7 @@ fun Panel.toNbt(): CompoundTag = CompoundTag().also { tag ->
     tag.putInt(KEY_BACKGROUND_COLOR, backgroundColor.ordinal)
     tag.putValueGraph(KEY_GRAPH, graph)
     tag.putBoolean(KEY_TUTORIAL, tutorial)
+    tag.putCellSymbols(KEY_SYMBOLS, symbols)
     when (this) {
         is Panel.Grid, is Panel.Freeform -> {
             tag.putInt(KEY_WIDTH, width)
@@ -339,6 +358,13 @@ fun Panel.withTutorial(tutorial: Boolean): Panel = when (this) {
     is Panel.Grid -> copy(tutorial = tutorial)
     is Panel.Tree -> copy(tutorial = tutorial)
     is Panel.Freeform -> copy(tutorial = tutorial)
+}
+
+/** Copy with [symbols] replaced; preserves every other field. */
+fun Panel.withSymbols(symbols: List<CellSymbol>): Panel = when (this) {
+    is Panel.Grid -> copy(symbols = symbols)
+    is Panel.Tree -> copy(symbols = symbols)
+    is Panel.Freeform -> copy(symbols = symbols)
 }
 
 @Suppress("UnstableApiUsage")

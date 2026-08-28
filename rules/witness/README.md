@@ -20,9 +20,9 @@ edge cases that bite, and where it stands in this mod.
 **Region symbols**: drawn inside cells. The finished line partitions the grid into regions, and
 each symbol is validated against the region that contains it.
 
-None are modelled. All of them are blocked on region flood-fill, except triangles.
+Squares are modelled, and with them the region flood-fill the rest share. Triangles never needed it.
 
-- [ ] **06** [Colored squares](06-colored-squares.md)
+- [x] **06** [Colored squares](06-colored-squares.md): authored (black/white), rendered, checked on submit
 - [ ] **07** [Stars](07-stars.md)
 - [ ] **08** [Polyominoes](08-polyominoes.md)
 - [ ] **09** [Negative polyominoes](09-negative-polyominoes.md)
@@ -53,9 +53,10 @@ state into `SolutionAccepted` / `SolutionRejected` (`PuzzleSolverViewModels`). C
 
 What's left is everything that needs the grid partitioned:
 
-- **Region flood-fill is the shared blocker.** Every region symbol (06 through 09, 11) needs it,
-  and none of them can be started without it. There is no flood-fill and no symbol validation
-  anywhere in `src/main`, so a panel carrying symbols is accepted on the line rule alone.
+- **Region flood-fill exists.** `Panel.regions(path)` (`items/data/Regions.kt`) partitions a grid's
+  cells by the submitted line, and colored squares (06) validate against it. Stars, polyominoes and
+  eliminators (07 through 09, 11) can now be built on the same partition; each still needs its own
+  `Figure`, its own check, and a colour palette in the composer beyond black and white.
 - **Symmetry (05)** is the last unmodelled line mechanic. Hexagons (04) are done: authored in the
   composer, drawn in front of the line, and validated on submit via `Panel.unsatisfiedHexagons`.
   Their appearance is still open, a hexagon currently reads too much like a broken edge.

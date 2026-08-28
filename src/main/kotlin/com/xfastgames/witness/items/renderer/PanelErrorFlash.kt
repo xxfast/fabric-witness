@@ -1,19 +1,24 @@
 package com.xfastgames.witness.items.renderer
 
-import com.xfastgames.witness.items.data.Hexagon
 import net.minecraft.util.Util
 import net.minecraft.core.BlockPos
 
 /**
- * Client-only red flash for missed hexagon dots. Solver fires it with the frame that failed;
+ * Client-only red flash for failed symbols. Solver fires it with the frame that failed;
  * [PuzzlePanelRenderer] draws it only on that frame.
  *
  * Target is raw x/y/z ints so matching cannot fail on BlockPos identity.
  */
 object PanelErrorFlash {
 
+    /** The outline a failed symbol blinks in: the symbol's own shape, so a square reads as a square. */
+    enum class Shape { HEXAGON, SQUARE }
+
+    /** One failed symbol: where it sits in panel units, and what to draw there. */
+    data class Mark(val x: Float, val y: Float, val shape: Shape)
+
     data class Sample(
-        val positions: List<Pair<Float, Float>>,
+        val marks: List<Mark>,
         /** 0..1; 0 means this blink trough is off. */
         val alpha: Float,
     )
@@ -25,35 +30,29 @@ object PanelErrorFlash {
     private var targetX: Int = 0
     private var targetY: Int = 0
     private var targetZ: Int = 0
-    private var positions: List<Pair<Float, Float>> = emptyList()
+    private var marks: List<Mark> = emptyList()
     private var startedAtMs: Long = 0
 
-    fun trigger(pos: BlockPos, missed: List<Hexagon>) {
-        if (missed.isEmpty()) return
+    fun trigger(pos: BlockPos, failed: List<Mark>) {
+        if (failed.isEmpty()) return
         hasTarget = true
         targetX = pos.x
         targetY = pos.y
         targetZ = pos.z
-        positions = missed.map { hexagon ->
-            when (hexagon) {
-                is Hexagon.OnNode -> hexagon.node.x to hexagon.node.y
-                is Hexagon.OnEdge ->
-                    (hexagon.u.x + hexagon.v.x) / 2f to (hexagon.u.y + hexagon.v.y) / 2f
-            }
-        }
+        marks = failed
         startedAtMs = Util.getMillis()
     }
 
     fun clear() {
         hasTarget = false
-        positions = emptyList()
+        marks = emptyList()
     }
 
     fun isFor(pos: BlockPos): Boolean =
         hasTarget && pos.x == targetX && pos.y == targetY && pos.z == targetZ
 
     fun sample(pos: BlockPos, nowMs: Long = Util.getMillis()): Sample? {
-        if (!isFor(pos) || positions.isEmpty()) return null
+        if (!isFor(pos) || marks.isEmpty()) return null
         val progress: Float = (nowMs - startedAtMs).toFloat() / DURATION_MS
         if (progress >= 1f) {
             clear()
@@ -62,6 +61,6 @@ object PanelErrorFlash {
         // Square blink: long "on" window so a short glance still catches red.
         val cycle: Float = (progress * BLINKS) % 1f
         val alpha: Float = if (cycle < 0.7f) 1f else 0f
-        return Sample(positions, alpha)
+        return Sample(marks, alpha)
     }
 }

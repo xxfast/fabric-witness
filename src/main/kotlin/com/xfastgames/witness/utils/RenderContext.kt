@@ -7,8 +7,14 @@ import org.joml.Vector3f
 fun RenderContext.rectangle(position: Vector3f, width: Float, height: Float) =
     vertexConsumer.rectangle(entry, position, width, height, light, overlay)
 
-fun RenderContext.square(position: Vector3f, length: Float) =
-    vertexConsumer.square(entry, position, length, light, overlay)
+fun RenderContext.square(
+    position: Vector3f,
+    length: Float,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
+) = vertexConsumer.square(entry, position, length, light, overlay, r, g, b, a)
 
 fun RenderContext.circle(
     position: Vector3f,

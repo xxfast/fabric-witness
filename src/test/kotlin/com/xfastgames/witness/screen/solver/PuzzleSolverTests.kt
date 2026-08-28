@@ -9,6 +9,12 @@ import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.Atom
+import com.xfastgames.witness.items.data.CellSymbol
+import com.xfastgames.witness.items.data.Figure
+import com.xfastgames.witness.items.data.withEndPointToggled
+import com.xfastgames.witness.items.data.withNodeReplaced
+import com.xfastgames.witness.items.data.withSymbols
+import com.xfastgames.witness.items.renderer.PanelErrorFlash
 import com.xfastgames.witness.screens.solver.PuzzleSolverData
 import com.xfastgames.witness.screens.solver.PuzzleSolver
 import com.xfastgames.witness.utils.guava.emptyGraph
@@ -315,6 +321,35 @@ class PuzzleSolverTests {
 
         assertThat(solver.state.value).isInstanceOf(PuzzleSolverData.SolutionAccepted::class.java)
         assertThat(submitted.nodes()).containsExactly(start, corner, finish)
+    }
+
+    @Test
+    fun `Rejects a finished line that leaves two colours in one region, reporting the squares`() {
+        // A 3x3 grid (2x2 cells) with a black and a white square in the bottom row, start at the
+        // bottom-left corner and an end nub off the bottom-right: the line along the bottom edge
+        // reaches the end but encloses nothing (rules/witness/06-colored-squares.md).
+        val grid: Panel = Panel.Grid.ofSize(3)
+        val bottomLeft: Node = grid.graph.nodes().single { it.x == 0.5f && it.y == 0.5f }
+        val bottomRight: Node = grid.graph.nodes().single { it.x == 2.5f && it.y == 0.5f }
+        val black = CellSymbol(1f, 1f, Figure.SQUARE, DyeColor.BLACK)
+        val white = CellSymbol(2f, 1f, Figure.SQUARE, DyeColor.WHITE)
+        val squarePanel: Panel = requireNotNull(
+            grid.withNodeReplaced(bottomLeft, bottomLeft.copy(modifier = Modifier.START))
+                .withEndPointToggled(bottomRight)
+        ).withSymbols(listOf(black, white))
+        val start: Node = squarePanel.graph.nodes().single { it.modifier == Modifier.START }
+
+        solver.startTracingLine(squarePanel, start)
+        solver.move(squarePanel, 2f, 0f)
+        solver.move(squarePanel, 1f, 0f)
+        solver.submit(squarePanel)
+
+        val verdict = solver.state.value as PuzzleSolverData.SolutionRejected
+        assertThat(verdict.clashingSquares).containsExactly(black, white)
+        assertThat(verdict.failedMarks).containsExactly(
+            PanelErrorFlash.Mark(1f, 1f, PanelErrorFlash.Shape.SQUARE),
+            PanelErrorFlash.Mark(2f, 1f, PanelErrorFlash.Shape.SQUARE)
+        )
     }
 
     private fun Graph<Node>.end(): Node? = nodes().firstOrNull { it.modifier == Modifier.END }

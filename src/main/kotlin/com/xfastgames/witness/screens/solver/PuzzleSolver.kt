@@ -2,7 +2,10 @@ package com.xfastgames.witness.screens.solver
 
 import com.google.common.graph.Graph
 import com.google.common.graph.MutableGraph
+import com.xfastgames.witness.items.data.CellSymbol
 import com.xfastgames.witness.items.data.Edge
+import com.xfastgames.witness.items.data.Hexagon
+import com.xfastgames.witness.items.data.clashingSquares
 import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
@@ -129,13 +132,16 @@ class PuzzleSolver {
             stateFlow.value = PuzzleSolverData.SolutionRejected()
             return buildLine()
         }
-        val missed = panel.unsatisfiedHexagons(submitted)
-        if (missed.isEmpty()) {
+        val missed: List<Hexagon> = panel.unsatisfiedHexagons(submitted)
+        // Region symbols (rules/witness/06-colored-squares.md) are checked against the partition
+        // the finished line makes; every failing symbol is reported, not just the first rule's.
+        val clashing: List<CellSymbol> = panel.clashingSquares(submitted)
+        if (missed.isEmpty() && clashing.isEmpty()) {
             stateFlow.value = PuzzleSolverData.SolutionAccepted
             return buildLine()
         }
         path.clear()
-        stateFlow.value = PuzzleSolverData.SolutionRejected(missed)
+        stateFlow.value = PuzzleSolverData.SolutionRejected(missed, clashing)
         return buildLine()
     }
 

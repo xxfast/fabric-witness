@@ -102,12 +102,22 @@ fun VertexConsumer.ring(
     }
 }
 
-fun VertexConsumer.square(entry: PoseStack.Pose, position: Vector3f, length: Float, light: Int, overlay: Int) {
+fun VertexConsumer.square(
+    entry: PoseStack.Pose,
+    position: Vector3f,
+    length: Float,
+    light: Int,
+    overlay: Int,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
+) {
     val offSets: List<Pair<Float, Float>> = listOf(0f to 0f, 1f to 0f, 1f to 1f, 0f to 1f).reversed()
     offSets.forEach { (offsetX, offsetY) ->
         val model: Matrix4f = entry.pose()
         this.addVertex(model, position.x + offsetX * length, position.y + offsetY * length, position.z)
-            .setColor(1f, 1f, 1f, 1f)
+            .setColor(r, g, b, a)
             .setUv(offsetX, offsetY)
             .setOverlay(overlay)
             .setLight(light)

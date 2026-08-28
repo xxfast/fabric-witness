@@ -46,6 +46,9 @@ object PuzzlePanelRenderer {
      */
     private const val CUE_Z_BIAS: Double = -0.02
 
+    /** Error flash depth: just in front of the symbols pass (-.012), so it reads as the symbol itself turning red. */
+    private const val ERROR_FLASH_Z: Double = -0.013
+
     // TODO(panel-cues): Proper translucent attract / error rings (Witness soft white alpha on glass).
     //
     // Failure mode when USE_TRANSLUCENT_PANEL_CUES is true today (consistent, not random):
@@ -87,6 +90,9 @@ object PuzzlePanelRenderer {
      */
     private val HEXAGON_RADIUS: Float = 1.5f.pc
 
+    /** Side of a coloured square in panel units: well inside its one-unit cell, clear of the line. */
+    private const val SQUARE_SIDE: Float = 0.4f
+
     fun renderPanel(
         stack: ItemStack,
         matrices: PoseStack,
@@ -126,6 +132,7 @@ object PuzzlePanelRenderer {
             puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
             matrices, queue, panelLight, overlay
         )
+        renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, panelLight, overlay)
         // Cue drawing is gated by the effect's own frame-pos match (set at trigger), not by
         // re-reading tutorial here — trigger already required tutorial, and a missing/stale
         // component must not silently drop an in-flight flash.
@@ -225,30 +232,39 @@ object PuzzlePanelRenderer {
         overlay: Int
     ) {
         val frame: PanelErrorFlash.Sample = PanelErrorFlash.sample(framePos) ?: return
-        if (frame.alpha <= 0.02f || frame.positions.isEmpty()) return
+        if (frame.alpha <= 0.02f || frame.marks.isEmpty()) return
 
         val maxDimension: Int = maxOf(puzzle.width, puzzle.height)
         val maxScale: Float = 1f / maxDimension
 
         matrices.pushPose()
         matrices.scale(maxScale, maxScale, 1f)
-        // Slightly further out than the attract ring so red wins when both are live.
-        matrices.translate(.0, .0, CUE_Z_BIAS - 0.005)
+        // One step in front of the symbols it recolours (-.012), the same spacing the lattice, line
+        // and symbol passes already use. Seen in game: at the attract ring's depth the red square
+        // visibly floated above the panel face when viewed from an angle.
+        matrices.translate(.0, .0, ERROR_FLASH_Z)
 
         val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) LightCoordsUtil.FULL_BRIGHT else light
         // Translucent: alpha from blink. Opaque: solid on/off (alpha ignored).
         val a: Float = if (USE_TRANSLUCENT_PANEL_CUES) frame.alpha else 1f
         queue.submitCustomGeometry(matrices, panelCueLayer()) { entry, consumer ->
             withRenderContext(entry, consumer, layerLight, overlay) {
-                frame.positions.forEach { (x, y) ->
-                    hexagon(
-                        Vector3f(x, y, 0f),
-                        HEXAGON_RADIUS,
-                        r = 1f,
-                        g = 0.12f,
-                        b = 0.08f,
-                        a = a
-                    )
+                // Each symbol blinks in its own shape and at its own size, so the flash reads as
+                // the symbol turning red rather than a marker dropped on top of it.
+                frame.marks.forEach { mark ->
+                    when (mark.shape) {
+                        PanelErrorFlash.Shape.HEXAGON -> hexagon(
+                            Vector3f(mark.x, mark.y, 0f),
+                            HEXAGON_RADIUS,
+                            r = 1f, g = 0.12f, b = 0.08f, a = a
+                        )
+
+                        PanelErrorFlash.Shape.SQUARE -> square(
+                            Vector3f(mark.x - SQUARE_SIDE / 2, mark.y - SQUARE_SIDE / 2, 0f),
+                            SQUARE_SIDE,
+                            r = 1f, g = 0.12f, b = 0.08f, a = a
+                        )
+                    }
                 }
             }
         }
@@ -304,6 +320,46 @@ object PuzzlePanelRenderer {
         queue.submitCustomGeometry(matrices, RenderTypes.text(backdrop)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 hexagons.forEach { position -> hexagon(position, HEXAGON_RADIUS) }
+            }
+        }
+
+        matrices.popPose()
+    }
+
+    /**
+     * A square (rules/witness/06-colored-squares.md) is a [SQUARE_SIDE] block of its own dye colour
+     * centred in its cell. It sits in the cell, never under the line, so it shares the symbols'
+     * depth rather than needing one of its own; the tint rides on the white solution texture.
+     */
+    fun renderCellSymbols(
+        symbols: List<CellSymbol>,
+        width: Int,
+        height: Int,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
+        light: Int,
+        overlay: Int
+    ) {
+        if (symbols.isEmpty()) return
+        val maxDimension: Int = maxOf(width, height)
+        val maxScale: Float = 1f / maxDimension
+
+        matrices.pushPose()
+        matrices.scale(maxScale, maxScale, 1f)
+        matrices.translate(.0, .0, -.012)
+
+        queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
+            withRenderContext(entry, consumer, light, overlay) {
+                symbols.forEach { symbol ->
+                    val (r, g, b) = dyeRgb(symbol.color)
+                    when (symbol.figure) {
+                        Figure.SQUARE -> square(
+                            Vector3f(symbol.x - SQUARE_SIDE / 2, symbol.y - SQUARE_SIDE / 2, 0f),
+                            SQUARE_SIDE,
+                            r = r, g = g, b = b
+                        )
+                    }
+                }
             }
         }
 

@@ -386,9 +386,9 @@ class PuzzleSolverScreen(
             is PuzzleSolverData.SolutionRejected -> {
                 player.play(WitnessSounds.PANEL_FINISH_TRACING)
                 player.play(WitnessSounds.PANEL_FAILURE)
-                // Tutorial only: flash missed dots on this frame, not every panel nearby.
-                if (puzzle.tutorial && verdict.missedHexagons.isNotEmpty()) {
-                    PanelErrorFlash.trigger(blockEntity.blockPos.immutable(), verdict.missedHexagons)
+                // Tutorial only: flash the failed symbols on this frame, not every panel nearby.
+                if (puzzle.tutorial && verdict.failedMarks.isNotEmpty()) {
+                    PanelErrorFlash.trigger(blockEntity.blockPos.immutable(), verdict.failedMarks)
                 }
             }
 

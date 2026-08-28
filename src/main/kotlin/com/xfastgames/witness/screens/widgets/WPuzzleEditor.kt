@@ -8,6 +8,7 @@ import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.Atom
+import com.xfastgames.witness.items.data.Figure
 import com.xfastgames.witness.items.data.anchorPathBetween
 import com.xfastgames.witness.items.data.anchors
 import com.xfastgames.witness.items.data.nearestJoinablePair
@@ -57,6 +58,8 @@ private const val SOLUTION_BLUE = .9f
  * read as a broken edge (rules/witness/03-broken-edges.md) rather than a symbol on an intact one.
  */
 private const val HEXAGON_LINE_FRACTION = 3f / 4f
+/** Side of a coloured square in panel units; mirrors the world renderer's `SQUARE_SIDE`. */
+private const val SQUARE_SIDE = 0.4f
 private const val TEXTURE_COLOR = -1
 /**
  * Anchor dots (rules/minecraft/04-2-puzzle-composer-grid.md) mark where a node *may* sit, not where
@@ -74,8 +77,13 @@ class WPuzzleEditor(
     enum class EditorMode { MODIFIERS, GRID }
 
     @Suppress("UnstableApiUsage")
+    /**
+     * A Modifiers-tab click: what node or edge it landed on, if any, and where it landed in panel
+     * coordinates regardless. A cell-centre click is near no node and no edge, so a tool aimed at
+     * cells (rules/witness/06-colored-squares.md) works from the position alone.
+     */
     fun interface OnClickListener {
-        fun onClick(node: Node?, edge: Edge?, edgeNodePair: EndpointPair<Node>?)
+        fun onClick(node: Node?, edge: Edge?, edgeNodePair: EndpointPair<Node>?, x: Float, y: Float)
     }
 
     /** Reports an anchor *position*, in panel coordinates, clicked on the Grid tab. */
@@ -170,7 +178,7 @@ class WPuzzleEditor(
         // Symbols draw last, over the solution as well as the grid: a hexagon stays visible once
         // the line covers it, which is the only way a player can tell it was crossed
         // (rules/witness/04-hexagon-dots.md).
-        drawSymbols(context, puzzle, ::px, ::py, lineThickness)
+        drawSymbols(context, puzzle, ::px, ::py, lineThickness, ::thickness)
     }
 
     /**
@@ -263,7 +271,8 @@ class WPuzzleEditor(
         puzzle: Panel,
         px: (Float) -> Int,
         py: (Float) -> Int,
-        lineThickness: Int
+        lineThickness: Int,
+        thickness: (Float) -> Int
     ) {
         val graph: ValueGraph<Node, Edge> = puzzle.graph
         // The panel's own backdrop colour, so a hexagon reads as a notch punched through whatever
@@ -282,6 +291,21 @@ class WPuzzleEditor(
             val v: Node = side.nodeV()
             // An edge hexagon marks the edge as a whole, so it sits at the midpoint.
             hexagon(context, px((u.x + v.x) / 2), py((u.y + v.y) / 2), diameter, color)
+        }
+
+        // A square sits in its cell in its own dye colour (rules/witness/06-colored-squares.md).
+        val side: Int = thickness(SQUARE_SIDE)
+        puzzle.symbols.forEach { symbol ->
+            val argb: Int = 0xFF000000.toInt() or (symbol.color.getTextureDiffuseColor() and 0xFFFFFF)
+            when (symbol.figure) {
+                Figure.SQUARE -> context.fill(
+                    px(symbol.x) - side / 2,
+                    py(symbol.y) - side / 2,
+                    px(symbol.x) - side / 2 + side,
+                    py(symbol.y) - side / 2 + side,
+                    argb
+                )
+            }
         }
     }
 
@@ -607,7 +631,7 @@ class WPuzzleEditor(
 
         val edge: Edge? = edgeNodePair?.let { inputPuzzle.graph.edgeValueOf(it) }
 
-        onClickListener?.onClick(node, edge, edgeNodePair)
+        onClickListener?.onClick(node, edge, edgeNodePair, puzzleRelativeX, puzzleRelativeY)
         return InputResult.PROCESSED
     }
 }

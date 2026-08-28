@@ -21,6 +21,7 @@ Exactly one tool is selected. Clicking a node or segment in the editor applies t
 | End     | border node   | Hang / cycle / remove an end-point nub. Interior nodes refuse. See [../witness/02-end-points.md](../witness/02-end-points.md). |
 | Break   | segment       | Toggle the segment between normal and broken (a gap the line cannot cross). See [../witness/03-broken-edges.md](../witness/03-broken-edges.md). |
 | Hexagon | node or segment | Toggle a hexagon dot on that node or edge. See [../witness/04-hexagon-dots.md](../witness/04-hexagon-dots.md). |
+| Square  | cell          | Place a black square; click again for white; again to remove. Refuses on a panel with no cells. See [../witness/06-colored-squares.md](../witness/06-colored-squares.md). |
 
 Each click commits immediately to the output panel. There is no undo beyond taking the panel out and
 putting a fresh one in.
@@ -79,8 +80,9 @@ the Grid tab unchanged.
 
 ## Status in this mod
 
-All four tools work. The rail is a fixed 2×3 radio group with the bottom two buttons disabled; it
-does **not** yet vary with the panel's type, because no type-dependent tool exists to vary. It now
+All five tools work. The rail is a fixed 2×3 radio group with the last button disabled; it does
+**not** yet vary with the panel's type. The square tool is the first type-dependent one, and it
+refuses on a tree rather than disappearing, which is the documented fallback above. It now
 lives on the Modifiers card of the composer's `WCardPanel` ([04](04-puzzle-composer.md)) rather than
 directly on the window.
 
@@ -94,6 +96,7 @@ screen rather than a mode.
 |------|-----------|
 | End | `Panel.withEndPointToggled(node)` (`items/data/EndPoints.kt`) |
 | Hexagon | `Panel.withSymbolToggled(node, edgeNodePair)` (`items/data/Symbols.kt`) |
+| Square | `Panel.withSquareCycled(x, y)` (`items/data/Symbols.kt`), from the click's panel position |
 | Start | cycle node modifier `START` ↔ `NORMAL` via `nextIn`, then rebuild the graph node in place |
 | Break | cycle edge modifier `BREAK` ↔ `NORMAL` via `nextIn`, then re-put the edge |
 
@@ -121,18 +124,14 @@ is what this should use.
 
 ## Not done
 
-- **No region symbols.** Squares, stars, polyominoes, negative polyominoes, triangles and
-  eliminators are all unmodelled ([../witness/](../witness/README.md)), and the blocker is not the
-  rail:
-  - **A cell has nowhere to store a symbol.** `Node` carries a `symbol: Atom` and `Edge` carries a
-    `symbol: Atom`. Cells carry nothing, because cells are not in the data model at all. Keying them
-    by grid index is trivial for `Grid` and meaningless for every other type; keying them by face of
-    the planar embedding is general and real work. That decision comes with the first region symbol.
-  - **The rail does not have room.** Four node/edge tools plus six region symbols is ten, and the
-    rail is 2×3.
-  - **Region symbols are not toggles.** Squares and stars need a colour, polyominoes need a shape
-    and possibly a rotation. The rail has to grow a "tool plus parameter" model (a palette beside
-    the selection) that a radio group cannot express.
+- **Only one region symbol.** Squares are in ([../witness/06-colored-squares.md](../witness/06-colored-squares.md));
+  stars, polyominoes, negative polyominoes, triangles and eliminators are not. Cells now have a home
+  (`Panel.symbols`, keyed by cell centre in panel units), so what remains is the rail:
+  - **The rail does not have room.** Five tools plus five more region symbols is ten, and the rail
+    is 2×3.
+  - **Region symbols are not toggles.** The square gets away with a black/white cycle; stars need a
+    real colour, polyominoes a shape and possibly a rotation. The rail has to grow a "tool plus
+    parameter" model (a palette beside the selection) that a radio group cannot express.
 - **Hit testing picks the first match, not the nearest** (above).
 - **No solution-line editing.** The editor draws an existing line if the panel carries one, but no
   tool clears or draws it. Growing a panel already drops the line at craft time; the composer does

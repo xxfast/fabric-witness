@@ -75,6 +75,33 @@ fun Panel.canJoin(a: Node, b: Node): Boolean {
     return (near(dx, 1f) && near(dy, 0f)) || (near(dy, 1f) && near(dx, 0f))
 }
 
+/**
+ * The type's third answer: the centre of every cell a region symbol may sit in
+ * (rules/witness/06-colored-squares.md). A cell is a position, present whether or not the nodes
+ * and segments around it are: carving merges cells into a bigger region, it never deletes one.
+ *
+ * A [Panel.Grid] has the `(width-1) x (height-1)` squares between its lattice points. A tree closes
+ * no faces, so it has none; freeform faces are real work and answer nothing for now.
+ */
+fun Panel.cells(): List<Node> = when (this) {
+    is Panel.Grid -> {
+        val (xOffset: Float, yOffset: Float) = Panel.Grid.gridOffsets(width, height)
+        buildList {
+            for (x in 0 until width - 1) {
+                for (y in 0 until height - 1) {
+                    add(Node(x + xOffset + 0.5f, y + yOffset + 0.5f))
+                }
+            }
+        }
+    }
+
+    is Panel.Tree, is Panel.Freeform -> emptyList()
+}
+
+/** The cell whose square contains ([x], [y]), if any: half a unit either side of a centre. */
+fun Panel.cellAt(x: Float, y: Float): Node? =
+    cells().find { cell -> abs(cell.x - x) < 0.5f && abs(cell.y - y) < 0.5f }
+
 /** The node actually present at this position, if any. */
 fun Panel.nodeAt(x: Float, y: Float): Node? =
     graph.nodes().find { node -> near(node.x, x) && near(node.y, y) }

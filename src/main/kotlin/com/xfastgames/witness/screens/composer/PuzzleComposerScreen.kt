@@ -22,6 +22,7 @@ import com.xfastgames.witness.screens.widgets.icons.GridTabIcon
 import com.xfastgames.witness.screens.widgets.icons.HexagonDotIcon
 import com.xfastgames.witness.screens.widgets.icons.ModifiersTabIcon
 import com.xfastgames.witness.screens.widgets.icons.PencilIcon
+import com.xfastgames.witness.screens.widgets.icons.SquareIcon
 import com.xfastgames.witness.screens.widgets.icons.StartIcon
 import com.xfastgames.witness.utils.*
 import com.xfastgames.witness.utils.guava.edgeValueOf
@@ -128,7 +129,7 @@ class PuzzleComposerScreenDescription(
     private val endButton = WRadioImageButton(icon = EndIcon, group = toggleGroup)
     private val breakButton = WRadioImageButton(icon = BreakIcon, group = toggleGroup)
     private val hexagonDotButton = WRadioImageButton(icon = HexagonDotIcon, group = toggleGroup)
-    private val addButton = WRadioImageButton(group = toggleGroup)
+    private val squareButton = WRadioImageButton(icon = SquareIcon, group = toggleGroup)
     private val removeButton = WRadioImageButton(group = toggleGroup)
 
     private val editor = WPuzzleEditor(composerInventory, PUZZLE_OUTPUT_SLOT_INDEX)
@@ -145,7 +146,7 @@ class PuzzleComposerScreenDescription(
         add(endButton, startButton.width + 2, 0)
         add(breakButton, 0, 16)
         add(hexagonDotButton, startButton.width + 2, 16)
-        add(addButton, 0, 32)
+        add(squareButton, 0, 32)
         add(removeButton, startButton.width + 2, 32)
     }
     // The Grid rail is two tools rather than two actions: which one is armed decides whether a
@@ -259,14 +260,21 @@ class PuzzleComposerScreenDescription(
             commit(outputPuzzle.withTutorial(on))
         }
 
-        editor.setClickListener { node, edge, edgeNodePair ->
-            // if no edge or node is clicked, ignore
-            if (edge == null && node == null && edgeNodePair == null) return@setClickListener
-
+        editor.setClickListener { node, edge, edgeNodePair, x, y ->
             val outputPuzzle: Panel =
                 composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel ?: return@setClickListener
 
             val selectedToggle: WRadioImageButton? = toggleGroup.selected
+
+            // A square lives in a cell, which no node or edge hit can name, so it resolves from
+            // the click position alone (rules/witness/06-colored-squares.md).
+            if (selectedToggle == squareButton) {
+                commit(outputPuzzle.withSquareCycled(x, y) ?: return@setClickListener)
+                return@setClickListener
+            }
+
+            // Every other tool wants a node or an edge under the cursor.
+            if (edge == null && node == null && edgeNodePair == null) return@setClickListener
 
             // An end point is a nub hanging off a border node, not a flag on the node itself,
             // so it edits the graph rather than a modifier (rules/witness/02-end-points.md).
@@ -373,8 +381,7 @@ class PuzzleComposerScreenDescription(
             toolCards.selectedIndex = if (mode == WPuzzleEditor.EditorMode.GRID) 1 else 0
         }
 
-        // TODO: Re-enable once these are implemented
-        addButton.isEnabled = false
+        // TODO: Re-enable once a tool exists for it
         removeButton.isEnabled = false
 
         val blockInv = composerInventory as? BlockInventory
