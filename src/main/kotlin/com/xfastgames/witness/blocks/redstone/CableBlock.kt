@@ -112,6 +112,8 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         )
         private val RISER: VoxelShape = Shapes.box(6.pc.d, 6.pc.d, 7.25f.pc.d, 10.pc.d, 16.pc.d, 8.75f.pc.d)
         private val DROP: VoxelShape = Shapes.box(6.pc.d, 0.pc.d, 7.25f.pc.d, 10.pc.d, 10.pc.d, 8.75f.pc.d)
+        /** Under a floor lip the column only reaches the pad; a full drop stuck up past it (2026-08-30 02:01). */
+        private val DROP_FLOOR: VoxelShape = Shapes.box(6.pc.d, 0.pc.d, 7.25f.pc.d, 10.pc.d, 1.pc.d, 8.75f.pc.d)
 
         private fun VoxelShape.wideOn(axis: Direction.Axis): VoxelShape =
             if (axis == Direction.Axis.X) this else Shapes.box(
@@ -272,11 +274,25 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
      * lying flat in mid-air, 01:31).
      */
     private fun isFloor(world: BlockGetter, pos: BlockPos, state: BlockState): Boolean {
-        if (state.getValue(BlockStateProperties.DOWN)) return false
-        if (!grounded(world, pos)) return false
+        if (!lying(world, pos, state)) return false
         return Direction.Plane.HORIZONTAL.all { direction ->
             val next: BlockPos = pos.relative(direction)
-            !(state.getValue(CONNECTIONS[direction.ordinal]) && isRun(world.getBlockState(next))) || grounded(world, next)
+            val nextState: BlockState = world.getBlockState(next)
+            !(state.getValue(CONNECTIONS[direction.ordinal]) && isRun(nextState)) || lying(world, next, withConnections(nextState, world, next))
+        }
+    }
+
+    /**
+     * A cable lies if it is on the ground, or if it is the lip of a ground run: it continues
+     * downward and a cable beside it is on the ground, so the ribbon lies over the edge and then
+     * drops (a run over an overhang stood up on top and hung a band at the edge, 2026-08-30 01:54).
+     */
+    private fun lying(world: BlockGetter, pos: BlockPos, state: BlockState): Boolean {
+        if (grounded(world, pos)) return true
+        if (!state.getValue(BlockStateProperties.DOWN)) return false
+        return Direction.Plane.HORIZONTAL.any { direction ->
+            val next: BlockPos = pos.relative(direction)
+            state.getValue(CONNECTIONS[direction.ordinal]) && isRun(world.getBlockState(next)) && grounded(world, next)
         }
     }
 
@@ -376,7 +392,7 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
             return joined.fold(CORE) { shape, direction ->
                 Shapes.or(shape, when (direction) {
                     Direction.UP -> RISER_FOOT.wideOn(wide)
-                    Direction.DOWN -> DROP.wideOn(wide)
+                    Direction.DOWN -> DROP_FLOOR.wideOn(wide)
                     else -> ARMS.getValue(direction)
                 })
             }
