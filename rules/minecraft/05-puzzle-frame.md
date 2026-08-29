@@ -70,10 +70,14 @@ comes out of any other side, so a frame never lights the neighbour beside it by 
 **Running it somewhere.** The frame's output is weak power, so a solid block on the exit side
 is a dead end. Put a **repeater** directly against the exit side, facing away (it sits on the
 ground block beside the stand), and run dust from it to the door. Seen working 2026-08-29.
+For anything further than a few blocks, or up a wall, that is what a cable is for
+([06](06-cable.md)).
 
-An output never feeds its own input: a solved frame ignores redstone arriving on the sides it is
-putting power out of (as a repeater does), otherwise a frame next to a dust line would hold itself
-on after the source was cut. Every other side, the back included, still counts.
+**Inputs and outputs are decided by the panel, not the solve.** A side the panel has an end nub on
+is an exit: power can only ever leave by it, never enter, whether or not the frame is solved yet.
+Every other side is an input: the back, the stand underneath, and any edge without a nub, exactly
+as the game runs its input cable into one side and its output out of the other. So a shared cable
+run can never feed a frame back through its own output, and a lever on a nub-free side works.
 
 ## Worked examples
 
@@ -124,10 +128,10 @@ hands back a plain, unsolved panel; a solution only counts where it was drawn.
   behind a row powers all of them and bypasses the chain. Builders feed only the head and route
   wiring away from the rest. Deliberately vanilla; not a bug.
 - **A frame with no panel** is Off regardless of power.
-- **A source on the exit side un-solves the frame at once.** A solved frame ignores input from
-  the side it outputs on, so if the lever is the only source and sits on that side, solving
-  drops the power, which clears Solved, which is back to square one. Feed a frame from any other
-  side, the back being the natural one.
+- **A source on a nub side does nothing.** Nub sides are exits and never take power in, so a
+  lever or cable on the same edge as an end nub leaves the frame dark. Feed it from the back, the
+  stand, or an edge without a nub. A panel with nubs on all four edges takes power from the back
+  and the stand only.
 - **Breaking a frame** mid-chain leaves the one before it pointing at air, so the rest goes dark
   until a frame is placed there again.
 - **Symmetry panels** ([05-symmetry](../witness/05-symmetry.md), not yet modelled) finish two lines
@@ -151,8 +155,8 @@ opens only when lit, and solving a frame whose end sits on the edge facing the n
 that frame (and the one after stays dark). A repeater on the exit side of a solved frame drives dust (slice 4). Not yet seen: a vertical
 exit (top / bottom) and the lever-off cascade with the line stripped.
 
-- `powered`: panel in and redstone in from any side except the frame's own exit sides, or a joined
-  solved frame whose exit faces this one. Recomputed by `IronPuzzleFrameBlock.refresh` on every
+- `powered`: panel in and redstone in from any side the panel has no end nub on
+  (`Panel.endSides`), or a joined solved frame whose exit faces this one. Recomputed by `IronPuzzleFrameBlock.refresh` on every
   neighbour update and on every panel insert / take. Light 10.
 - `solved` + `exit`: set by `PuzzleFrameBlockEntity.submitSolution` on the server after re-judging
   the submitted path with `Panel.verdict` (`items/data/Solutions.kt`, the same pure function the
@@ -186,10 +190,11 @@ exit (top / bottom) and the lever-off cascade with the line stripped.
   exit side asks with the *opposite* of that side's direction. Verified 2026-08-29 by a repeater
   against the exit side driving dust; the chain itself goes through `isFedByChain` and never
   calls `getSignal`, so the lit-neighbour shot alone would not have proved it.
-- **Back-face emission was the first design and it feeds back.** The lever the player asked for
-  sits on the back; emitting there powers the block behind, which powers the frame, which then can
-  never reset. Emission moved to the exit side, and a solved frame ignores input on its exit
-  sides. Do not move it back.
+- **Two earlier input rules fed back and were replaced.** Back-face emission powered the block
+  behind, which powered the frame. Then "a solved frame ignores its exit side" let a shared cable
+  run un-solve and re-light frames in a loop (seen 2026-08-29 with two runs meeting under one
+  stand). The rule now is static: nub sides never take input. Do not reintroduce solve-dependent
+  input.
 - **Only `setBlock` on a real change** in `refresh`, or two frames update each other forever.
 
 ## Why both `isFedByChain` and `getSignal` exist

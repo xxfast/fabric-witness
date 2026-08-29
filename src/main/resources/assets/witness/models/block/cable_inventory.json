@@ -1,0 +1,16 @@
+{
+  "parent": "block/block",
+  "textures": { "0": "minecraft:block/white_concrete", "particle": "#0" },
+  "display": { "gui": { "rotation": [30, 225, 0], "translation": [0, 0, 0], "scale": [0.8, 0.8, 0.8] } },
+  "elements": [
+    { "from": [5.5, 7, 0], "to": [10.5, 9, 16],
+      "faces": {
+        "north": { "uv": [5.5, 7, 10.5, 9], "texture": "#0", "tintindex": 1 },
+        "east":  { "uv": [0, 7, 16, 9], "texture": "#0", "tintindex": 1 },
+        "south": { "uv": [5.5, 7, 10.5, 9], "texture": "#0", "tintindex": 1 },
+        "west":  { "uv": [0, 7, 16, 9], "texture": "#0", "tintindex": 1 },
+        "up":    { "uv": [5.5, 0, 10.5, 16], "texture": "#0", "tintindex": 0 },
+        "down":  { "uv": [5.5, 0, 10.5, 16], "texture": "#0", "tintindex": 0 }
+      } }
+  ]
+}

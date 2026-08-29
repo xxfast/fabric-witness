@@ -81,6 +81,27 @@ class SolutionsTests {
     }
 
     @Test
+    fun `A panel knows every side it has a nub on`() {
+        // The fixture's `finish` is already a nub above `corner` (TOP). Add one off `corner`
+        // pointing to +x, which is the viewer's LEFT (panels draw mirrored on x).
+        val leftNub = Node(1f + END_POINT_LENGTH, 0f, Modifier.END)
+        val twoEnds: Panel = Panel.Grid(
+            line = emptyGraph(),
+            graph = ValueGraphBuilder.undirected().build<Node, Edge>().apply {
+                putEdgeValue(start, corner, Edge.NORMAL)
+                putEdgeValue(corner, finish, Edge.NORMAL)
+                putEdgeValue(corner, leftNub, Edge.NORMAL)
+            },
+            backgroundColor = DyeColor.WHITE,
+            width = 1,
+            height = 1
+        )
+
+        assertThat(twoEnds.endSides()).containsExactly(Side.LEFT, Side.TOP)
+        assertThat(panel.endSides()).containsExactly(Side.TOP)
+    }
+
+    @Test
     fun `A path that does not end on a nub exits nowhere`() {
         assertThat(listOf(start, corner).exitSides()).isEmpty()
         assertThat(emptyList<Node>().exitSides()).isEmpty()

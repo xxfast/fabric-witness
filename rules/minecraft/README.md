@@ -34,6 +34,7 @@ panel the player already has.
 | 04-1 | ↳ Modifiers tab | [04-1-puzzle-composer-modifiers.md](04-1-puzzle-composer-modifiers.md) | what a panel means: start / end / break / hexagon |
 | 04-2 | ↳ Grid tab | [04-2-puzzle-composer-grid.md](04-2-puzzle-composer-grid.md) | what a panel is: which nodes and segments exist |
 | 05 | Puzzle frame | [05-puzzle-frame.md](05-puzzle-frame.md) | where a panel is solved; redstone in, power out of the used end to the next frame |
+| 06 | Cable | [06-cable.md](06-cable.md) | the wire from a solved frame to a far door, lit in its panel's colour |
 
 The composer is one block with two tabs, and the tabs are two different mechanics: one edits the
 panel's topology, the other edits what that topology means. They get a file each.
