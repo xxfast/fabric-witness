@@ -2,23 +2,23 @@
   "parent": "block/block",
   "textures": { "0": "minecraft:block/white_concrete", "particle": "#0" },
   "elements": [
-    { "from": [5.5, 1, 7], "to": [10.5, 16, 9],
+    { "from": [6, 1, 7.25], "to": [10, 16, 8.75],
       "faces": {
-        "north": { "uv": [5.5, 0, 10.5, 15], "texture": "#0", "tintindex": 0 },
-        "east":  { "uv": [7, 0, 9, 15], "texture": "#0", "tintindex": 1 },
-        "south": { "uv": [5.5, 0, 10.5, 15], "texture": "#0", "tintindex": 0 },
-        "west":  { "uv": [7, 0, 9, 15], "texture": "#0", "tintindex": 1 },
-        "up":    { "uv": [5.5, 7, 10.5, 9], "texture": "#0", "tintindex": 1 },
-        "down":  { "uv": [5.5, 7, 10.5, 9], "texture": "#0", "tintindex": 1 }
+        "north": { "uv": [6, 0, 10, 15], "texture": "#0", "tintindex": 0 },
+        "east":  { "uv": [7.25, 0, 8.75, 15], "texture": "#0", "tintindex": 1 },
+        "south": { "uv": [6, 0, 10, 15], "texture": "#0", "tintindex": 0 },
+        "west":  { "uv": [7.25, 0, 8.75, 15], "texture": "#0", "tintindex": 1 },
+        "up":    { "uv": [6, 7.25, 10, 8.75], "texture": "#0", "tintindex": 1 },
+        "down":  { "uv": [6, 7.25, 10, 8.75], "texture": "#0", "tintindex": 1 }
       } },
-    { "from": [5.5, 1, 5.5], "to": [10.5, 3, 10.5],
+    { "from": [6, 1, 6], "to": [10, 2.5, 10],
       "faces": {
-        "north": { "uv": [5.5, 13, 10.5, 15], "texture": "#0", "tintindex": 1 },
-        "east":  { "uv": [5.5, 13, 10.5, 15], "texture": "#0", "tintindex": 1 },
-        "south": { "uv": [5.5, 13, 10.5, 15], "texture": "#0", "tintindex": 1 },
-        "west":  { "uv": [5.5, 13, 10.5, 15], "texture": "#0", "tintindex": 1 },
-        "up":    { "uv": [5.5, 5.5, 10.5, 10.5], "texture": "#0", "tintindex": 0 },
-        "down":  { "uv": [5.5, 5.5, 10.5, 10.5], "texture": "#0", "tintindex": 0 }
+        "north": { "uv": [6, 13.5, 10, 15], "texture": "#0", "tintindex": 1 },
+        "east":  { "uv": [6, 13.5, 10, 15], "texture": "#0", "tintindex": 1 },
+        "south": { "uv": [6, 13.5, 10, 15], "texture": "#0", "tintindex": 1 },
+        "west":  { "uv": [6, 13.5, 10, 15], "texture": "#0", "tintindex": 1 },
+        "up":    { "uv": [6, 6, 10, 10], "texture": "#0", "tintindex": 0 },
+        "down":  { "uv": [6, 6, 10, 10], "texture": "#0", "tintindex": 0 }
       } }
   ]
 }

@@ -68,20 +68,21 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         private val SOURCELESS_COLOR: DyeColor = DyeColor.WHITE
 
         // Before BLOCK: the block constructor computes its shape, which reads these.
-        // A flat ribbon, 5 wide and 2 thick: it lies on the floor of the block for horizontal runs
-        // and stands as a strip through the middle for vertical ones. Mirrors the models.
-        // Full 5x5 pad: fills the outer corner of a floor L-bend (a gap seen 2026-08-30). Safe now
+        // A flat ribbon, 4 wide and 1.5 thick (was 5 x 2; thinned 2026-08-30 on request): it lies
+        // on the floor of the block for horizontal runs and stands as a strip through the middle
+        // for vertical ones. Mirrors the models: change the numbers here and there together.
+        // Full 4x4 pad: fills the outer corner of a floor L-bend (a gap seen 2026-08-30). Safe now
         // that vertical pieces use standing bands and never sit on it.
-        private val CORE: VoxelShape = Shapes.box(5.5f.pc.d, 1.pc.d, 5.5f.pc.d, 10.5f.pc.d, 3.pc.d, 10.5f.pc.d)
+        private val CORE: VoxelShape = Shapes.box(6.pc.d, 1.pc.d, 6.pc.d, 10.pc.d, 2.5f.pc.d, 10.pc.d)
         private val ARMS: Map<Direction, VoxelShape> = mapOf(
-            Direction.DOWN to Shapes.box(5.5f.pc.d, 0.pc.d, 7.pc.d, 10.5f.pc.d, 1.pc.d, 9.pc.d),
-            Direction.UP to Shapes.box(5.5f.pc.d, 1.pc.d, 7.pc.d, 10.5f.pc.d, 16.pc.d, 9.pc.d),
+            Direction.DOWN to Shapes.box(6.pc.d, 0.pc.d, 7.25f.pc.d, 10.pc.d, 1.pc.d, 8.75f.pc.d),
+            Direction.UP to Shapes.box(6.pc.d, 1.pc.d, 7.25f.pc.d, 10.pc.d, 16.pc.d, 8.75f.pc.d),
             // Arms run to the block centre so corners overlap instead of sitting on a pad that
             // would poke out past a riser (the "lips" seen 2026-08-29).
-            Direction.NORTH to Shapes.box(5.5f.pc.d, 1.pc.d, 0.pc.d, 10.5f.pc.d, 3.pc.d, 8.pc.d),
-            Direction.SOUTH to Shapes.box(5.5f.pc.d, 1.pc.d, 8.pc.d, 10.5f.pc.d, 3.pc.d, 16.pc.d),
-            Direction.WEST to Shapes.box(0.pc.d, 1.pc.d, 5.5f.pc.d, 8.pc.d, 3.pc.d, 10.5f.pc.d),
-            Direction.EAST to Shapes.box(8.pc.d, 1.pc.d, 5.5f.pc.d, 16.pc.d, 3.pc.d, 10.5f.pc.d),
+            Direction.NORTH to Shapes.box(6.pc.d, 1.pc.d, 0.pc.d, 10.pc.d, 2.5f.pc.d, 8.pc.d),
+            Direction.SOUTH to Shapes.box(6.pc.d, 1.pc.d, 8.pc.d, 10.pc.d, 2.5f.pc.d, 16.pc.d),
+            Direction.WEST to Shapes.box(0.pc.d, 1.pc.d, 6.pc.d, 8.pc.d, 2.5f.pc.d, 10.pc.d),
+            Direction.EAST to Shapes.box(8.pc.d, 1.pc.d, 6.pc.d, 16.pc.d, 2.5f.pc.d, 10.pc.d),
         )
 
         /**
@@ -99,11 +100,11 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
 
         /** Vertical strips, wide across x; [wideOn] turns them for [WIDE] = z. A foot stands on a full pad. */
         private val RISER_FOOT: VoxelShape = Shapes.or(
-            Shapes.box(5.5f.pc.d, 1.pc.d, 7.pc.d, 10.5f.pc.d, 16.pc.d, 9.pc.d),
-            Shapes.box(5.5f.pc.d, 1.pc.d, 5.5f.pc.d, 10.5f.pc.d, 3.pc.d, 10.5f.pc.d),
+            Shapes.box(6.pc.d, 1.pc.d, 7.25f.pc.d, 10.pc.d, 16.pc.d, 8.75f.pc.d),
+            Shapes.box(6.pc.d, 1.pc.d, 6.pc.d, 10.pc.d, 2.5f.pc.d, 10.pc.d),
         )
-        private val RISER: VoxelShape = Shapes.box(5.5f.pc.d, 5.pc.d, 7.pc.d, 10.5f.pc.d, 16.pc.d, 9.pc.d)
-        private val DROP: VoxelShape = Shapes.box(5.5f.pc.d, 0.pc.d, 7.pc.d, 10.5f.pc.d, 10.pc.d, 9.pc.d)
+        private val RISER: VoxelShape = Shapes.box(6.pc.d, 6.pc.d, 7.25f.pc.d, 10.pc.d, 16.pc.d, 8.75f.pc.d)
+        private val DROP: VoxelShape = Shapes.box(6.pc.d, 0.pc.d, 7.25f.pc.d, 10.pc.d, 10.pc.d, 8.75f.pc.d)
 
         private fun VoxelShape.wideOn(axis: Direction.Axis): VoxelShape =
             if (axis == Direction.Axis.X) this else Shapes.box(
@@ -111,10 +112,10 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
             )
         /** Standing bands out of a column to a side: the ribbon leaving a panel face-on. */
         private val BANDS: Map<Direction, VoxelShape> = mapOf(
-            Direction.NORTH to Shapes.box(7.pc.d, 5.pc.d, 0.pc.d, 9.pc.d, 10.pc.d, 8.pc.d),
-            Direction.SOUTH to Shapes.box(7.pc.d, 5.pc.d, 8.pc.d, 9.pc.d, 10.pc.d, 16.pc.d),
-            Direction.WEST to Shapes.box(0.pc.d, 5.pc.d, 7.pc.d, 8.pc.d, 10.pc.d, 9.pc.d),
-            Direction.EAST to Shapes.box(8.pc.d, 5.pc.d, 7.pc.d, 16.pc.d, 10.pc.d, 9.pc.d),
+            Direction.NORTH to Shapes.box(7.25f.pc.d, 6.pc.d, 0.pc.d, 8.75f.pc.d, 10.pc.d, 8.pc.d),
+            Direction.SOUTH to Shapes.box(7.25f.pc.d, 6.pc.d, 8.pc.d, 8.75f.pc.d, 10.pc.d, 16.pc.d),
+            Direction.WEST to Shapes.box(0.pc.d, 6.pc.d, 7.25f.pc.d, 8.pc.d, 10.pc.d, 8.75f.pc.d),
+            Direction.EAST to Shapes.box(8.pc.d, 6.pc.d, 7.25f.pc.d, 16.pc.d, 10.pc.d, 8.75f.pc.d),
         )
 
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "cable")
