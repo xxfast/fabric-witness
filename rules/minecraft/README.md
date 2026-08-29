@@ -33,6 +33,7 @@ panel the player already has.
 | 04 | Puzzle composer | [04-puzzle-composer.md](04-puzzle-composer.md) | the block, the slots, and getting a panel in and out |
 | 04-1 | ↳ Modifiers tab | [04-1-puzzle-composer-modifiers.md](04-1-puzzle-composer-modifiers.md) | what a panel means: start / end / break / hexagon |
 | 04-2 | ↳ Grid tab | [04-2-puzzle-composer-grid.md](04-2-puzzle-composer-grid.md) | what a panel is: which nodes and segments exist |
+| 05 | Puzzle frame | [05-puzzle-frame.md](05-puzzle-frame.md) | where a panel is solved; redstone in, power out of the used end to the next frame |
 
 The composer is one block with two tabs, and the tabs are two different mechanics: one edits the
 panel's topology, the other edits what that topology means. They get a file each.
@@ -81,7 +82,9 @@ composer are **implemented and live**. The three special recipes register their 
 with start / end / break / hexagon working ([04-1](04-1-puzzle-composer-modifiers.md)); it has no
 tabs yet, and the Grid tab that edits which nodes and segments exist at all is designed but not
 built ([04-2](04-2-puzzle-composer-grid.md)). Crafting open questions are economy and legibility,
-listed in [01](01-puzzle-panel-crafting.md#not-done).
+listed in [01](01-puzzle-panel-crafting.md#not-done). The frame ([05](05-puzzle-frame.md)) is
+the mod's redstone component: powered by redstone, solved server-side, and passing power to the
+next frame out of the end the line used.
 
 ## Sources
 

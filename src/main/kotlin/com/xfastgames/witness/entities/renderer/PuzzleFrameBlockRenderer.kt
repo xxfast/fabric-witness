@@ -1,5 +1,6 @@
 package com.xfastgames.witness.entities.renderer
 
+import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.panel
@@ -22,6 +23,8 @@ import net.minecraft.world.phys.Vec3
 class PuzzleFrameRenderState : BlockEntityRenderState() {
     var panel: Panel? = null
     var facing: Direction = Direction.NORTH
+    /** Off frames draw the panel dark (rules/minecraft/05-puzzle-frame.md). */
+    var powered: Boolean = false
     /**
      * Frozen snapshot of the frame's block pos at extract time. Attract / error flashes key off
      * this so a mutable [pos] reference can never drift between trigger and draw.
@@ -54,6 +57,7 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
         val itemStack: ItemStack = blockEntity.inventory.items[0]
         state.panel = if (itemStack.isEmpty) null else itemStack.panel ?: Panel.DEFAULT
         state.facing = blockEntity.blockState.getValue(BlockStateProperties.HORIZONTAL_FACING)
+        state.powered = blockEntity.blockState.getValue(IronPuzzleFrameBlock.POWERED)
         // Snapshot now: do not hand the live BE pos reference into flash matching.
         state.framePos = blockEntity.blockPos.immutable()
     }
@@ -84,7 +88,8 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
 
         // Pass frame pos so attract / error flashes only hit this panel, not neighbours.
         puzzlePanelRenderer.renderPanel(
-            panel, matrices, queue, state.lightCoords, OverlayTexture.NO_OVERLAY, state.framePos
+            panel, matrices, queue, state.lightCoords, OverlayTexture.NO_OVERLAY, state.framePos,
+            lit = state.powered,
         )
         matrices.popPose()
     }

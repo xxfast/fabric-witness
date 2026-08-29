@@ -3,6 +3,8 @@ package com.xfastgames.witness.screens.solver
 import com.google.common.graph.Graph
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
+import com.xfastgames.witness.entities.SubmitSolutionPayload
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Companion.PUZZLE_FRAME_SCALE
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
@@ -377,7 +379,13 @@ class PuzzleSolverScreen(
         val puzzle: Panel = blockEntity.inventory.getItem(0).panel ?: return stopTracing()
         val line: Graph<Node> = solver.submit(puzzle) ?: return stopTracing()
         updateLine(blockEntity, puzzle, line)
-        when (val verdict = solver.state.value) {
+        val verdict: PuzzleSolverData = solver.state.value
+        // The server judges the same path again before the frame, or anything downstream of it,
+        // changes (rules/minecraft/05-puzzle-frame.md). The local write above is instant feedback.
+        if (verdict is PuzzleSolverData.SolutionAccepted || verdict is PuzzleSolverData.SolutionRejected) {
+            ClientPlayNetworking.send(SubmitSolutionPayload(blockEntity.blockPos.immutable(), solver.lastSubmittedPath))
+        }
+        when (verdict) {
             is PuzzleSolverData.SolutionAccepted -> {
                 player.play(WitnessSounds.PANEL_FINISH_TRACING)
                 player.play(WitnessSounds.PANEL_SUCCESS)
