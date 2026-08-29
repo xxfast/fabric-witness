@@ -45,6 +45,13 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
     companion object : Clientside {
         val LIT: BooleanProperty = BlockStateProperties.LIT
 
+        /**
+         * Whether this block's horizontal arms lie on the floor (pad + floor strips) rather than
+         * standing as mid-height ribbons. Lying needs ground under this block and under every
+         * cable it joins sideways; anything suspended, and the top of a column, stands. See [isFloor].
+         */
+        val FLOOR: BooleanProperty = BooleanProperty.create("floor")
+
         /** The colour of the panel feeding the run; meaningless (and drawn dark) while unlit. */
         val COLOR: EnumProperty<DyeColor> = EnumProperty.create("color", DyeColor::class.java)
 
@@ -125,6 +132,9 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
                     .strength(0.5f)
                     .sound(SoundType.METAL)
                     .noOcclusion()
+                    // Not "solid" for placement rules: a dirt path under a cable stayed a path
+                    // only with this off (it turned to dirt, seen 2026-08-30 01:37). Collision is unaffected.
+                    .forceSolidOff()
                     .lightLevel { state -> if (state.getValue(LIT)) LIT_LIGHT else 0 }
             ),
             IDENTIFIER
@@ -150,7 +160,7 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
     init {
         registerDefaultState(
             CONNECTIONS.fold(
-                stateDefinition.any().setValue(LIT, false).setValue(COLOR, SOURCELESS_COLOR).setValue(WIDE, Direction.Axis.X)
+                stateDefinition.any().setValue(LIT, false).setValue(COLOR, SOURCELESS_COLOR).setValue(WIDE, Direction.Axis.X).setValue(FLOOR, true)
             ) { state, side -> state.setValue(side, false) }
         )
     }
@@ -159,6 +169,7 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         stateDefinition.add(LIT)
         stateDefinition.add(COLOR)
         stateDefinition.add(WIDE)
+        stateDefinition.add(FLOOR)
         CONNECTIONS.forEach(stateDefinition::add)
     }
 
@@ -239,6 +250,31 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         return armAxis(state)
     }
 
+    /**
+     * Something to lie on: any block with collision under [pos] that is not a cable. Not "a sturdy
+     * top": dirt paths and farmland are a pixel short and made a ground run stand up (2026-08-30 01:35).
+     */
+    private fun grounded(world: BlockGetter, pos: BlockPos): Boolean {
+        val below: BlockState = world.getBlockState(pos.below())
+        return !isRun(below) && !below.getCollisionShape(world, pos.below()).isEmpty
+    }
+
+    /**
+     * See [FLOOR]. A horizontal cable lies on the floor only when it is on the ground, and so are
+     * the cables beside it; otherwise it stands as a mid-height ribbon, which is also what the top
+     * of a column runs into. Checking the neighbours too keeps a ground run and a suspended run
+     * from meeting at different heights (the gap seen 2026-08-30 01:21; the suspended run drawn
+     * lying flat in mid-air, 01:31).
+     */
+    private fun isFloor(world: BlockGetter, pos: BlockPos, state: BlockState): Boolean {
+        if (state.getValue(BlockStateProperties.DOWN)) return false
+        if (!grounded(world, pos)) return false
+        return Direction.Plane.HORIZONTAL.all { direction ->
+            val next: BlockPos = pos.relative(direction)
+            !(state.getValue(CONNECTIONS[direction.ordinal]) && isRun(world.getBlockState(next))) || grounded(world, next)
+        }
+    }
+
     private fun wideFor(world: Level, pos: BlockPos, state: BlockState): Direction.Axis {
         ownWide(world, pos, state)?.let { return it }
         // Up first: the top of a climb (band into a frame, stand) is what a foot must match.
@@ -282,6 +318,7 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
                 .setValue(LIT, lit)
                 .setValue(COLOR, if (lit) colour else current.getValue(COLOR))
                 .setValue(WIDE, wideFor(world, at, joined))
+                .setValue(FLOOR, isFloor(world, at, joined))
             if (next != current) world.setBlock(at, next, Block.UPDATE_ALL)
         }
     }
@@ -330,14 +367,20 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
     override fun getShape(state: BlockState, world: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape {
         val joined: List<Direction> = Direction.entries.filter { direction -> state.getValue(CONNECTIONS[direction.ordinal]) }
         val wide: Direction.Axis = state.getValue(WIDE)
-        if (Direction.DOWN !in joined) {
+        if (state.getValue(FLOOR)) {
             return joined.fold(CORE) { shape, direction ->
-                Shapes.or(shape, if (direction == Direction.UP) RISER_FOOT.wideOn(wide) else ARMS.getValue(direction))
+                Shapes.or(shape, when (direction) {
+                    Direction.UP -> RISER_FOOT.wideOn(wide)
+                    Direction.DOWN -> DROP.wideOn(wide)
+                    else -> ARMS.getValue(direction)
+                })
             }
         }
-        return joined.fold(DROP.wideOn(wide)) { shape, direction ->
+        // Standing: nothing is drawn by default, so a suspended run's box does not hang to the
+        // floor (the outline disagreed with the render, seen 2026-08-30 01:40).
+        return joined.fold(Shapes.empty()) { shape, direction ->
             when (direction) {
-                Direction.DOWN -> shape
+                Direction.DOWN -> Shapes.or(shape, DROP.wideOn(wide))
                 Direction.UP -> Shapes.or(shape, RISER.wideOn(wide))
                 else -> Shapes.or(shape, BANDS.getValue(direction))
             }

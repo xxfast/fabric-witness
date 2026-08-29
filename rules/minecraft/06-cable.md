@@ -124,8 +124,12 @@ dark casing, and the ribbon geometry, signed off after the F3-guided fix to the 
   one too (both tried, both rejected 2026-08-29/30). Horizontal runs lie on the block floor
   (`cable_core` pad, `cable_arm` strips to the block centre). Vertical runs are a thin strip
   (`cable_riser_foot` from the floor pad, `cable_riser` from mid height, `cable_drop` to mid
-  height) wide across the `wide` block-state axis. A block that continues downward is a vertical
-  piece: its side arms are standing 2x5 bands (`cable_band`), the ribbon leaving a panel face-on.
+  height) wide across the `wide` block-state axis. A horizontal cable **lies on the floor only
+  when it is on the ground** and so are the cables beside it (`floor` block state); otherwise it
+  **stands** as a mid-height ribbon (`cable_band`), which is also how a ribbon leaves a panel and
+  what the top of a column runs into. Two earlier rules were wrong: "bands only off a column"
+  left a band hanging over a ground cable (2026-08-30 01:21), and "floor whenever the neighbour
+  is a cable" drew a suspended run lying flat in mid-air (01:31).
 - **`wide`**: a riser faces the same way as the frame it serves. Only the **top** of a climb
   decides: a foot under a stand takes the stand's facing (the ribbon runs up the post face-on, as
   in the game), and a piece that continues downward is wide *along* its band, which for the band

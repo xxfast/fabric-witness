@@ -1,21 +1,21 @@
 {
   "multipart": [
-    { "when": { "down": "false" }, "apply": { "model": "witness:block/cable_core" } },
+    { "when": { "floor": "true" }, "apply": { "model": "witness:block/cable_core" } },
 
-    { "when": { "north": "true", "down": "false" }, "apply": { "model": "witness:block/cable_arm" } },
-    { "when": { "east":  "true", "down": "false" }, "apply": { "model": "witness:block/cable_arm", "y": 90 } },
-    { "when": { "south": "true", "down": "false" }, "apply": { "model": "witness:block/cable_arm", "y": 180 } },
-    { "when": { "west":  "true", "down": "false" }, "apply": { "model": "witness:block/cable_arm", "y": 270 } },
+    { "when": { "north": "true", "floor": "true" }, "apply": { "model": "witness:block/cable_arm" } },
+    { "when": { "east":  "true", "floor": "true" }, "apply": { "model": "witness:block/cable_arm", "y": 90 } },
+    { "when": { "south": "true", "floor": "true" }, "apply": { "model": "witness:block/cable_arm", "y": 180 } },
+    { "when": { "west":  "true", "floor": "true" }, "apply": { "model": "witness:block/cable_arm", "y": 270 } },
 
-    { "when": { "north": "true", "down": "true" }, "apply": { "model": "witness:block/cable_band" } },
-    { "when": { "east":  "true", "down": "true" }, "apply": { "model": "witness:block/cable_band", "y": 90 } },
-    { "when": { "south": "true", "down": "true" }, "apply": { "model": "witness:block/cable_band", "y": 180 } },
-    { "when": { "west":  "true", "down": "true" }, "apply": { "model": "witness:block/cable_band", "y": 270 } },
+    { "when": { "north": "true", "floor": "false" }, "apply": { "model": "witness:block/cable_band" } },
+    { "when": { "east":  "true", "floor": "false" }, "apply": { "model": "witness:block/cable_band", "y": 90 } },
+    { "when": { "south": "true", "floor": "false" }, "apply": { "model": "witness:block/cable_band", "y": 180 } },
+    { "when": { "west":  "true", "floor": "false" }, "apply": { "model": "witness:block/cable_band", "y": 270 } },
 
-    { "when": { "up": "true", "down": "false", "wide": "x" }, "apply": { "model": "witness:block/cable_riser_foot" } },
-    { "when": { "up": "true", "down": "false", "wide": "z" }, "apply": { "model": "witness:block/cable_riser_foot", "y": 90 } },
-    { "when": { "up": "true", "down": "true", "wide": "x" }, "apply": { "model": "witness:block/cable_riser" } },
-    { "when": { "up": "true", "down": "true", "wide": "z" }, "apply": { "model": "witness:block/cable_riser", "y": 90 } },
+    { "when": { "up": "true", "floor": "true", "wide": "x" }, "apply": { "model": "witness:block/cable_riser_foot" } },
+    { "when": { "up": "true", "floor": "true", "wide": "z" }, "apply": { "model": "witness:block/cable_riser_foot", "y": 90 } },
+    { "when": { "up": "true", "floor": "false", "wide": "x" }, "apply": { "model": "witness:block/cable_riser" } },
+    { "when": { "up": "true", "floor": "false", "wide": "z" }, "apply": { "model": "witness:block/cable_riser", "y": 90 } },
     { "when": { "down": "true", "wide": "x" }, "apply": { "model": "witness:block/cable_drop" } },
     { "when": { "down": "true", "wide": "z" }, "apply": { "model": "witness:block/cable_drop", "y": 90 } }
   ]
