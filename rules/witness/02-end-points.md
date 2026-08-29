@@ -98,3 +98,7 @@ line rule alone, it can't yet change the outcome through the symbols in the regi
 - [GameFAQs - Puzzles & Symbols walkthrough](https://gamefaqs.gamespot.com/pc/969704-the-witness/faqs/82392/puzzles-and-symbols) - general panel/symbol reference.
 - [Overv/TheWitnessSolver](https://github.com/Overv/TheWitnessSolver) and its [write-up](https://overv.github.io/TheWitnessSolver/) - branch-and-bound solver treating arrival at an exit node as a candidate solution, validated afterward.
 - [Demaine, Hearn, et al., "Who witnesses The Witness?"](https://export.arxiv.org/pdf/1804.10193) - complexity results for panels with hexagons/broken edges (background on graph-model framing; PDF text did not extract cleanly, treated as directional context only, not directly quoted).
+
+The world-side effect of *which* end was used (which neighbouring frame lights up, and where a
+chain sends its redstone) is the frame's business: see
+[../minecraft/05-puzzle-frame.md](../minecraft/05-puzzle-frame.md).

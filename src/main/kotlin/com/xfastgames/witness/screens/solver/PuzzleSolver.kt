@@ -2,14 +2,12 @@ package com.xfastgames.witness.screens.solver
 
 import com.google.common.graph.Graph
 import com.google.common.graph.MutableGraph
-import com.xfastgames.witness.items.data.CellSymbol
 import com.xfastgames.witness.items.data.Edge
-import com.xfastgames.witness.items.data.Hexagon
-import com.xfastgames.witness.items.data.clashingSquares
 import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
-import com.xfastgames.witness.items.data.unsatisfiedHexagons
+import com.xfastgames.witness.items.data.Verdict
+import com.xfastgames.witness.items.data.verdict
 import com.xfastgames.witness.utils.guava.mutableGraph
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -127,23 +125,26 @@ class PuzzleSolver {
         stateFlow.value = PuzzleSolverData.SolutionSubmitted
         // Snapshot before clear: rejection drops the line, but rule feedback still needs the path.
         val submitted: List<Node> = path.toList()
-        if (!isStructurallyValid(panel, submitted)) {
-            path.clear()
-            stateFlow.value = PuzzleSolverData.SolutionRejected()
-            return buildLine()
+        lastSubmittedPath = submitted
+        // The same pure judgement the server re-runs (items/data/Solutions.kt); this one is only
+        // for instant feedback, nothing in the world changes on it.
+        when (val verdict = panel.verdict(submitted)) {
+            is Verdict.Accepted -> {
+                stateFlow.value = PuzzleSolverData.SolutionAccepted
+                return buildLine()
+            }
+
+            is Verdict.Rejected -> {
+                path.clear()
+                stateFlow.value = PuzzleSolverData.SolutionRejected(verdict.missedHexagons, verdict.clashingSquares)
+                return buildLine()
+            }
         }
-        val missed: List<Hexagon> = panel.unsatisfiedHexagons(submitted)
-        // Region symbols (rules/witness/06-colored-squares.md) are checked against the partition
-        // the finished line makes; every failing symbol is reported, not just the first rule's.
-        val clashing: List<CellSymbol> = panel.clashingSquares(submitted)
-        if (missed.isEmpty() && clashing.isEmpty()) {
-            stateFlow.value = PuzzleSolverData.SolutionAccepted
-            return buildLine()
-        }
-        path.clear()
-        stateFlow.value = PuzzleSolverData.SolutionRejected(missed, clashing)
-        return buildLine()
     }
+
+    /** The path handed to the last [submit] that reached a verdict, for the server to re-judge. */
+    var lastSubmittedPath: List<Node> = emptyList()
+        private set
 
     /**
      * Whether the traced path has reached an end point, ignoring how far the tip has since
@@ -168,22 +169,6 @@ class PuzzleSolver {
         if (segment.target in path) return false
         path.add(segment.target)
         return true
-    }
-
-    /**
-     * Rule 00: a solution is a single simple path along existing, traversable edges, from a `START`
-     * node to an `END` node. Hexagon coverage (rule 04) is checked separately so a reject can report
-     * which dots were missed. Region symbols (rules 06 onwards) are still accepted unchecked.
-     */
-    private fun isStructurallyValid(panel: Panel, path: List<Node>): Boolean {
-        if (path.size < 2) return false
-        if (path.first().modifier != Modifier.START) return false
-        if (path.last().modifier != Modifier.END) return false
-        if (path.distinct().size != path.size) return false
-        return path.zipWithNext().all { (from, to) ->
-            panel.graph.hasEdgeConnecting(from, to) &&
-                panel.edgeBetween(from, to).modifier !in IMPASSABLE_EDGES
-        }
     }
 
     fun stopTrace() {
@@ -365,6 +350,5 @@ class PuzzleSolver {
         /** Panel space width of a drawn line, `4.pc` in `PuzzlePanelRenderer`. */
         const val LINE_THICKNESS = 0.25f
         const val SELF_COLLISION_CLEARANCE = LINE_THICKNESS
-        val IMPASSABLE_EDGES: Set<Modifier> = setOf(Modifier.NONE, Modifier.BREAK)
     }
 }

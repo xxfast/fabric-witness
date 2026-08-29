@@ -84,6 +84,12 @@ object PuzzlePanelRenderer {
      */
     private const val PANEL_GLOW: Int = 12
 
+    /** Lightmap of an unpowered panel: dim enough to read as off, bright enough to make out the grid. */
+    private const val UNLIT_GLOW: Int = 5
+
+    /** Extra tint on the unpowered backdrop so the grid, drawn untinted, stands off it. */
+    private const val UNLIT_BRIGHTNESS: Float = 0.35f
+
     /**
      * Centre to point, so a hexagon is 3.pc across corners against the 4.pc line it marks. Narrower
      * than the line on purpose; see the open question in rules/witness/04-hexagon-dots.md.
@@ -112,6 +118,8 @@ object PuzzlePanelRenderer {
      * @param framePos world position of the puzzle frame this panel is mounted on. Attract and
      * error flashes only draw when [framePos] matches the frame that owns the live effect, so a
      * reject never lights every tutorial panel nearby. Item / composer renders leave it null.
+     * @param lit false for a frame with no power: the panel is drawn as a dark, unlit screen with
+     * nothing on it (rules/minecraft/05-puzzle-frame.md). Items and the composer are always lit.
      */
     fun renderPanel(
         puzzle: Panel,
@@ -120,8 +128,24 @@ object PuzzlePanelRenderer {
         light: Int,
         overlay: Int,
         framePos: BlockPos? = null,
+        lit: Boolean = true,
     ) {
-        val panelLight: Int = LightCoordsUtil.lightCoordsWithEmission(light, PANEL_GLOW)
+        if (!lit) {
+            // A switched-off screen: the puzzle is still there to be read up close, at a fixed dim
+            // lightmap, so the player can see there is something to power. No line, ever.
+            val unlitLight: Int = LightCoordsUtil.pack(UNLIT_GLOW, UNLIT_GLOW)
+            renderBackground(puzzle.backgroundColor, matrices, queue, unlitLight, overlay, brightness = UNLIT_BRIGHTNESS)
+            renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, unlitLight, overlay)
+            renderSymbols(
+                puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
+                matrices, queue, unlitLight, overlay
+            )
+            renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, unlitLight, overlay)
+            return
+        }
+        // A lit face is a screen: constant lightmap, so a row of frames reads evenly instead of
+        // each face taking whatever ambient and neighbour light its block happens to sample.
+        val panelLight: Int = LightCoordsUtil.pack(PANEL_GLOW, PANEL_GLOW)
 
         renderBackground(puzzle.backgroundColor, matrices, queue, panelLight, overlay)
         renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, panelLight, overlay)
@@ -391,12 +415,13 @@ object PuzzlePanelRenderer {
         matrices: PoseStack,
         queue: SubmitNodeCollector,
         light: Int,
-        overlay: Int
+        overlay: Int,
+        brightness: Float = 1f,
     ) {
         matrices.pushPose()
         val backdropTexture = PuzzlePanelTextures.backdrop(dyeColor)
         queue.submitCustomGeometry(matrices, RenderTypes.text(backdropTexture)) { entry, consumer ->
-            consumer.square(entry, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay)
+            consumer.square(entry, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay, brightness, brightness, brightness)
         }
         matrices.popPose()
     }
