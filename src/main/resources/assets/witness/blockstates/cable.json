@@ -7,6 +7,7 @@
     { "when": { "south": "true", "floor": "true" }, "apply": { "model": "witness:block/cable_arm", "y": 180 } },
     { "when": { "west":  "true", "floor": "true" }, "apply": { "model": "witness:block/cable_arm", "y": 270 } },
 
+    { "when": { "OR": [ { "north": "true", "floor": "false" }, { "east": "true", "floor": "false" }, { "south": "true", "floor": "false" }, { "west": "true", "floor": "false" } ] }, "apply": { "model": "witness:block/cable_post" } },
     { "when": { "north": "true", "floor": "false" }, "apply": { "model": "witness:block/cable_band" } },
     { "when": { "east":  "true", "floor": "false" }, "apply": { "model": "witness:block/cable_band", "y": 90 } },
     { "when": { "south": "true", "floor": "false" }, "apply": { "model": "witness:block/cable_band", "y": 180 } },

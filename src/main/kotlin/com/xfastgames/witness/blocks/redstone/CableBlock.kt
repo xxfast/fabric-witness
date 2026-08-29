@@ -119,11 +119,16 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
             )
         /** Standing bands out of a column to a side: the ribbon leaving a panel face-on. */
         private val BANDS: Map<Direction, VoxelShape> = mapOf(
-            Direction.NORTH to Shapes.box(7.25f.pc.d, 6.pc.d, 0.pc.d, 8.75f.pc.d, 10.pc.d, 8.pc.d),
-            Direction.SOUTH to Shapes.box(7.25f.pc.d, 6.pc.d, 8.pc.d, 8.75f.pc.d, 10.pc.d, 16.pc.d),
-            Direction.WEST to Shapes.box(0.pc.d, 6.pc.d, 7.25f.pc.d, 8.pc.d, 10.pc.d, 8.75f.pc.d),
-            Direction.EAST to Shapes.box(8.pc.d, 6.pc.d, 7.25f.pc.d, 16.pc.d, 10.pc.d, 8.75f.pc.d),
+            // Bands stop short of the centre and a POST fills it: overlapping them there z-fought
+            // (2026-08-30 01:50), meeting at the centre line left a notch (01:47).
+            Direction.NORTH to Shapes.box(7.25f.pc.d, 6.pc.d, 0.pc.d, 8.75f.pc.d, 10.pc.d, 7.25f.pc.d),
+            Direction.SOUTH to Shapes.box(7.25f.pc.d, 6.pc.d, 8.75f.pc.d, 8.75f.pc.d, 10.pc.d, 16.pc.d),
+            Direction.WEST to Shapes.box(0.pc.d, 6.pc.d, 7.25f.pc.d, 7.25f.pc.d, 10.pc.d, 8.75f.pc.d),
+            Direction.EAST to Shapes.box(8.75f.pc.d, 6.pc.d, 7.25f.pc.d, 16.pc.d, 10.pc.d, 8.75f.pc.d),
         )
+
+        /** The centre of a standing block with side arms; the bands run out from it. */
+        private val POST: VoxelShape = Shapes.box(7.25f.pc.d, 6.pc.d, 7.25f.pc.d, 8.75f.pc.d, 10.pc.d, 8.75f.pc.d)
 
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "cable")
         val BLOCK: Block = registerBlock(
@@ -382,7 +387,7 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
             when (direction) {
                 Direction.DOWN -> Shapes.or(shape, DROP.wideOn(wide))
                 Direction.UP -> Shapes.or(shape, RISER.wideOn(wide))
-                else -> Shapes.or(shape, BANDS.getValue(direction))
+                else -> Shapes.or(Shapes.or(shape, POST), BANDS.getValue(direction))
             }
         }
     }
