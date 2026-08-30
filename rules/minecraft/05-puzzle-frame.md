@@ -43,6 +43,12 @@ An end point is a nub hanging off the border of the grid, pointing out of one si
 ([02-end-points](../witness/02-end-points.md)). **The side the used nub points out of is the side
 the power leaves by.** A solved frame powers the frame joined to it on that side, if there is one.
 
+**Anchored.** A frame with no stand under it, placed against a solid wall, shows a short bracket
+from its back to the wall, so it reads as bolted on rather than floating. Purely a look: it sits
+in the same place as any other frame, and cables and joins are unchanged. The bracket comes and
+goes with the wall and the stand (break the wall and it vanishes; put a stand under and it
+vanishes).
+
 *Joined* means visibly bracketed: the frame directly above, below, left or right. A frame behind,
 in front, or diagonal is never joined. An Iron Stand is joined to the frame above it and carries
 redstone: a signal into its base from any side comes out of its top into that frame, so a row can
@@ -175,6 +181,9 @@ exit (top / bottom) and the lever-off cascade with the line stripped.
   `neighborChanged` both call it). They still only select model parts; power uses
   `sideDirection` directly.
 - `getBlockSupportShape` reports the back face as full so a lever / button / torch attaches there.
+- `anchored` (2026-08-30, seen in game 22:33: a frame on a sandstone wall, bar reaching the wall): set in `connections()` when there is no stand
+  below and `isFaceSturdy` holds on the block behind; draws `iron_puzzle_frame_anchor` (a 2 x 4
+  px bar from the base plate back to the wall).
 - `IronStandBlock` holds `powered` (input from any side but the top, as block state so a change
   notifies the frame) and answers `getSignal` with 15 to the block above only.
 - Redstone out: `isSignalSource`, `getSignal` = 15 for a block on an exit side. Weak power only;

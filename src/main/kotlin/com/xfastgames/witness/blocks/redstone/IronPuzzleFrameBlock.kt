@@ -93,6 +93,13 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
         val RIGHT_CONNECTED: BooleanProperty = BooleanProperty.create("right_connected")
         val BOTTOM_CONNECTED: BooleanProperty = BooleanProperty.create("bottom_connected")
 
+        /**
+         * Placed against a wall with no stand under it: a short bracket from the base plate back
+         * to the wall, so the frame reads as bolted on rather than floating. Visual only, kept
+         * current with the other joins in [connections].
+         */
+        val ANCHORED: BooleanProperty = BooleanProperty.create("anchored")
+
         /** Redstone strength a solved tail frame puts out of its back face. */
         private const val SOLVED_SIGNAL = 15
 
@@ -137,6 +144,7 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
                 BOTTOM_CONNECTED to (below is IronPuzzleFrameBlock || below is IronStandBlock),
                 LEFT_CONNECTED to frameAt(right.opposite),
                 RIGHT_CONNECTED to frameAt(right),
+                ANCHORED to (below !is IronStandBlock && wallBehind(world, pos, facing)),
             )
         }
 
@@ -144,6 +152,12 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
          * Recomputes the derived state (joins, power) and writes it only if something changed, so
          * chains of frames updating each other settle instead of ping-ponging.
          */
+        /** A solid face on the block the frame's back is against (`facing` points at the back). */
+        private fun wallBehind(world: BlockGetter, pos: BlockPos, facing: Direction): Boolean {
+            val behind: BlockPos = pos.relative(facing)
+            return world.getBlockState(behind).isFaceSturdy(world, behind, facing.opposite)
+        }
+
         fun refresh(world: Level, pos: BlockPos, state: BlockState = world.getBlockState(pos)) {
             if (state.block !is IronPuzzleFrameBlock) return
             // Server-authoritative, as RedstoneLampBlock does it; UPDATE_ALL carries the result down.
@@ -256,7 +270,8 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             .setValue(TOP_CONNECTED, false)
             .setValue(LEFT_CONNECTED, false)
             .setValue(RIGHT_CONNECTED, false)
-            .setValue(BOTTOM_CONNECTED, false))
+            .setValue(BOTTOM_CONNECTED, false)
+            .setValue(ANCHORED, false))
     }
 
     override fun codec(): MapCodec<out BaseEntityBlock> = CODEC
@@ -310,6 +325,7 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
         stateDefinition.add(LEFT_CONNECTED)
         stateDefinition.add(RIGHT_CONNECTED)
         stateDefinition.add(BOTTOM_CONNECTED)
+        stateDefinition.add(ANCHORED)
     }
 
     override fun getShape(
