@@ -120,7 +120,9 @@ dark casing, and the ribbon geometry, signed off after the F3-guided fix to the 
 
 - `CableBlock`, one block (`witness:cable`), six connection flags plus `lit` and a `color`
   (`DyeColor`) block-state value, light 7 when lit, floating.
-- **The ribbon.** 4 wide, 1.5 thick, everywhere (5 x 2 until 2026-08-30, thinned on request); a 4px tube read as a pipe and a 5x5 column read as
+- **The ribbon.** 3 wide, 1 thick, everywhere (5 x 2, then 4 x 1.5, until 2026-08-30, thinned
+  on request twice). The hitbox stays at 4 x 1.5 on purpose, so the selection outline sits
+  slightly proud of the drawn ribbon; a 4px tube read as a pipe and a 5x5 column read as
   one too (both tried, both rejected 2026-08-29/30). Horizontal runs lie on the block floor
   (`cable_core` pad, `cable_arm` strips to the block centre). Vertical runs are a thin strip
   (`cable_riser_foot` from the floor pad, `cable_riser` from mid height, `cable_drop` to mid
