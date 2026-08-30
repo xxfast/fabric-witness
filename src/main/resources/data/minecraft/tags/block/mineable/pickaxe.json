@@ -1,0 +1,18 @@
+{
+  "replace": false,
+  "values": [
+    "witness:yellow_stained_stone",
+    "witness:yellow_stained_stone_slabs",
+    "witness:yellow_stained_stone_stairs",
+    "witness:yellow_stained_stone_walls",
+    "witness:yellow_stained_stone_bricks",
+    "witness:yellow_stained_stone_bricks_slabs",
+    "witness:yellow_stained_stone_bricks_stairs",
+    "witness:yellow_stained_stone_bricks_walls",
+    "witness:yellow_stained_stone_bricks_button",
+    "witness:iron_puzzle_frame",
+    "witness:iron_stand",
+    "witness:puzzle_composer",
+    "witness:cable"
+  ]
+}

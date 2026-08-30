@@ -40,7 +40,7 @@ class PuzzleComposerBlock(settings: BlockBehaviour.Properties) : BaseEntityBlock
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "puzzle_composer")
         val CODEC: MapCodec<PuzzleComposerBlock> = simpleCodec(::PuzzleComposerBlock)
         val BLOCK: Block = registerBlock(
-            PuzzleComposerBlock(blockSettings(IDENTIFIER).strength(2.5F).sound(SoundType.METAL)),
+            PuzzleComposerBlock(blockSettings(IDENTIFIER).strength(2.5F).requiresCorrectToolForDrops().sound(SoundType.METAL)),
             IDENTIFIER
         )
         val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER)

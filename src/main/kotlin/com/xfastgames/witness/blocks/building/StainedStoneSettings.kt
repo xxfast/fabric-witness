@@ -16,3 +16,4 @@ fun stainedStoneSettings(id: Identifier): BlockBehaviour.Properties =
     blockSettings(id)
         .sound(SoundType.STONE)
         .strength(1.5f, 6f)
+        .requiresCorrectToolForDrops()
