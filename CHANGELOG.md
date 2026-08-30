@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-08-30
+
+### Added
+
+- Added colored squares, the first region symbol
+  - Paint a cell black or white with the composer's square tool; every region the line carves out
+    must keep its squares one colour or the solution is rejected
+  - Tutorial panels flash the clashing squares
+
+- Added a grid editor to the composer
+
+- Puzzle frames are now redstone components
+  - A frame needs redstone power to turn on, and once solved passes power out of the side its used
+    end nub points to, so tutorial rows can be chained
+  - Levers attach to the frame's back; a stand relays ground redstone up into its frame; a solved
+    frame emits weak power for a repeater to pick up
+  - Solutions are now judged on the server. Solved is sticky and resets when power is lost
+
+- Added cables
+  - A flat ribbon that carries a solved frame's power for 64 blocks without decay, lit in the
+    powering panel's colour
+  - Bends around floor corners, climbs walls, and lies over ledges; feeds a frame on any side without
+    an end nub, and a stand from underneath
+  - The recipe unlocks on picking up copper
+
+- Blocks now have mineable tags and vanilla-style tool requirements
+  - Stone and iron blocks need a pickaxe to drop (iron blocks need stone tier or better); cedar
+    logs an axe; leaves a hoe
+
+### Changed
+
+- The solver snaps the cursor to the nearest start point
+
+- Puzzle panels render on the text layer instead of the beacon beam layer
+  - Shader packs no longer bloom the whole panel face; the panel keeps its lit-screen look and the
+    traced line stays fully bright
+  - Note: in vanilla, panels in dark rooms are now glowstone-dim rather than fullbright
+
+- Stand-less frames on a wall draw a short bracket back to the wall
+
+### Fixed
+
+- Attacking an iron frame in creative mode drops its panel too
+
 ## [0.12.0] - 2026-08-03
 
 ### Added
