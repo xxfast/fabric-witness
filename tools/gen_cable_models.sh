@@ -76,6 +76,8 @@ arc_up() {
   done
   a=-22.5; pz=$(num "$R*cos($a*atan2(0,-1)/180)"); py=$(num "$yc+$R+$R*sin($a*atan2(0,-1)/180)")
   box $(num "8-$H") $(num "$py-$E") $(num "$pz-$H") $(num "8+$H") $(num "$py+$E") $(num "$pz+$H") $gy "$(rot 8 $py $pz x $(num "$SGN_X*(0-($a))"))"
+  # The straight tail up to the top face; without it the arc stopped at y = yc + R - E and the rod above began with a cut (shot 2026-08-30 18:10).
+  box $(num "8-$H") $(num "$yc+$R-$E") $(num "8-$H") $(num "8+$H") $(num "$yc+$R") $(num "8+$H") $gy
 }
 
 # A quarter circle in the plane x = 8 from a rod heading +y at (z 8, y 0) round to a rod heading
