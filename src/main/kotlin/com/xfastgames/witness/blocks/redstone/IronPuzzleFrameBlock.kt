@@ -250,10 +250,10 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             // split it, which empties the stack still sitting in the slot list.
             val frameStack: ItemStack = entity.inventory.removeItemNoUpdate(0)
 
-            // ItemFrame.dropItem swallows the drop for creative players. popResource is already
-            // server-side only and respects the blockDrops gamerule.
-            if (!player.hasInfiniteMaterials())
-                Block.popResourceFromFace(world, pos, state.getValue(HORIZONTAL_FACING).opposite, frameStack)
+            // Drops in creative too, unlike ItemFrame.dropItem: a drawn-on panel is not a stock
+            // item the player can pull from the menu again. popResource is already server-side
+            // only and respects the blockDrops gamerule.
+            Block.popResourceFromFace(world, pos, state.getValue(HORIZONTAL_FACING).opposite, frameStack)
 
             world.playSound(player, pos, SoundEvents.ITEM_FRAME_REMOVE_ITEM, SoundSource.BLOCKS, 1f, 1f)
             refresh(world, pos, state)
