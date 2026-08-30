@@ -1,0 +1,1 @@
+{ "model": { "type": "minecraft:model", "model": "witness:item/cable", "tints": [ { "type": "minecraft:constant", "value": 4210752 }, { "type": "minecraft:constant", "value": 1973790 } ] } }

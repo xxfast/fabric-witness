@@ -2,6 +2,7 @@ package com.xfastgames.witness
 
 import com.xfastgames.witness.blocks.building.*
 import com.xfastgames.witness.blocks.decorations.*
+import com.xfastgames.witness.blocks.redstone.CableBlock
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.blocks.redstone.IronStandBlock
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
@@ -52,7 +53,8 @@ class Witness : ModInitializer {
             CedarLog.BLOCK,
             IronPuzzleFrameBlock.BLOCK,
             PuzzleComposerBlock.BLOCK,
-            IronStandBlock.BLOCK
+            IronStandBlock.BLOCK,
+            CableBlock.BLOCK
         )
 
         /** Items shown in the building blocks creative tab (was CreativeModeTab.BUILDING_BLOCKS). */
@@ -86,6 +88,7 @@ class Witness : ModInitializer {
             IronPuzzleFrameBlock.BLOCK_ITEM,
             PuzzleComposerBlock.BLOCK_ITEM,
             IronStandBlock.BLOCK_ITEM,
+            CableBlock.BLOCK_ITEM,
             PuzzlePanelItem.ITEM
         )
 

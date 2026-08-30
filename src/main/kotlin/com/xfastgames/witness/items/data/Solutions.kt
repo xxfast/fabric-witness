@@ -83,6 +83,19 @@ fun List<Node>.exitSides(): Set<Side> {
     return sides
 }
 
+/**
+ * Every side this panel has an end nub on: the sides power can leave by, and so the sides that
+ * never take power in (rules/minecraft/05-puzzle-frame.md, "where the power goes"). Known from
+ * the panel alone, before anyone traces; [exitSides] is the one of these the line actually used.
+ */
+fun Panel.endSides(): Set<Side> = graph.nodes()
+    .filter { node -> node.modifier == Modifier.END }
+    .flatMap { nub ->
+        val anchor: Node = graph.adjacentNodes(nub).firstOrNull { it.modifier != Modifier.END } ?: return@flatMap emptyList()
+        listOf(anchor, nub).exitSides()
+    }
+    .toSet()
+
 private const val EXIT_EPSILON = 0.001f
 
 /** The drawn line for an ordered path: every node, joined in order. */

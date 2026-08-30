@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [ "ccc" ],
+  "key": { "c": "minecraft:copper_ingot" },
+  "result": { "id": "witness:cable", "count": 6 }
+}

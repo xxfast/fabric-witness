@@ -4,6 +4,8 @@ import com.mojang.serialization.MapCodec
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
+import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.endSides
 import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.data.withLine
 import com.xfastgames.witness.utils.guava.emptyGraph
@@ -146,9 +148,10 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             // Server-authoritative, as RedstoneLampBlock does it; UPDATE_ALL carries the result down.
             if (world.isClientSide) return
             val entity: BlockEntity? = world.getBlockEntity(pos)
-            val hasPanel: Boolean = entity is PuzzleFrameBlockEntity && !entity.inventory.items[0].isEmpty
+            val held: Panel? = (entity as? PuzzleFrameBlockEntity)?.inventory?.items?.get(0)?.panel
+            val hasPanel: Boolean = held != null
             val facing: Direction = state.getValue(HORIZONTAL_FACING)
-            val powered: Boolean = hasPanel && (hasRedstoneInput(world, pos, state) || isFedByChain(world, pos, facing))
+            val powered: Boolean = hasPanel && (hasRedstoneInput(world, pos, state, held) || isFedByChain(world, pos, facing))
             // Solved is sticky while powered, and only while powered: a cut resets the chain.
             val solved: Boolean = state.getValue(SOLVED) && powered
             var next: BlockState = state
@@ -200,14 +203,16 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
         }
 
         /**
-         * Redstone into the frame from any side, like a lamp, except the sides it is itself putting
-         * power out of: an output never feeds its own input, as with a repeater, or a solved frame
-         * next to dust would hold itself on forever.
+         * Redstone into the frame from any side, like a lamp, except the sides the panel has an
+         * end nub on: those are exits, and an exit never takes power in, whether or not the frame
+         * is solved yet. Static, from the panel, so a shared cable run can never feed a frame back
+         * through its own output (rules/minecraft/05-puzzle-frame.md, "where the power goes").
          */
-        private fun hasRedstoneInput(world: Level, pos: BlockPos, state: BlockState): Boolean {
-            val outputs: Set<Direction> = outputDirections(state)
+        private fun hasRedstoneInput(world: Level, pos: BlockPos, state: BlockState, panel: Panel?): Boolean {
+            val facing: Direction = state.getValue(HORIZONTAL_FACING)
+            val exits: Set<Direction> = panel?.endSides().orEmpty().map { side -> sideDirection(facing, side) }.toSet()
             return Direction.entries.any { direction ->
-                direction !in outputs && world.getSignal(pos.relative(direction), direction) > 0
+                direction !in exits && world.getSignal(pos.relative(direction), direction) > 0
             }
         }
 
