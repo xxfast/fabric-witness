@@ -30,7 +30,7 @@ class IronStandBlock(settings: BlockBehaviour.Properties) : Block(settings) {
     companion object {
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "iron_stand")
         val BLOCK: Block = registerBlock(
-            IronStandBlock(blockSettings(IDENTIFIER).strength(2.5f).sound(SoundType.METAL)),
+            IronStandBlock(blockSettings(IDENTIFIER).strength(2.5f).requiresCorrectToolForDrops().sound(SoundType.METAL)),
             IDENTIFIER
         )
         val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)

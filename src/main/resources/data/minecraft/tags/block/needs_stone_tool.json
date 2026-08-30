@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "witness:iron_puzzle_frame",
+    "witness:iron_stand",
+    "witness:puzzle_composer"
+  ]
+}

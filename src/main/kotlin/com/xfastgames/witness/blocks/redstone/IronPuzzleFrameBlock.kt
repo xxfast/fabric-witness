@@ -106,6 +106,7 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             IronPuzzleFrameBlock(
                 blockSettings(IDENTIFIER)
                     .strength(2.5f)
+                    .requiresCorrectToolForDrops()
                     .sound(SoundType.METAL)
                     .lightLevel { state: BlockState ->
                         when {
