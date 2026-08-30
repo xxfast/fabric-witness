@@ -2,14 +2,6 @@
   "parent": "block/block",
   "textures": { "0": "minecraft:block/white_concrete", "particle": "#0" },
   "elements": [
-    { "from": [6.5, 1, 6.5], "to": [9.5, 2, 9.5],
-      "faces": {
-        "north": { "uv": [6.5, 14, 9.5, 15], "texture": "#0", "tintindex": 1 },
-        "east":  { "uv": [6.5, 14, 9.5, 15], "texture": "#0", "tintindex": 1 },
-        "south": { "uv": [6.5, 14, 9.5, 15], "texture": "#0", "tintindex": 1 },
-        "west":  { "uv": [6.5, 14, 9.5, 15], "texture": "#0", "tintindex": 1 },
-        "up":    { "uv": [6.5, 6.5, 9.5, 9.5], "texture": "#0", "tintindex": 0 },
-        "down":  { "uv": [6.5, 6.5, 9.5, 9.5], "texture": "#0", "tintindex": 0 }
-      } }
+    { "from": [7, 0, 7], "to": [9, 2, 9], "shade": false, "faces": { "north": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "east": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "south": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "west": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "up": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "down": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 } } }
   ]
 }

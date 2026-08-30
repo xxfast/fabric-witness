@@ -3,14 +3,6 @@
   "textures": { "0": "minecraft:block/white_concrete", "particle": "#0" },
   "display": { "gui": { "rotation": [30, 225, 0], "translation": [0, 0, 0], "scale": [0.8, 0.8, 0.8] } },
   "elements": [
-    { "from": [6.5, 7.5, 0], "to": [9.5, 8.5, 16],
-      "faces": {
-        "north": { "uv": [6.5, 7.5, 9.5, 8.5], "texture": "#0", "tintindex": 1 },
-        "east":  { "uv": [0, 7.5, 16, 8.5], "texture": "#0", "tintindex": 1 },
-        "south": { "uv": [6.5, 7.5, 9.5, 8.5], "texture": "#0", "tintindex": 1 },
-        "west":  { "uv": [0, 7.5, 16, 8.5], "texture": "#0", "tintindex": 1 },
-        "up":    { "uv": [6.5, 0, 9.5, 16], "texture": "#0", "tintindex": 0 },
-        "down":  { "uv": [6.5, 0, 9.5, 16], "texture": "#0", "tintindex": 0 }
-      } }
+    { "from": [7, 7, 0], "to": [9, 9, 16], "shade": false, "faces": { "north": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "east": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "south": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "west": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "up": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 }, "down": { "uv": [0, 0, 1, 1], "texture": "#0", "tintindex": 0 } } }
   ]
 }

@@ -8,7 +8,8 @@ import com.xfastgames.witness.utils.blockSettings
 import com.xfastgames.witness.utils.d
 import com.xfastgames.witness.utils.pc
 import com.xfastgames.witness.utils.registerBlock
-import com.xfastgames.witness.utils.registerBlockItem
+import com.xfastgames.witness.utils.itemSettings
+import com.xfastgames.witness.utils.registerItem
 import net.fabricmc.fabric.api.client.rendering.v1.BlockColorRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.BlockTintsFactory
 import net.minecraft.core.BlockPos
@@ -65,7 +66,8 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
             BlockStateProperties.EAST,
         )
 
-        private const val LIT_LIGHT = 7
+        /** A lit run glows like a lit panel: the panel floors its lightmap at 12 (`PuzzlePanelRenderer.PANEL_GLOW`), and a block lights its own faces at its light level, so 12 here reads the same. Asked for 2026-08-30 18:05; was 7. */
+        private const val LIT_LIGHT = 12
         private const val SIGNAL = 15
 
         /** A dark run: near black, as the game's unpowered cables. */
@@ -75,9 +77,8 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         private val SOURCELESS_COLOR: DyeColor = DyeColor.WHITE
 
         // Before BLOCK: the block constructor computes its shape, which reads these.
-        // A flat ribbon, 4 wide and 1.5 thick (was 5 x 2; thinned 2026-08-30 on request): it lies
-        // on the floor of the block for horizontal runs and stands as a strip through the middle
-        // for vertical ones. Mirrors the models: change the numbers here and there together.
+        // Hitboxes: 4 wide and 1.5 thick, kept from the ribbon era on purpose (the drawn rod is a
+        // 2 x 2 tube from tools/gen_cable_models.sh); a slightly generous box is easier to aim at.
         // Full 4x4 pad: fills the outer corner of a floor L-bend (a gap seen 2026-08-30). Safe now
         // that vertical pieces use standing bands and never sit on it.
         private val CORE: VoxelShape = Shapes.box(6.pc.d, 1.pc.d, 6.pc.d, 10.pc.d, 2.5f.pc.d, 10.pc.d)
@@ -146,7 +147,8 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
             ),
             IDENTIFIER
         )
-        val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER)
+        /** A [CableBlockItem], so a sneak-click lays a run; see rules/minecraft/06-cable.md, "Laying a run". */
+        val BLOCK_ITEM: BlockItem = registerItem(IDENTIFIER, CableBlockItem(BLOCK, itemSettings(IDENTIFIER).useBlockDescriptionPrefix())) as BlockItem
 
         /**
          * One tinted model set, two tints: index 0 is the glowing broad face (the run's colour when
@@ -250,11 +252,14 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
                 return if (above.getValue(BlockStateProperties.HORIZONTAL_FACING).axis == Direction.Axis.X) Direction.Axis.Z else Direction.Axis.X
             }
         }
-        // Only a piece that continues downward (a top or mid piece with a band) decides from its
-        // arm. A foot with nothing above it does not: F3 on 2026-08-30 00:55 showed a foot at
-        // wide=z from its own arm under a top at wide=x, which is the twist. Feet follow the top.
-        if (!state.getValue(BlockStateProperties.DOWN)) return null
-        return armAxis(state)
+        // A floor foot is wide *across* its arm: the bend carries the floor's glowing top round
+        // into the faces perpendicular to the arm. A standing piece is wide *along* its band: bands
+        // glow on their sides (the frame decides the glowing side, 2026-08-30 17:10), and a bend
+        // carries those sides straight up or down. Where a foot and a top disagree the glow has a
+        // seam at the foot; the rod has no plane, so it is never a twist (ribbon era: F3 00:55).
+        val axis: Direction.Axis = armAxis(state) ?: return null
+        val across: Direction.Axis = if (axis == Direction.Axis.X) Direction.Axis.Z else Direction.Axis.X
+        return if (isFloor(world, pos, state)) across else axis
     }
 
     /**

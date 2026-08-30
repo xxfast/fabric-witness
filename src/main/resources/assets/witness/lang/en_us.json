@@ -21,6 +21,11 @@
   "block.witness.iron_puzzle_frame": "Iron Puzzle Frame",
   "block.witness.iron_stand": "Iron Stand",
   "block.witness.cable": "Cable",
+  "item.witness.cable.pinned": "Cable pinned. Sneak-click where the run should end, or sneak-click the air to forget it.",
+  "item.witness.cable.no_route": "No route for a cable there within %s blocks.",
+  "item.witness.cable.short": "That run needs %s cables.",
+  "item.witness.cable.laid": "Laid %s cables.",
+  "item.witness.cable.cleared": "Cable pin forgotten.",
   "item.witness.puzzle_panel": "Puzzle Panel",
   "item.witness.puzzle_tile": "Puzzle Tile",
   "item.witness.ancient_puzzle_tablet": "Ancient Puzzle Tablet"
