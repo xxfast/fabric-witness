@@ -191,7 +191,8 @@ dark casing, and the ribbon geometry, signed off after the F3-guided fix to the 
   neighbour for a `PuzzleFrameBlockEntity` and takes its panel's `backgroundColor`; plain
   redstone counts as white, and a panel's colour wins over white. One colour per run, the first
   source found. Unlit cables keep their last colour in state but draw dark.
-- Recipe: 3 copper → 6 cables. No dye.
+- Recipe: 3 copper → 6 cables. No dye. Unlocks in the recipe book on picking up a copper ingot
+  (`advancement/recipes/redstone/cable.json`, added 2026-08-30).
 - `walkCables` (`CableNetwork.kt`) is the pure component-then-spread walk, bounded at
   `CABLE_MAX_DISTANCE = 64` and `CABLE_MAX_VISITED = 512`; `CableNetworkTests` pins it. **One
   walk per change**, redstone-cheap: `refresh` writes the run with `UPDATE_CLIENTS` and each
@@ -260,6 +261,10 @@ the same colour at `UNLIT_BRIGHTNESS`, the panel's unlit treatment reused.
   segments per input). A door here is just a block a lit run touches; AND-ing two panels means
   vanilla logic.
 - Cable-to-cable colour bridging blocks, if the bundle rule turns out too strict.
+- **Wall hugging.** A climb sits at the block centre, 6.5 px off the wall it runs up (asked for
+  2026-08-30 20:42). It needs a hug-side block state (x5 states, ~120k, measure first or move
+  `color` out of state), the walk to pick the wall and carry it up the column, and every
+  vertical bend regenerated for an off-centre rod. A session on its own.
 
 ## Sources
 
