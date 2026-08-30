@@ -2,39 +2,38 @@
 # Generates every cable block model and the cable blockstate (rules/minecraft/06-cable.md, "Bends").
 # Run from the repo root: bash tools/gen_cable_models.sh
 #
-# The cable is one square rod of side S that bends in quarter circles of radius R (the block's
-# half width, so an arc runs face-centre to face-centre). Two opposite long faces glow (tint 0),
-# joins); "shade": false everywhere, because vanilla shades a face
-# by its unrotated direction and the arc pieces then jump in brightness beside their neighbours,
-# which read as a twist in the top bend (shot 2026-08-30 16:21). A bend carries the glowing pair round with it, so the
-# vertical rod above a floor bend glows on the faces the floor's top turned into. Standing pieces
-# (bands, their corners and bends, the post) glow on their sides instead: a band out of a frame's
-# edge lies in the panel's plane, so its sides face whoever looks at the panel, and the climb
-# under it carries those faces straight down (the frame decides the glowing side, 2026-08-30 17:10).
+# The cable is a flat ribbon, W wide and T thick, that bends in quarter circles of radius R (the
+# block's half width, so an arc runs face-centre to face-centre) built from five 22.5°-stepped
+# elements, the most JSON rotation allows. A ribbon bends two ways: over its face (the bend axis
+# is its width axis) or round its edge (the width axis turns with the bend); which one a joint
+# uses is the block's `wide` state, decided by CableRibbon.kt. Horizontal pieces at mid height
+# come in a flat set (wide x|z) and a standing set (wide y, suffix _s); vertical rods are wide
+# across x, or rotated 90° for wide z. Floor pieces are always flat.
+#
+# Every face takes tint 0 and "shade": false (the casing on two faces was dropped 2026-08-30, and
+# vanilla shades a face by its unrotated direction, which made arc pieces jump in brightness).
 #
 # Rotation signs follow JOML (rotationY: +z tips toward +x for a positive angle, confirmed in game
-# 2026-08-30; rotationX: +z tips toward -y for a positive angle, derived the same way). SGN_X flips
-# every x-axis angle at once if that derivation turns out mirrored.
+# 2026-08-30; rotationX: +z tips toward -y for a positive angle, also confirmed 16:21).
 set -e
-S=${S:-2}      # rod side, px
+W=${W:-3}      # ribbon width, px
+T=${T:-1}      # ribbon thickness, px
 R=8            # bend radius, px
-SGN_X=${SGN_X:-1}
-H=$(awk -v s=$S 'BEGIN{printf "%.4g", s/2}')
-E=$(awk -v r=$R -v h=$H 'BEGIN{printf "%.4g", (r+h)*0.198912}')   # tangent-segment half length at the outer edge
+HW=$(awk -v w=$W 'BEGIN{printf "%.4g", w/2}')
+HT=$(awk -v t=$T 'BEGIN{printf "%.4g", t/2}')
 OUT=src/main/resources/assets/witness
 TEX='"textures": { "0": "minecraft:block/white_concrete", "particle": "#0" }'
 
 num() { awk "BEGIN{printf \"%.4g\", $1}"; }
+# Tangent-segment half length so the arc's outer edge closes: (R + outer half extent) * tan(11.25°).
+tangent() { num "($R+$1)*0.198912"; }
 
-# box x1 y1 z1 x2 y2 z2 glow [rotation-json]; glow is ud / ns / ew (the pair that takes tint 0) or sides (all four).
-box() {
-  local rot=${8:-} f
-  echo -n "    { \"from\": [$1, $2, $3], \"to\": [$4, $5, $6], \"shade\": false,"
+# cub cx cy cz hx hy hz [rotation-json]: a cuboid by centre and half extents, one colour all round.
+cub() {
+  local rot=${7:-} f first=1
+  echo -n "    { \"from\": [$(num "$1-$4"), $(num "$2-$5"), $(num "$3-$6")], \"to\": [$(num "$1+$4"), $(num "$2+$5"), $(num "$3+$6")], \"shade\": false,"
   [ -n "$rot" ] && echo -n " \"rotation\": $rot,"
   echo -n ' "faces": {'
-  local first=1
-  # One colour on every face (tint 0): the dark casing on two faces was dropped 2026-08-30 17:55,
-  # its pairing rules seamed at joins. $7 (the old glow pair) is accepted and ignored.
   for f in north east south west up down; do
     [ $first = 1 ] || echo -n ","
     first=0
@@ -43,76 +42,105 @@ box() {
   echo " } }"
 }
 rot() { echo "{ \"origin\": [$1, $2, $3], \"axis\": \"$4\", \"angle\": $5 }"; }
-
-model() { # model name, then element lines on stdin
+model() { # name; element lines on stdin
   { echo "{"; echo '  "parent": "block/block",'; echo "  $TEX,"; echo '  "elements": ['
     sed '$!s/$/,/'
     echo "  ]"; echo "}"; } > "$OUT/models/block/$1.json"
 }
+cs() { awk -v a=$1 'BEGIN{printf "%.4g", cos(a*atan2(0,-1)/180)}'; }
+sn() { awk -v a=$1 'BEGIN{printf "%.4g", sin(a*atan2(0,-1)/180)}'; }
 
-# A quarter circle in the horizontal plane from the north face (8, 0) to the east face (16, 8),
-# about the block's north-east corner, with the rod's bottom at y0.
-arc_y() {
-  local y0=$1 gz=${2:-ud} gx=${3:-ud} y1=$(num "$1+$S") ym=$(num "$1+$H") a px pz
-  box $(num "8-$H") $y0 0 $(num "8+$H") $y1 $E $gz
+# ---- arcs ----------------------------------------------------------------------------------------
+# Each takes the ribbon's half extents along the bend's radial direction (hr) and across the
+# bend plane (ha): flat in the horizontal plane is hr=HW ha=HT (thin in y), standing is hr=HT ha=HW.
+
+# Horizontal plane, from the north face (8, 0) to the east face (16, 8), about the block's
+# north-east corner, ribbon centred at height yc.
+arc_h() {
+  local yc=$1 hr=$2 ha=$3 E=$(tangent $2) a px pz
+  cub 8 $yc $(num "$E/2") $hr $ha $(num "$E/2")
   for a in 157.5 135; do
-    px=$(num "16+$R*cos($a*atan2(0,-1)/180)"); pz=$(num "$R*sin($a*atan2(0,-1)/180)")
-    box $(num "$px-$H") $y0 $(num "$pz-$E") $(num "$px+$H") $y1 $(num "$pz+$E") $gz "$(rot $px $ym $pz y $(num "180-$a"))"
+    px=$(num "16+$R*$(cs $a)"); pz=$(num "$R*$(sn $a)")
+    cub $px $yc $pz $hr $ha $E "$(rot $px $yc $pz y $(num "180-$a"))"
   done
-  a=112.5; px=$(num "16+$R*cos($a*atan2(0,-1)/180)"); pz=$(num "$R*sin($a*atan2(0,-1)/180)")
-  box $(num "$px-$E") $y0 $(num "$pz-$H") $(num "$px+$E") $y1 $(num "$pz+$H") $gx "$(rot $px $ym $pz y $(num "90-$a"))"
-  box $(num "16-$E") $y0 $(num "8-$H") 16 $y1 $(num "8+$H") $gx
+  a=112.5; px=$(num "16+$R*$(cs $a)"); pz=$(num "$R*$(sn $a)")
+  cub $px $yc $pz $E $ha $hr "$(rot $px $yc $pz y $(num "90-$a"))"
+  cub $(num "16-$E/2") $yc 8 $(num "$E/2") $ha $hr
 }
 
-# A quarter circle in the plane x = 8 from a rod heading +z at (z 0, y y0) up to a rod heading +y
-# at (z 8, y y0 + R): the floor rising into a climb (y0 = 0 rod bottom) or a band rising (y0 = 8 - H).
-# The rod centre starts at yc = y0 + H; the arc is about (z 0, yc + R).
+# Plane x = 8, from a piece heading +z at (z 0, y yc) up to a piece heading +y at (z 8, y yc + R),
+# about (z 0, y yc + R). Radial half extent hr, across-plane (x) half extent ha.
 arc_up() {
-  local y0=$1 gz=${2:-ud} gy=${3:-ns} yc=$(num "$1+$H") a pz py
-  box $(num "8-$H") $y0 0 $(num "8+$H") $(num "$y0+$S") $E $gz
+  local yc=$1 hr=$2 ha=$3 E=$(tangent $2) a pz py
+  cub 8 $yc $(num "$E/2") $ha $hr $(num "$E/2")
   for a in -67.5 -45; do
-    pz=$(num "$R*cos($a*atan2(0,-1)/180)"); py=$(num "$yc+$R+$R*sin($a*atan2(0,-1)/180)")
-    box $(num "8-$H") $(num "$py-$H") $(num "$pz-$E") $(num "8+$H") $(num "$py+$H") $(num "$pz+$E") $gz "$(rot 8 $py $pz x $(num "$SGN_X*(-90-($a))"))"
+    pz=$(num "$R*$(cs $a)"); py=$(num "$yc+$R+$R*$(sn $a)")
+    cub 8 $py $pz $ha $hr $E "$(rot 8 $py $pz x $(num "-90-($a)"))"
   done
-  a=-22.5; pz=$(num "$R*cos($a*atan2(0,-1)/180)"); py=$(num "$yc+$R+$R*sin($a*atan2(0,-1)/180)")
-  box $(num "8-$H") $(num "$py-$E") $(num "$pz-$H") $(num "8+$H") $(num "$py+$E") $(num "$pz+$H") $gy "$(rot 8 $py $pz x $(num "$SGN_X*(0-($a))"))"
-  # The straight tail up to the top face; without it the arc stopped at y = yc + R - E and the rod above began with a cut (shot 2026-08-30 18:10).
-  box $(num "8-$H") $(num "$yc+$R-$E") $(num "8-$H") $(num "8+$H") $(num "$yc+$R") $(num "8+$H") $gy
+  a=-22.5; pz=$(num "$R*$(cs $a)"); py=$(num "$yc+$R+$R*$(sn $a)")
+  cub 8 $py $pz $ha $E $hr "$(rot 8 $py $pz x $(num "0-($a)"))"
+  # The straight tail to the top face; without it the arc stopped short and the rod above began with a cut (2026-08-30 18:10).
+  cub 8 $(num "$yc+$R-$E/2") 8 $ha $(num "$E/2") $hr
 }
 
-# A quarter circle in the plane x = 8 from a rod heading +y at (z 8, y 0) round to a rod heading
-# -z at (z 0, y 8): the top of a climb turning into a band. About (z 0, y 0).
+# Plane x = 8, from a piece heading +y at (z 8, y 0) round to a piece heading -z at (z 0, y 8), about (z 0, y 0).
 arc_down() {
-  local a pz py
-  box $(num "8-$H") 0 $(num "8-$H") $(num "8+$H") $E $(num "8+$H") ew
+  local hr=$1 ha=$2 E=$(tangent $1) a pz py
+  cub 8 $(num "$E/2") 8 $ha $(num "$E/2") $hr
   for a in 22.5 45; do
-    pz=$(num "$R*cos($a*atan2(0,-1)/180)"); py=$(num "$R*sin($a*atan2(0,-1)/180)")
-    box $(num "8-$H") $(num "$py-$E") $(num "$pz-$H") $(num "8+$H") $(num "$py+$E") $(num "$pz+$H") ew "$(rot 8 $py $pz x $(num "$SGN_X*(0-($a))"))"
+    pz=$(num "$R*$(cs $a)"); py=$(num "$R*$(sn $a)")
+    cub 8 $py $pz $ha $E $hr "$(rot 8 $py $pz x $(num "0-($a)"))"
   done
-  a=67.5; pz=$(num "$R*cos($a*atan2(0,-1)/180)"); py=$(num "$R*sin($a*atan2(0,-1)/180)")
-  box $(num "8-$H") $(num "$py-$H") $(num "$pz-$E") $(num "8+$H") $(num "$py+$H") $(num "$pz+$E") ew "$(rot 8 $py $pz x $(num "$SGN_X*(90-$a)"))"
-  box $(num "8-$H") $(num "8-$H") 0 $(num "8+$H") $(num "8+$H") $E ew
+  a=67.5; pz=$(num "$R*$(cs $a)"); py=$(num "$R*$(sn $a)")
+  cub 8 $py $pz $ha $hr $E "$(rot 8 $py $pz x $(num "90-$a"))"
+  cub 8 8 $(num "$E/2") $ha $hr $(num "$E/2")
 }
 
-C0=$(num "8-$H"); C1=$(num "8+$H"); B0=$(num "8-$H"); B1=$(num "8+$H")
-model cable_core        < <(box $C0 0 $C0 $C1 $S $C1 ud)
-model cable_post        < <(box $C0 $B0 $C0 $C1 $B1 $C1 sides)
-model cable_arm         < <(box $C0 0 0 $C1 $S 8 ud)
-model cable_band        < <(box $C0 $B0 0 $C1 $B1 8 ew)
-model cable_corner      < <(arc_y 0)
-model cable_band_corner < <(arc_y $B0 ew ns)
-model cable_riser       < <(box $C0 8 $C0 $C1 16 $C1 ns)
-model cable_riser_foot  < <(box $C0 0 $C0 $C1 16 $C1 ns)
-model cable_drop        < <(box $C0 0 $C0 $C1 8 $C1 ns)
-model cable_foot_bend   < <(arc_up 0; box $C0 $(num "$H+$R-$E") $C0 $C1 16 $C1 ns)
-model cable_band_bend_up   < <(arc_up $B0 ew ew)
-model cable_band_bend_down < <(arc_down)
+# Plane x = 8, from a piece heading +z at (z 0, y yc) over the edge and down to a piece heading -y
+# at (z 8, y yc - R), about (z 0, y yc - R). A floor lip: most of the arc hangs below the block,
+# into the rod under it, which skips its top half (`under_lip`) to make room.
+arc_over() {
+  local yc=$1 hr=$2 ha=$3 E=$(tangent $2) a pz py
+  cub 8 $yc $(num "$E/2") $ha $hr $(num "$E/2")
+  for a in 22.5 45; do
+    pz=$(num "$R*$(sn $a)"); py=$(num "$yc-$R+$R*$(cs $a)")
+    cub 8 $py $pz $ha $hr $E "$(rot 8 $py $pz x $a)"
+  done
+  a=67.5; pz=$(num "$R*$(sn $a)"); py=$(num "$yc-$R+$R*$(cs $a)")
+  cub 8 $py $pz $ha $E $hr "$(rot 8 $py $pz x $(num "$a-90"))"
+  cub 8 $(num "$yc-$R+$E/2") 8 $ha $(num "$E/2") $hr
+}
+
+# ---- models --------------------------------------------------------------------------------------
+YF=$HT   # centre height of a floor ribbon
+YB=8     # centre height of a mid-height band
+# Floor: flat. Vertical rods: wide across x (hx=HW, hz=HT); a floor foot rises face-first, so its rod is wide across x too.
+model cable_core       < <(cub 8 $YF 8 $HW $HT $HW)
+model cable_arm        < <(cub 8 $YF 4 $HW $HT 4)
+model cable_corner     < <(arc_h $YF $HW $HT)
+model cable_riser_foot < <(cub 8 8 8 $HW 8 $HT)
+model cable_foot_bend  < <(arc_up $YF $HT $HW; cub 8 $(num "(16+$YF+$R)/2") 8 $HW $(num "(16-$YF-$R)/2") $HT)
+model cable_lip_bend   < <(arc_over $YF $HT $HW)
+model cable_riser      < <(cub 8 12 8 $HW 4 $HT)
+model cable_drop       < <(cub 8 4 8 $HW 4 $HT)
+# Mid-height horizontals, flat (thin in y) ...
+model cable_post           < <(cub 8 $YB 8 $HW $HT $HW)
+model cable_band           < <(cub 8 $YB 4 $HW $HT 4)
+model cable_band_corner    < <(arc_h $YB $HW $HT)
+model cable_band_bend_up   < <(arc_up $YB $HT $HW)
+model cable_band_bend_down < <(arc_down $HT $HW)
+# ... and standing on edge (thin across the band, tall in y).
+model cable_post_s           < <(cub 8 $YB 8 $HT $HW $HT)
+model cable_band_s           < <(cub 8 $YB 4 $HT $HW 4)
+model cable_band_corner_s    < <(arc_h $YB $HT $HW)
+model cable_band_bend_up_s   < <(arc_up $YB $HW $HT)
+model cable_band_bend_down_s < <(arc_down $HW $HT)
 { echo "{"; echo '  "parent": "block/block",'; echo "  $TEX,"
   echo '  "display": { "gui": { "rotation": [30, 225, 0], "translation": [0, 0, 0], "scale": [0.8, 0.8, 0.8] } },'
-  echo '  "elements": ['; box $C0 $B0 0 $C1 $B1 16 ud; echo "  ]"; echo "}"; } > "$OUT/models/block/cable_inventory.json"
+  echo '  "elements": ['; cub 8 $YB 8 $HW $HT 8; echo "  ]"; echo "}"; } > "$OUT/models/block/cable_inventory.json"
 rm -f "$OUT/models/block/cable_drop_floor.json"
 
-# ---- blockstate ---------------------------------------------------------------------------------
+# ---- blockstate ----------------------------------------------------------------------------------
 # By horizontal arms: a corner is exactly two perpendicular arms; a bend is exactly one arm with a
 # climb on one side only. Each replaces the centre piece, the arm(s) and the vertical rod it bends.
 dirs=(north east south west); rot=(0 90 180 270)
@@ -124,65 +152,72 @@ q() { printf '"%s": "%s"' "$1" "$2"; }
 
 PARTS=$(mktemp)
 {
-for F in true false; do
+# Three sets: floor pieces (always flat), mid-height flat (wide x or z), mid-height standing (wide y).
+for set in "true::" "false::x|z" "false:_s:y"; do
+  IFS=':' read -r F SUF WIDEV <<< "$set"
   fl=$(q floor $F)
-  if [ $F = true ]; then centre=cable_core; arm=cable_arm; corner=cable_corner; up=cable_riser_foot; bendup=cable_foot_bend; down=""; benddown=""
-  else centre=cable_post; arm=cable_band; corner=cable_band_corner; up=cable_riser; bendup=cable_band_bend_up; down=cable_drop; benddown=cable_band_bend_down; fi
+  cond=("$fl"); [ -n "$WIDEV" ] && cond+=("$(q wide "$WIDEV")")
+  if [ $F = true ]; then centre=cable_core; arm=cable_arm; corner=cable_corner; bendup=cable_foot_bend; benddown=cable_lip_bend
+  else centre=cable_post$SUF; arm=cable_band$SUF; corner=cable_band_corner$SUF; bendup=cable_band_bend_up$SUF; benddown=cable_band_bend_down$SUF; fi
   # Centre piece: an opposite pair; a lone arm with no single-sided climb; a corner that also climbs; (floor only) nothing at all.
   entries=()
-  entries+=("$(when "$fl" "$(q north true)" "$(q south true)")" "$(when "$fl" "$(q east true)" "$(q west true)")")
+  entries+=("$(when "${cond[@]}" "$(q north true)" "$(q south true)")" "$(when "${cond[@]}" "$(q east true)" "$(q west true)")")
   for i in 0 1 2 3; do
     d=${dirs[$i]}; others=(); for j in 0 1 2 3; do [ $j = $i ] || others+=("$(q ${dirs[$j]} false)"); done
-    # On the floor a drop below is a lip, not a bend, so a lone arm keeps its pad whenever nothing climbs.
-    if [ $F = true ]; then entries+=("$(when "$fl" "$(q $d true)" "${others[@]}" "$(q up false)")")
-    else entries+=("$(when "$fl" "$(q $d true)" "${others[@]}" "$(q up false)" "$(q down false)")"); fi
-    entries+=("$(when "$fl" "$(q $d true)" "${others[@]}" "$(q up true)" "$(q down true)")")
+    entries+=("$(when "${cond[@]}" "$(q $d true)" "${others[@]}" "$(q up false)" "$(q down false)")")
+    entries+=("$(when "${cond[@]}" "$(q $d true)" "${others[@]}" "$(q up true)" "$(q down true)")")
     n=${dirs[$(((i+1)%4))]}; o=${dirs[$(((i+2)%4))]}; p=${dirs[$(((i+3)%4))]}
-    entries+=("$(when "$fl" "$(q $d true)" "$(q $n true)" "$(q $o false)" "$(q $p false)" "$(q up true)")" "$(when "$fl" "$(q $d true)" "$(q $n true)" "$(q $o false)" "$(q $p false)" "$(q down true)")")
+    entries+=("$(when "${cond[@]}" "$(q $d true)" "$(q $n true)" "$(q $o false)" "$(q $p false)" "$(q up true)")" "$(when "${cond[@]}" "$(q $d true)" "$(q $n true)" "$(q $o false)" "$(q $p false)" "$(q down true)")")
   done
-  [ $F = true ] && entries+=("$(when "$fl" "$(q north false)" "$(q east false)" "$(q south false)" "$(q west false)")")
+  [ $F = true ] && entries+=("$(when "${cond[@]}" "$(q north false)" "$(q east false)" "$(q south false)" "$(q west false)")")
   part "$(or "${entries[@]}")" $centre ""
   # Arms: shown unless this arm is one side of a corner or the arm of a bend.
   for i in 0 1 2 3; do
     d=${dirs[$i]}; o=${dirs[$(((i+2)%4))]}; l=${dirs[$(((i+1)%4))]}; r=${dirs[$(((i+3)%4))]}
     entries=(
-      "$(when "$fl" "$(q $d true)" "$(q $o true)")"
-      "$(when "$fl" "$(q $d true)" "$(q $l true)" "$(q $r true)")"
-      # On the floor a lone arm over a drop is a lip, not a bend: the arm stays.
-      "$(if [ $F = true ]; then when "$fl" "$(q $d true)" "$(q $l false)" "$(q $o false)" "$(q $r false)" "$(q up false)"; else when "$fl" "$(q $d true)" "$(q $l false)" "$(q $o false)" "$(q $r false)" "$(q up false)" "$(q down false)"; fi)"
-      "$(when "$fl" "$(q $d true)" "$(q $l false)" "$(q $o false)" "$(q $r false)" "$(q up true)" "$(q down true)")"
-      "$(when "$fl" "$(q $d true)" "$(q $l true)" "$(q $r false)" "$(q $o false)" "$(q up true)")"
-      "$(when "$fl" "$(q $d true)" "$(q $l true)" "$(q $r false)" "$(q $o false)" "$(q down true)")"
-      "$(when "$fl" "$(q $d true)" "$(q $r true)" "$(q $l false)" "$(q $o false)" "$(q up true)")"
-      "$(when "$fl" "$(q $d true)" "$(q $r true)" "$(q $l false)" "$(q $o false)" "$(q down true)")"
+      "$(when "${cond[@]}" "$(q $d true)" "$(q $o true)")"
+      "$(when "${cond[@]}" "$(q $d true)" "$(q $l true)" "$(q $r true)")"
+      "$(when "${cond[@]}" "$(q $d true)" "$(q $l false)" "$(q $o false)" "$(q $r false)" "$(q up false)" "$(q down false)")"
+      "$(when "${cond[@]}" "$(q $d true)" "$(q $l false)" "$(q $o false)" "$(q $r false)" "$(q up true)" "$(q down true)")"
+      "$(when "${cond[@]}" "$(q $d true)" "$(q $l true)" "$(q $r false)" "$(q $o false)" "$(q up true)")"
+      "$(when "${cond[@]}" "$(q $d true)" "$(q $l true)" "$(q $r false)" "$(q $o false)" "$(q down true)")"
+      "$(when "${cond[@]}" "$(q $d true)" "$(q $r true)" "$(q $l false)" "$(q $o false)" "$(q up true)")"
+      "$(when "${cond[@]}" "$(q $d true)" "$(q $r true)" "$(q $l false)" "$(q $o false)" "$(q down true)")"
     )
     part "$(or "${entries[@]}")" $arm "$(y_of ${rot[$i]})"
   done
   # Corners.
   for i in 0 1 2 3; do
     d=${dirs[$i]}; n=${dirs[$(((i+1)%4))]}; o=${dirs[$(((i+2)%4))]}; p=${dirs[$(((i+3)%4))]}
-    part "$(when "$fl" "$(q $d true)" "$(q $n true)" "$(q $o false)" "$(q $p false)" "$(q up false)" "$(q down false)")" $corner "$(y_of ${rot[$i]})"
+    part "$(when "${cond[@]}" "$(q $d true)" "$(q $n true)" "$(q $o false)" "$(q $p false)" "$(q up false)" "$(q down false)")" $corner "$(y_of ${rot[$i]})"
   done
-  # Vertical rods: shown when the climb continues through, or there is not exactly one arm to bend into.
+  # Bends: exactly one arm, this climb only.
   for v in up down; do
-    m=$up; b=$bendup; w=down
-    if [ $v = down ]; then m=$down; b=$benddown; w=up; fi
-    [ -n "$m" ] || continue
+    b=$bendup; w=down
+    if [ $v = down ]; then b=$benddown; w=up; fi
+    [ -n "$b" ] || continue
+    for i in 0 1 2 3; do
+      d=${dirs[$i]}; others=(); for j in 0 1 2 3; do [ $j = $i ] || others+=("$(q ${dirs[$j]} false)"); done
+      part "$(when "${cond[@]}" "$(q $v true)" "$(q $w false)" "$(q $d true)" "${others[@]}")" $b "$(y_of ${rot[$i]})"
+    done
+  done
+done
+# Vertical rods, by floor: shown when the climb continues through, or there is not exactly one arm to bend into.
+for F in true false; do
+  fl=$(q floor $F)
+  for v in up down; do
+    w=down; m=cable_riser; [ $F = true ] && m=cable_riser_foot
+    if [ $v = down ]; then w=up; m=cable_drop; [ $F = true ] && continue; fi
     entries=("$(when "$fl" "$(q $v true)" "$(q $w true)")" "$(when "$fl" "$(q $v true)" "$(q north false)" "$(q east false)" "$(q south false)" "$(q west false)")"
              "$(when "$fl" "$(q $v true)" "$(q north true)" "$(q south true)")" "$(when "$fl" "$(q $v true)" "$(q east true)" "$(q west true)")")
     for i in 0 1 2 3; do entries+=("$(when "$fl" "$(q $v true)" "$(q ${dirs[$i]} true)" "$(q ${dirs[$(((i+1)%4))]} true)")"); done
-    for wide in x z; do
-      wy=""; [ $wide = z ] && wy=', "y": 90'
-      part "$(or "${entries[@]}" | sed "s/{ \"floor\"/{ \"wide\": \"$wide\", \"floor\"/g")" $m "$wy"
-    done
-    # Bends: exactly one arm, this climb only.
-    for i in 0 1 2 3; do
-      d=${dirs[$i]}; others=(); for j in 0 1 2 3; do [ $j = $i ] || others+=("$(q ${dirs[$j]} false)"); done
-      part "$(when "$fl" "$(q $v true)" "$(q $w false)" "$(q $d true)" "${others[@]}")" $b "$(y_of ${rot[$i]})"
-    done
+    # A rod under a floor lip skips its top half: the lip's bend hangs down into it.
+    lip=""; [ $v = up ] && lip='"under_lip": "false", '
+    part "$(or "${entries[@]}" | sed "s/{ \"floor\"/{ $lip\"wide\": \"x|y\", \"floor\"/g")" $m ""
+    part "$(or "${entries[@]}" | sed "s/{ \"floor\"/{ $lip\"wide\": \"z\", \"floor\"/g")" $m ', "y": 90'
   done
 done
 } > "$PARTS"
 { echo '{'; echo '  "multipart": ['; sed '$ s/,$//' "$PARTS"; echo '  ]'; echo '}'; } > "$OUT/blockstates/cable.json"
 rm -f "$PARTS"
-echo "generated: S=$S R=$R E=$E"
+echo "generated: W=$W T=$T R=$R"

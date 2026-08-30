@@ -8,13 +8,13 @@ import com.xfastgames.witness.utils.blockSettings
 import com.xfastgames.witness.utils.d
 import com.xfastgames.witness.utils.pc
 import com.xfastgames.witness.utils.registerBlock
-import com.xfastgames.witness.utils.itemSettings
-import com.xfastgames.witness.utils.registerItem
+import com.xfastgames.witness.utils.registerBlockItem
 import net.fabricmc.fabric.api.client.rendering.v1.BlockColorRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.BlockTintsFactory
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.DyeColor
 import net.minecraft.world.item.context.BlockPlaceContext
@@ -94,17 +94,18 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         )
 
         /**
-         * The axis a vertical strip is wide across: along its own horizontal arm, for every
-         * vertical piece; arm-less blocks copy the nearest arm below, then above. An edge-on
-         * riser shows its 2px edge, which glows like the faces; it was the dark casing on that
-         * edge that made edge-on segments read as broken, not the plane. A crossed-strip riser
-         * (a `+`) was tried and rejected: its second strip drew a dark rib down the face.
+         * The axis the ribbon is wide across in this block, see [ribbonWidths]: a vertical piece is
+         * wide across x or z; a mid-height piece stands on edge (y) or lies flat (either horizontal
+         * axis, the models do not distinguish); floor pieces always lie flat. Written for the whole
+         * run in one pass by [refresh], so the floor, the frames and the bends all agree.
          */
-        val WIDE: EnumProperty<Direction.Axis> =
-            EnumProperty.create("wide", Direction.Axis::class.java, Direction.Axis.X, Direction.Axis.Z)
+        val WIDE: EnumProperty<Direction.Axis> = EnumProperty.create("wide", Direction.Axis::class.java)
 
-        /** How far along a vertical run an arm-less block looks for one with an arm to copy its plane from. */
-        private const val WIDE_SEARCH = 32
+        /**
+         * Whether the cable above is a floor lip (a floor piece whose run drops over an edge).
+         * The lip's bend hangs down into this block, so this block draws no rod above its middle.
+         */
+        val UNDER_LIP: BooleanProperty = BooleanProperty.create("under_lip")
 
         /** Vertical strips, wide across x; [wideOn] turns them for [WIDE] = z. A foot stands on a full pad. */
         private val RISER_FOOT: VoxelShape = Shapes.or(
@@ -147,8 +148,7 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
             ),
             IDENTIFIER
         )
-        /** A [CableBlockItem], so a sneak-click lays a run; see rules/minecraft/06-cable.md, "Laying a run". */
-        val BLOCK_ITEM: BlockItem = registerItem(IDENTIFIER, CableBlockItem(BLOCK, itemSettings(IDENTIFIER).useBlockDescriptionPrefix())) as BlockItem
+        val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER)
 
         /**
          * One tinted model set, two tints: index 0 is the glowing broad face (the run's colour when
@@ -169,7 +169,7 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
     init {
         registerDefaultState(
             CONNECTIONS.fold(
-                stateDefinition.any().setValue(LIT, false).setValue(COLOR, SOURCELESS_COLOR).setValue(WIDE, Direction.Axis.X).setValue(FLOOR, true)
+                stateDefinition.any().setValue(LIT, false).setValue(COLOR, SOURCELESS_COLOR).setValue(WIDE, Direction.Axis.X).setValue(FLOOR, true).setValue(UNDER_LIP, false)
             ) { state, side -> state.setValue(side, false) }
         )
     }
@@ -178,6 +178,7 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         stateDefinition.add(LIT)
         stateDefinition.add(COLOR)
         stateDefinition.add(WIDE)
+        stateDefinition.add(UNDER_LIP)
         stateDefinition.add(FLOOR)
         CONNECTIONS.forEach(stateDefinition::add)
     }
@@ -230,36 +231,40 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
             next.setValue(CONNECTIONS[direction.ordinal], joins(world, pos, direction))
         }
 
-    /** The axis this block's own horizontal arms run along, if any: z for north / south, x for east / west. */
-    private fun armAxis(state: BlockState): Direction.Axis? = when {
-        state.getValue(BlockStateProperties.NORTH) || state.getValue(BlockStateProperties.SOUTH) -> Direction.Axis.Z
-        state.getValue(BlockStateProperties.EAST) || state.getValue(BlockStateProperties.WEST) -> Direction.Axis.X
-        else -> null
-    }
-
     /**
-     * What [WIDE] this block wants, or null if nothing here decides it. A riser faces the same way
-     * as the frame it serves: a foot under a stand takes the stand's facing (the ribbon runs up the
-     * post face-on, as in the game), and a piece with an arm is wide along that arm, which for the
-     * band into a frame's side is the same thing. A foot wide *across* its floor arm was edge-on
-     * whenever the run came toward the viewer, and "along" was edge-on for feet under stands
-     * (2026-08-30 00:20, 00:44, 00:46). Do not decide feet from their floor arm again.
+     * What decides the ribbon's width here before the floor does (see [ribbonWidths]): a band
+     * out of a frame's side stands in the panel's plane (the frame decides, 2026-08-30 17:10),
+     * and a foot under a stand is wide across the stand's facing, so the ribbon runs up the post
+     * face-on as in the game. Null when nothing here decides.
      */
-    private fun ownWide(world: BlockGetter, pos: BlockPos, state: BlockState): Direction.Axis? {
+    private fun ribbonSeed(world: BlockGetter, pos: BlockPos, state: BlockState, floor: Boolean): Axis? {
         if (state.getValue(BlockStateProperties.UP)) {
             val above: BlockState = world.getBlockState(pos.above())
             if (above.block is IronStandBlock) {
-                return if (above.getValue(BlockStateProperties.HORIZONTAL_FACING).axis == Direction.Axis.X) Direction.Axis.Z else Direction.Axis.X
+                return if (above.getValue(BlockStateProperties.HORIZONTAL_FACING).axis == Direction.Axis.X) Axis.Z else Axis.X
             }
         }
-        // A floor foot is wide *across* its arm: the bend carries the floor's glowing top round
-        // into the faces perpendicular to the arm. A standing piece is wide *along* its band: bands
-        // glow on their sides (the frame decides the glowing side, 2026-08-30 17:10), and a bend
-        // carries those sides straight up or down. Where a foot and a top disagree the glow has a
-        // seam at the foot; the rod has no plane, so it is never a twist (ribbon era: F3 00:55).
-        val axis: Direction.Axis = armAxis(state) ?: return null
-        val across: Direction.Axis = if (axis == Direction.Axis.X) Direction.Axis.Z else Direction.Axis.X
-        return if (isFloor(world, pos, state)) across else axis
+        if (floor) return null
+        val besideFrame: Boolean = Direction.Plane.HORIZONTAL.any { direction ->
+            state.getValue(CONNECTIONS[direction.ordinal]) && world.getBlockState(pos.relative(direction)).block is IronPuzzleFrameBlock
+        }
+        return if (besideFrame) Axis.Y else null
+    }
+
+    /** See [UNDER_LIP]: a floor piece with exactly one horizontal arm and a drop, and no climb. */
+    private fun isLip(joined: Map<BlockPos, BlockState>, floors: Map<BlockPos, Boolean>, at: BlockPos): Boolean {
+        val state: BlockState = joined[at] ?: return false
+        val ways: Set<Way> = arms(state)
+        return floors.getValue(at) && Way.DOWN in ways && Way.UP !in ways && ways.count { it.horizontal } == 1
+    }
+
+    private fun arms(state: BlockState): Set<Way> =
+        Way.entries.filter { way -> state.getValue(CONNECTIONS[way.ordinal]) }.toSet()
+
+    private fun Axis.toDirectionAxis(): Direction.Axis = when (this) {
+        Axis.X -> Direction.Axis.X
+        Axis.Y -> Direction.Axis.Y
+        Axis.Z -> Direction.Axis.Z
     }
 
     /**
@@ -301,26 +306,15 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         }
     }
 
-    private fun wideFor(world: Level, pos: BlockPos, state: BlockState): Direction.Axis {
-        ownWide(world, pos, state)?.let { return it }
-        // Up first: the top of a climb (band into a frame, stand) is what a foot must match.
-        for (direction in listOf(Direction.UP, Direction.DOWN)) {
-            var at: BlockPos = pos.relative(direction)
-            for (step in 0 until WIDE_SEARCH) {
-                val other: BlockState = world.getBlockState(at)
-                if (!isRun(other)) break
-                ownWide(world, at, withConnections(other, world, at))?.let { return it }
-                at = at.relative(direction)
-            }
-        }
-        // A climb with no top at all: stand along the foot's own arm.
-        return armAxis(state) ?: state.getValue(WIDE)
-    }
-
     /**
      * Re-joins this cable's arms and relights its whole run (see [walkCables]) in the colour of
-     * the panel feeding it. Server only, and every cable in the run is written in one pass, so the
-     * neighbour updates this causes find nothing left to change and the cascade stops.
+     * the panel feeding it. Server only, and redstone-cheap: **one walk per change**. The run is
+     * written with [Block.UPDATE_CLIENTS] and each changed cable then tells its neighbours once;
+     * cables ignore updates that come from cables ([neighborChanged]), so a run never re-walks
+     * itself, and every run-wide value breaks ties by position, never by who asked. Both mattered:
+     * on 2026-08-30 a run re-walked once per neighbour update it had fired, and two "first found
+     * wins" ties (`wide`, `color`) flipped with the walk's start, which hit vanilla's chained-update
+     * cap ("Too many chained neighbor updates", millions of writes a tick).
      */
     private fun refresh(world: Level, pos: BlockPos) {
         if (world.isClientSide) return
@@ -332,20 +326,35 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
             neighbours = { at -> runNeighbours(world, at) },
             isSource = { at -> sourceColor(world, at)?.also { colour -> colours[at] = colour } != null },
         )
-        // One colour per run: a frame's over redstone's white, then whichever source came first.
-        val colour: DyeColor = colours.values.firstOrNull { it != SOURCELESS_COLOR }
-            ?: colours.values.firstOrNull()
-            ?: SOURCELESS_COLOR
+        // One colour per run: a frame's over redstone's white, ties to the lowest source position.
+        val sources: List<DyeColor> = colours.entries.sortedWith(compareBy({ it.key.y }, { it.key.x }, { it.key.z })).map { it.value }
+        val colour: DyeColor = sources.firstOrNull { it != SOURCELESS_COLOR } ?: sources.firstOrNull() ?: SOURCELESS_COLOR
+        val joined: Map<BlockPos, BlockState> = walk.component.associateWith { at -> withConnections(world.getBlockState(at), world, at) }
+        val floors: Map<BlockPos, Boolean> = joined.mapValues { (at, state) -> isFloor(world, at, state) }
+        // In a fixed order: where two deciders disagree the first seeded wins, and that must not
+        // depend on which cable started the walk (the x / z ping-pong at -134 7 216, 19:58).
+        val cells: List<BlockPos> = joined.keys.sortedWith(compareBy({ it.y }, { it.x }, { it.z }))
+        val widths: Map<BlockPos, Axis> = ribbonWidths(
+            cells = cells,
+            arms = { at -> arms(joined.getValue(at)) },
+            floor = { at -> floors.getValue(at) },
+            neighbour = { at, way -> at.relative(Direction.entries[way.ordinal]) },
+            seeds = cells.mapNotNull { at -> ribbonSeed(world, at, joined.getValue(at), floors.getValue(at))?.let { at to it } }.toMap(),
+        )
         walk.component.forEach { at ->
             val current: BlockState = world.getBlockState(at)
             val lit: Boolean = at in walk.lit
-            val joined: BlockState = withConnections(current, world, at)
-            val next: BlockState = joined
+            val next: BlockState = joined.getValue(at)
                 .setValue(LIT, lit)
                 .setValue(COLOR, if (lit) colour else current.getValue(COLOR))
-                .setValue(WIDE, wideFor(world, at, joined))
-                .setValue(FLOOR, isFloor(world, at, joined))
-            if (next != current) world.setBlock(at, next, Block.UPDATE_ALL)
+                .setValue(WIDE, widths.getValue(at).toDirectionAxis())
+                .setValue(UNDER_LIP, isLip(joined, floors, at.above()))
+                .setValue(FLOOR, floors.getValue(at))
+            if (next != current) {
+                world.setBlock(at, next, Block.UPDATE_CLIENTS)
+                // Doors, dust and frames beside this cable hear about it once; cables do not listen.
+                world.updateNeighborsAt(at, this, null)
+            }
         }
     }
 
@@ -356,6 +365,12 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         if (oldState.block !== this) refresh(world, pos)
     }
 
+    /** A broken cable splits its run: each cable that was beside it walks what is left. */
+    override fun affectNeighborsAfterRemoval(state: BlockState, world: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        super.affectNeighborsAfterRemoval(state, world, pos, movedByPiston)
+        runNeighbours(world, pos).forEach { next -> refresh(world, next) }
+    }
+
     override fun neighborChanged(
         state: BlockState,
         world: Level,
@@ -364,6 +379,8 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         wireOrientation: Orientation?,
         notify: Boolean
     ) {
+        // A cable's run is already settled by whichever refresh wrote it; only the world around it can change it.
+        if (sourceBlock === this) return
         refresh(world, pos)
     }
 
@@ -392,7 +409,8 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
      */
     override fun getShape(state: BlockState, world: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape {
         val joined: List<Direction> = Direction.entries.filter { direction -> state.getValue(CONNECTIONS[direction.ordinal]) }
-        val wide: Direction.Axis = state.getValue(WIDE)
+        // Hitboxes only know two planes; a standing mid-height piece (y) takes the x shapes.
+        val wide: Direction.Axis = state.getValue(WIDE).takeIf { it != Direction.Axis.Y } ?: Direction.Axis.X
         if (state.getValue(FLOOR)) {
             return joined.fold(CORE) { shape, direction ->
                 Shapes.or(shape, when (direction) {

@@ -18,13 +18,18 @@ redstone, and it carries power the full length of a run without weakening. A run
 any block in it touches a source, and **dark** otherwise; every cable in a run is in the same state.
 
 - **Placement:** anywhere, floating included. A cable does not need a block under it, so a run
-  can leave the ground, climb a wall and cross a gap. It is a thin square tube, **2 px** a side,
-  lying on the floor of the block on the ground and running through the middle of it when
-  suspended, with arms out to each side it joins.
-- **Bends:** the tube **bends wherever the run turns**, a quarter circle the width of the block,
+  can leave the ground, climb a wall and cross a gap. It is a flat ribbon, **3 px wide and 1
+  thick**, lying on the floor of the block on the ground and running through the middle of it
+  when suspended, with arms out to each side it joins.
+- **Bends:** the ribbon **bends wherever the run turns**, a quarter circle the width of the block,
   round a corner on the floor, up from the floor into a climb, and out of a climb into a frame's
-  side. It is one tube from end to end; only where three or more arms meet does it cross straight
-  through a small junction.
+  side. It is one ribbon from end to end; only where three or more arms meet does it cross
+  straight through a small junction.
+- **Which way it faces:** a ribbon can bend over its face or round its edge, so which way it is
+  wide is carried along the run: on the floor it lies flat; leaving a frame's side it stands in
+  the panel's plane, the way the game's cables do, and the climb under it keeps that; under a
+  stand it faces the stand. A run that reaches a frame along the panel's plane enters its
+  side flat instead: a ribbon cannot do both without a twist, and the floor comes first.
 - **Sources:** a solved frame's exit side, a powered stand, and any vanilla redstone signal into
   the cable (dust, lever, torch, repeater). A cable does **not** take power from a frame's other
   sides; those are the frame's inputs, and a cable touching one of them feeds the frame instead.
@@ -79,44 +84,7 @@ Two panels, one door, two runs:
 Both runs end at the door and neither touches the other (one passes over the other with a block
 between). Solving A opens it and lights A's run in A's colour; so does solving B, in B's.
 
-## Laying a run
-
-Placing cables one block at a time is fine for a short hop. For the thirty-block run to a door it
-is tedious, and in the game a cable is never placed at all: it is simply there between the panel
-and what it opens. So cables in hand can also **lay a whole run** in two clicks:
-
-- **Sneak-click** the spot the run starts from, cables in hand, and that spot is **pinned**: the
-  nub side of a frame, the end of a run already laid, the ground beside a stand. A plain click
-  still places one cable as it always did. The spot is where that one cable would have gone.
-- **Sneak-click** a second spot and the run is laid from the pin to it, all at once: the shortest
-  route that **hugs surfaces** (every cable in it touches some block: floor, wall, ceiling, or
-  the edge of one, so a run can top a wall and round a lip), turning as little as it can, passing
-  through any cables already on the way. It lights the moment it lands if the pin touches a source.
-- **Cost:** one cable per block laid. Cables already on the route cost nothing. Short of cables,
-  nothing is laid and the message says how many the route needs.
-- **No route** (the spot is walled off, or more than **64** cables away along any surface): nothing
-  is laid and the pin stays, so a nearer spot can be tried.
-- **Cancel:** sneak-click the air. The pin is per player.
-- **Preview:** while a spot is pinned, the route to whatever the crosshair is on is traced in the
-  world as dots: green where it can be laid, red at both ends when it cannot.
-
-```
- [frame]· · · · · · ·╗            · preview dots
-   stand             ·
-              pin ──►╚· · · ·╗
-                             ╚· · ·[door]  ◄── second sneak-click here
-```
-
-Nothing changes in what a run *is*: a laid run is the same blocks a player could have placed by
-hand, joins and lights by the same rules, and breaks apart the same way. Laying is a convenience,
-not a different kind of cable.
-
 ## Cost
-
-**Laying:** n cables for n blocks, exactly what placing them by hand costs. No route returns more
-than it spends and no route is cheaper laid than placed, so laying changes nothing in the economy.
-The 64-block cap on a laid run is a placement cap, chosen to equal the power cap so a laid run is
-never laid dark by its own length; the two numbers are independent.
 
 **Crafting:** three copper ingots in a row give **six** cables. No tablets; a cable is wiring, not
 a puzzle. Nothing to dye: the colour comes from the panel.
@@ -162,22 +130,31 @@ dark casing, and the ribbon geometry, signed off after the F3-guided fix to the 
 
 - `CableBlock`, one block (`witness:cable`), six connection flags plus `lit` and a `color`
   (`DyeColor`) block-state value, light 12 when lit (the panel face's glow; was 7 until 2026-08-30), floating.
-- **The rod (2026-08-30 afternoon, built, awaiting the look review).** Every model and the
-  blockstate come from `tools/gen_cable_models.sh`: a 2 x 2 square rod (`S`), bending in
-  quarter circles of radius 8 (`R`) built from five 22.5°-stepped elements, the most JSON
-  rotation allows. Horizontal corners (`cable_corner`, `cable_band_corner`) were seen in game
-  and liked (16:04); the vertical bends (`cable_foot_bend` floor → climb, `cable_band_bend_up`
-  band → climb, `cable_band_bend_down` climb → band) rotate about x and their sign is derived,
-  not yet seen: `SGN_X=-1 bash tools/gen_cable_models.sh` mirrors all three if they fan out. A
-  bend replaces the pad / post, the arm and the vertical rod; it applies to exactly one
-  horizontal arm with a climb on one side, and a corner to exactly two perpendicular arms with
-  no climb; everything else is straight rods through a 2 x 2 junction cube. Two opposite long
-  faces glow (tint 0) and two are casing (tint 1); a bend carries the glowing pair round, so
-  `wide` is now only which pair a vertical rod glows on and is **across** the arm it bends from
-  (the "do not decide feet from their floor arm" warning below was ribbon-specific; the rod has
-  no plane, so the worst a mismatch can do is a glow seam). A floor lip (drop below a floor arm)
-  stays square. The gate: a 4 px tube was rejected as a pipe; this is 2 px, and whether it still
-  reads as the game's cable is the user's call from the shots. `S` and `R` are the two knobs.
+- **The bending ribbon (2026-08-30 evening, built, awaiting the look review).** Every model and
+  the blockstate come from `tools/gen_cable_models.sh`: a ribbon `W` = 3 wide, `T` = 1 thick,
+  bending in quarter circles of radius 8 (`R`) built from five 22.5°-stepped elements, the most
+  JSON rotation allows; both rotation signs were confirmed in game on the 2 x 2 rod that came
+  before it (16:04, 16:21). A bend replaces the pad / post, the arm and the vertical rod; it
+  applies to exactly one horizontal arm with a climb on one side, a corner to exactly two
+  perpendicular arms with no climb; everything else is straight pieces through a small junction.
+  One colour on every face, `shade: false` (the two-face casing was dropped at 17:55, its pairing
+  rules seamed at joins). **Orientation** is `CableRibbon.kt` (`ribbonWidths`, pure,
+  `CableRibbonTests`): `wide` is the axis the ribbon is wide across, now x, y or z. Mid-height
+  pieces have a flat set (wide x|z) and a standing set (wide y, models `_s`); vertical pieces are
+  wide across x or rotated for z; floor pieces are always flat. One walk per run: seeds first (a
+  band beside a frame stands, y; a foot under a stand is wide across the stand's facing), spread
+  to the end, then every floor cable (flat) spreads, then anything unreached lies flat. Along a
+  band the value carries; up or down, a standing band turns round its edge into a rod wide across
+  the band's axis and a flat one keeps its width; arriving at a band, width equal to the band's
+  axis stands it, otherwise it lies. So the old "do not decide feet from their floor arm" warning
+  is retired: feet decide themselves (a flat floor arm can only rise face-first) and the floor
+  spreads first; a frame only decides a run the floor never reaches. A quarter twist at the foot
+  for the disagreeing case (a floor run along the panel's plane rising into its side, F3 19:02)
+  was built and rejected: JSON can only draw it as five 22.5° slabs (19:22, "jarring"). That
+  run now enters the panel's side flat. A floor **lip** (a floor piece dropping over an edge) bends
+  too (`cable_lip_bend`, 19:37 shots): its arc hangs down into the block below, and that block
+  carries `under_lip` so it draws no rod above its middle. The 2 x 2 rod (S) is gone; `W`, `T`,
+  `R` are the knobs.
 - **The ribbon (superseded by the rod above; kept as the ledger).** 3 wide, 1 thick, everywhere (5 x 2, then 4 x 1.5, until 2026-08-30, thinned
   on request twice). The hitbox stays at 4 x 1.5 on purpose, so the selection outline sits
   slightly proud of the drawn ribbon; a 4px tube read as a pipe and a 5x5 column read as
@@ -216,7 +193,14 @@ dark casing, and the ribbon geometry, signed off after the F3-guided fix to the 
   source found. Unlit cables keep their last colour in state but draw dark.
 - Recipe: 3 copper → 6 cables. No dye.
 - `walkCables` (`CableNetwork.kt`) is the pure component-then-spread walk, bounded at
-  `CABLE_MAX_DISTANCE = 64` and `CABLE_MAX_VISITED = 512`; `CableNetworkTests` pins it.
+  `CABLE_MAX_DISTANCE = 64` and `CABLE_MAX_VISITED = 512`; `CableNetworkTests` pins it. **One
+  walk per change**, redstone-cheap: `refresh` writes the run with `UPDATE_CLIENTS` and each
+  changed cable tells its neighbours once; cables ignore updates that come from cables, a broken
+  cable re-walks what is left beside it, and every run-wide tie (`color` between two panels,
+  `wide` between two floor deciders) goes to the lowest position. Do not go back to `UPDATE_ALL`
+  or "first found wins": on 2026-08-30 that re-walked a 512-block run once per neighbour update
+  and flipped two ties with the walk's start, millions of writes a tick ("Too many chained
+  neighbor updates").
 - Sources: any non-cable neighbour with `getSignal > 0` towards the cable. Frames answer only
   on their exit side, so a cable on an input side stays dark. Stands answer upward only, so a
   cable **joins and feeds a stand only from underneath**: a stub into a stand's side was drawn
@@ -225,26 +209,6 @@ dark casing, and the ribbon geometry, signed off after the F3-guided fix to the 
   `getSignal` too).
 - Emission: `isSignalSource`, `getSignal` = 15 when lit, all sides; no `getDirectSignal`.
 - The texture is vanilla white concrete under the tint; no emissive glow yet.
-
-**Laying a run (2026-08-30, built, not yet seen in game).** `CableBlockItem` replaces the plain
-`BlockItem`: `useOn` with sneak held pins on the first click and lays on the second, `use` (air)
-with sneak forgets the pin. The pin is a per-player `GlobalPos` in a static map on **both** sides:
-every click runs `useOn` on the client and the server, so the two copies stay in step with no
-packet. The map is keyed by player **and logical side**: in singleplayer both sides share one
-JVM and one map, and with one entry the client's lay removed the pin before the server saw the
-click, so the server re-pinned instead of laying (caught in review 2026-08-30, never seen). The spot is `BlockPlaceContext(ctx).clickedPos`,
-i.e. where a plain click would have put the cable, so sneak-clicking a frame's face pins the
-block against that face. The route is `findCablePath` (`CablePath.kt`, pure, `CablePathTests`):
-Dijkstra over (cell, arriving move) with new cable 10, existing cable 1, turn 5, capped at 64
-cells and 4096 states. *Passable* is `canBeReplaced()` or a cable; *supported* is any of the 26
-touching cells solid (collision, not a cable). Six-face support was tried first and a run could
-never top a wall: the cell beside a wall's top face touches nothing. The server lays
-`defaultBlockState()` per block with `UPDATE_ALL` and lets each `onPlace` refresh join the run,
-then shrinks the stack (creative free). Preview: `ClientTickEvents.END_CLIENT_TICK` every 5
-ticks re-traces from the pin to the crosshair's placement spot and drops one dust particle per
-cell, green when the route exists and the stack covers it, red at pin and spot otherwise. Known
-regression: sneak-placing a single cable (e.g. against a frame face to skip its screen) now pins
-instead.
 
 Still an assumption: the frame's vertical exit (top / bottom edge). Cables now make vertical
 runs routine, so that shot matters more than before.
@@ -296,10 +260,6 @@ the same colour at `UNLIT_BRIGHTNESS`, the panel's unlit treatment reused.
   segments per input). A door here is just a block a lit run touches; AND-ing two panels means
   vanilla logic.
 - Cable-to-cable colour bridging blocks, if the bundle rule turns out too strict.
-- Laying: a proper ghost-block preview instead of dust particles; a pin that is forgotten on
-  leaving the world (today a static map keeps it for the whole game session); a
-  route that respects `FLOOR`/`WIDE` aesthetics (it only minimises turns); an escape hatch for
-  when the pather picks the wrong side of a wall (PowerGrid's axis-by-axis alternate mode).
 
 ## Sources
 
