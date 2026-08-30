@@ -108,7 +108,8 @@ arc_over() {
   done
   a=67.5; pz=$(num "$R*$(sn $a)"); py=$(num "$yc-$R+$R*$(cs $a)")
   cub 8 $py $pz $ha $E $hr "$(rot 8 $py $pz x $(num "$a-90"))"
-  cub 8 $(num "$yc-$R+$E/2") 8 $ha $(num "$E/2") $hr
+  # The tail reaches a pixel past the arc's end so it overlaps the rod below (a half-pixel notch showed at 20:10).
+  cub 8 $(num "$yc-$R+($E-1)/2") 8 $ha $(num "($E+1)/2") $hr
 }
 
 # ---- models --------------------------------------------------------------------------------------
@@ -119,7 +120,10 @@ model cable_core       < <(cub 8 $YF 8 $HW $HT $HW)
 model cable_arm        < <(cub 8 $YF 4 $HW $HT 4)
 model cable_corner     < <(arc_h $YF $HW $HT)
 model cable_riser_foot < <(cub 8 8 8 $HW 8 $HT)
+# Under a lip the floor rod only reaches the lip's hanging arc (a gap showed at 20:35).
+model cable_riser_foot_short < <(cub 8 4.5 8 $HW 4.5 $HT)
 model cable_foot_bend  < <(arc_up $YF $HT $HW; cub 8 $(num "(16+$YF+$R)/2") 8 $HW $(num "(16-$YF-$R)/2") $HT)
+model cable_foot_bend_short < <(arc_up $YF $HT $HW)
 model cable_lip_bend   < <(arc_over $YF $HT $HW)
 model cable_riser      < <(cub 8 12 8 $HW 4 $HT)
 model cable_drop       < <(cub 8 4 8 $HW 4 $HT)
@@ -191,23 +195,38 @@ for set in "true::" "false::x|z" "false:_s:y"; do
     d=${dirs[$i]}; n=${dirs[$(((i+1)%4))]}; o=${dirs[$(((i+2)%4))]}; p=${dirs[$(((i+3)%4))]}
     part "$(when "${cond[@]}" "$(q $d true)" "$(q $n true)" "$(q $o false)" "$(q $p false)" "$(q up false)" "$(q down false)")" $corner "$(y_of ${rot[$i]})"
   done
-  # Bends: exactly one arm, this climb only.
+  # Bends: one per arm whenever the piece climbs on one side only, so a rod out of a straight run
+  # forks smoothly into both directions (a lone arm keeps its bend and drops its arm and centre).
   for v in up down; do
     b=$bendup; w=down
     if [ $v = down ]; then b=$benddown; w=up; fi
     [ -n "$b" ] || continue
     for i in 0 1 2 3; do
-      d=${dirs[$i]}; others=(); for j in 0 1 2 3; do [ $j = $i ] || others+=("$(q ${dirs[$j]} false)"); done
-      part "$(when "${cond[@]}" "$(q $v true)" "$(q $w false)" "$(q $d true)" "${others[@]}")" $b "$(y_of ${rot[$i]})"
+      d=${dirs[$i]}; o=${dirs[$(((i+2)%4))]}; l=${dirs[$(((i+1)%4))]}; r=${dirs[$(((i+3)%4))]}
+      # Only with one or two arms: three or four arcs piling onto the pad read as a tangle (20:22),
+      # so a junction of three or more takes a plain rod through its centre instead.
+      # Exactly one arm: with two or more, a plain rod through the pad reads better than arcs
+      # (four arcs were a tangle at 20:22, a forked pair still too busy at 20:31).
+      few() { # extra conditions...
+        when "${cond[@]}" "$@" "$(q $v true)" "$(q $w false)" "$(q $d true)" "$(q $o false)" "$(q $l false)" "$(q $r false)"
+      }
+      if [ $F = true ] && [ $v = up ]; then
+        # A foot under a lip has no tail: the lip's arc hangs down over it.
+        part "$(few "$(q under_lip false)")" $b "$(y_of ${rot[$i]})"
+        part "$(few "$(q under_lip true)")" ${b}_short "$(y_of ${rot[$i]})"
+      else
+        part "$(few)" $b "$(y_of ${rot[$i]})"
+      fi
     done
   done
 done
-# Vertical rods, by floor: shown when the climb continues through, or there is not exactly one arm to bend into.
+# Vertical rods, by floor: shown when the climb continues through, or there is no arm to bend into.
 for F in true false; do
   fl=$(q floor $F)
   for v in up down; do
     w=down; m=cable_riser; [ $F = true ] && m=cable_riser_foot
     if [ $v = down ]; then w=up; m=cable_drop; [ $F = true ] && continue; fi
+    # Through, no arm at all, or two or more arms (an opposite pair or a perpendicular pair covers every such case).
     entries=("$(when "$fl" "$(q $v true)" "$(q $w true)")" "$(when "$fl" "$(q $v true)" "$(q north false)" "$(q east false)" "$(q south false)" "$(q west false)")"
              "$(when "$fl" "$(q $v true)" "$(q north true)" "$(q south true)")" "$(when "$fl" "$(q $v true)" "$(q east true)" "$(q west true)")")
     for i in 0 1 2 3; do entries+=("$(when "$fl" "$(q $v true)" "$(q ${dirs[$i]} true)" "$(q ${dirs[$(((i+1)%4))]} true)")"); done
@@ -215,6 +234,10 @@ for F in true false; do
     lip=""; [ $v = up ] && lip='"under_lip": "false", '
     part "$(or "${entries[@]}" | sed "s/{ \"floor\"/{ $lip\"wide\": \"x|y\", \"floor\"/g")" $m ""
     part "$(or "${entries[@]}" | sed "s/{ \"floor\"/{ $lip\"wide\": \"z\", \"floor\"/g")" $m ', "y": 90'
+    if [ $F = true ] && [ $v = up ]; then
+      part "$(or "${entries[@]}" | sed "s/{ \"floor\"/{ \"under_lip\": \"true\", \"wide\": \"x|y\", \"floor\"/g")" cable_riser_foot_short ""
+      part "$(or "${entries[@]}" | sed "s/{ \"floor\"/{ \"under_lip\": \"true\", \"wide\": \"z\", \"floor\"/g")" cable_riser_foot_short ', "y": 90'
+    fi
   done
 done
 } > "$PARTS"
