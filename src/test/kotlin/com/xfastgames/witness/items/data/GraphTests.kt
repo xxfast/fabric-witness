@@ -100,6 +100,54 @@ class GraphTests {
 
         @Test
         fun `Test generate tree 1 tall`() {
+            val actual: ValueGraph<Node, Edge> = Panel.Tree.generateTree(1)
+            val expected: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected()
+                .build<Node, Edge>().apply {
+                    val leftTip = Node(0.5f, 1.5f)
+                    val rightTip = Node(1.5f, 1.5f)
+                    val root = Node(1f, 0.5f)
+
+                    putEdgeValue(root, leftTip, Edge.NORMAL)
+                    putEdgeValue(root, rightTip, Edge.NORMAL)
+                }
+
+            assertThat(actual).isEqualTo(expected)
+        }
+
+        @Test
+        fun `Test generate tree 2 tall`() {
+            val actual: ValueGraph<Node, Edge> = Panel.Tree.generateTree(2)
+
+            // 4 tips + 2 branches + 1 root, each branch joined up to its pair of children.
+            assertThat(actual.nodes()).hasSize(7)
+            assertThat(actual.edges()).hasSize(6)
+
+            // Tips sit a row apart on the top row, spread across the panel inside the half unit
+            // margin; the single bottom node is the root.
+            val tips: List<Node> = actual.nodes().filter { node -> actual.degree(node) == 1 }
+            assertThat(tips).hasSize(4)
+            tips.forEach { tip -> assertThat(tip.y).isEqualTo(2.5f) }
+            assertThat(tips.minOf { it.x }).isEqualTo(0.5f)
+            assertThat(tips.maxOf { it.x }).isEqualTo(2.5f)
+
+            val root: Node = actual.nodes().single { node -> node.y == 0.5f }
+            assertThat(actual.degree(root)).isEqualTo(2)
+            assertThat(root.x).isWithin(1e-5f).of(1.5f)
+
+            // Every parent is centred under its two children.
+            actual.nodes().filter { node -> node !in tips }.forEach { parent ->
+                val children: List<Node> = actual.adjacentNodes(parent).filter { it.y > parent.y }
+                assertThat(children).hasSize(2)
+                assertThat(parent.x).isWithin(1e-5f).of(children.sumOf { it.x.toDouble() }.toFloat() / 2)
+            }
+        }
+
+        @Test
+        fun `ofSize is in levels and sizes the panel one unit per node row`() {
+            val tree: Panel.Tree = Panel.Tree.ofSize(2)
+            assertThat(tree.width).isEqualTo(3)
+            assertThat(tree.height).isEqualTo(3)
+            assertThat(tree.graph.nodes()).hasSize(7)
         }
     }
 

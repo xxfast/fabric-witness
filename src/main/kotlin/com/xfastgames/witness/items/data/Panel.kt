@@ -6,7 +6,6 @@ import com.google.common.graph.ValueGraph
 import com.google.common.graph.ValueGraphBuilder
 import com.xfastgames.witness.items.data.Panel.Companion.Type
 import com.xfastgames.witness.utils.guava.emptyGraph
-import com.xfastgames.witness.utils.guava.mutableGraph
 import com.xfastgames.witness.utils.pow
 import com.mojang.serialization.Codec
 import com.xfastgames.witness.utils.getBooleanTolerant
@@ -228,35 +227,46 @@ sealed class Panel(val type: Type) {
     ) : Panel(Type.Tree) {
 
         companion object {
-            fun ofSize(height: Int): Tree = Tree(
-                line = mutableGraph(),
+            /**
+             * Legibility ceiling in levels: 8 leaf tips across the top row is the same on-screen
+             * node spacing as the 8×8 grid at its own cap
+             * (rules/minecraft/01-puzzle-panel-crafting.md#the-height-cap).
+             */
+            const val MAX_LEVELS: Int = 3
+
+            /** [levels] is the tree's size in the player's unit: branch steps from root to tip. */
+            fun ofSize(levels: Int): Tree = Tree(
+                line = emptyGraph(),
                 backgroundColor = DyeColor.WHITE,
-                graph = generateTree(height),
-                width = height,
-                height = height
+                graph = generateTree(levels),
+                width = levels + 1,
+                height = levels + 1
             )
 
+            /**
+             * A full binary tree of [levels] branch steps: 2^levels leaf tips spread along the top
+             * row, every parent centred under its pair of children, the root alone at the bottom.
+             * Rows sit one panel unit apart inside the grid's half-unit border margin, so a panel
+             * `levels + 1` units square frames it exactly like a grid with that many node rows.
+             */
             @Suppress("UnstableApiUsage")
-            fun generateTree(size: Int): ValueGraph<Node, Edge> {
+            fun generateTree(levels: Int): ValueGraph<Node, Edge> {
                 val graph: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected().build()
-                val tree: MutableMap<Int, List<Node>> = mutableMapOf()
-                (size downTo 0).forEach { branchIndex ->
-                    val leaves: MutableList<Node> = mutableListOf()
-                    val leafCount: Int = 2.pow(branchIndex)
-                    repeat(leafCount) { leafIndex ->
-                        val dY: Float = 1f * branchIndex
-                        // centering has to happen here
-                        val xOffset = (size.toFloat() / 2) / (branchIndex + 2)
-                        val dX: Float = leafIndex * (size.toFloat() / leafCount) + xOffset
-                        val leaf = Node(dX, dY)
-                        graph.addNode(leaf)
-                        leaves.add(leaf)
-                        if (tree.isEmpty()) return@repeat // No need to connect branches on the top row
-                        val branchAbove: Int = branchIndex + 1
-                        val branch: List<Node> = tree[branchAbove]?.chunked(2)?.get(leafIndex) ?: return@repeat
-                        branch.forEach { thatLeaf -> graph.putEdgeValue(thatLeaf, leaf, Edge.NORMAL) }
+                val tipCount: Int = 2.pow(levels)
+                // The top row spans `levels` units, the same width the rows are tall.
+                val spread: Float = levels.toFloat()
+                var row: List<Node> = List(tipCount) { index ->
+                    val x: Float = 0.5f + if (tipCount == 1) 0f else index * spread / (tipCount - 1)
+                    Node(x, 0.5f + levels)
+                }
+                row.forEach { tip -> graph.addNode(tip) }
+                (levels - 1 downTo 0).forEach { level ->
+                    row = row.chunked(2).map { children ->
+                        val parent = Node(children.map { it.x }.sum() / children.size, 0.5f + level)
+                        graph.addNode(parent)
+                        children.forEach { child -> graph.putEdgeValue(parent, child, Edge.NORMAL) }
+                        parent
                     }
-                    tree[branchIndex] = leaves
                 }
                 return graph
             }

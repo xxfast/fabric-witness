@@ -4,10 +4,12 @@
 
 One rule builds every puzzle panel and grows every puzzle panel. Lay tablets out in the crafting
 grid as a schematic of the panel you want, optionally with a panel you already have somewhere in it,
-and get the panel that schematic describes.
+and get the panel that schematic describes. A column grown from a sapling reads as a different
+schematic and makes a [tree panel](#tree-panels) instead.
 
-Sizes below are in **cells** (the drawable squares) and costs are in tablets. See
-[the cost model](README.md#cells-nodes-and-cost) for how cells, nodes, and cost line up.
+Sizes below are in **cells** (the drawable squares) and costs are in tablets; a tree's size is in
+**levels** ([below](#tree-panels)). See [the cost model](README.md#cells-nodes-and-cost) for how
+cells, nodes, and cost line up.
 
 ---
 
@@ -51,6 +53,9 @@ A craft is accepted when all of these hold:
 3. The occupied slots form a filled rectangle, no gaps inside the bounding box.
 4. Something is being added. A lone panel with no tablets is [recycle](03-panel-recycle.md), not this.
 5. The result is within the [size cap](#the-size-cap).
+
+A layout containing a sapling is the [tree craft](#tree-panels) instead. The two readings are
+disjoint: no grid craft contains a sapling, so nothing ever matches both.
 
 ## Building from scratch
 
@@ -186,6 +191,89 @@ no reason to ever pay the premium again, and fat footprints become dead content.
 is a small enough gap that this is probably fine, but it is the thing to watch in playtest. If it
 needs a lever, raise the price of the *seed* rather than touching the formula, since changing the
 formula is what reintroduces the two-rules problem this merge removed.
+
+## Tree panels
+
+The same schematic idea with a different seed. A **sapling is the seed of a tree panel**: stack
+tablets on top of it in a single column, and each tablet is one level of tree.
+
+```
+┌───┬───┬───┐
+│ T │   │   │      S: a sapling, T: a tablet.
+├───┼───┼───┤      the column is read bottom-up,
+│ T │   │   │      and can sit in any of the three
+├───┼───┼───┤      crafting-grid columns
+│ S │   │   │
+└───┴───┴───┘
+```
+
+$$S \;+\; h\,T \;=\; \text{Tree}_{h} \quad (\text{cost: } h\,T)$$
+
+A tree panel's size is in **levels**, the branch steps from the root to a leaf tip. What comes out
+is a full binary tree: one root at the bottom centre, every branch splitting in two on the way up,
+$2^h$ leaf tips in a row along the top.
+
+| Column | Levels | Leaf tips | Cost |
+|--------|--------|-----------|------|
+| S + T  | 1      | 2         | 1    |
+| S + TT | 2      | 4         | 2    |
+
+A tree craft is accepted when:
+
+1. The occupied slots form a single column with the sapling at the bottom.
+2. Every slot above the sapling holds a tablet, at least one.
+3. The result is within the [height cap](#the-height-cap).
+
+### Growing a tree
+
+Put a tree panel at the bottom of the column instead of a sapling and it gains one level per tablet:
+
+$$\text{Tree}_{h} \;+\; n\,T \;=\; \text{Tree}_{h+n} \quad (\text{cost: } c + n\,T)$$
+
+Marks travel by branch position, the way a grid's marks travel with the anchor. The exception is
+end nubs on the old leaf tips: those tips become branches, a nub only hangs off the border, so they
+drop. Growing a composed tree keeps its starts, breaks and hexagons and loses its ends.
+
+A column is thin by definition, so a tree never pays [the premium](#the-convenience-premium): $h$
+tablets for an $h$-level tree on every route. [Recycle](03-panel-recycle.md) returns `cost` as
+usual; the sapling is spent, like dye in [02](02-panel-dye.md).
+
+### The height cap
+
+**3 levels (8 leaf tips)**, and the yardstick is the grid's: 8 tips across a 3-unit-wide panel is
+the same on-screen spacing as the 8×8 grid at [its cap](#the-size-cap), the legibility edge. A
+column is at most 3 slots, so 3 levels is only reachable by growing a smaller tree.
+
+### What a tree panel is
+
+- **No cells.** A tree closes no faces, so no region symbol can ever sit on one
+  ([04-2](04-2-puzzle-composer-grid.md)). Its content is starts, ends, broken branches and
+  hexagons, all placed at the composer like on any panel.
+- **Hexagons are apples.** On a tree, a hexagon dot draws as a small apple hanging on its branch,
+  the orchard look from the game. Same mark, same placement at the composer, same validation
+  ([../witness/04-hexagon-dots.md](../witness/04-hexagon-dots.md)); only the look changes, and only
+  on trees.
+- **One path per leaf.** A tree has no cycles, so picking the exit picks the whole line. Solving
+  one is reading, not searching: find the tip whose branch line carries every hexagon and no
+  break. That puts a hard ceiling on difficulty, and that is the role: tutorial rows, flavour,
+  and routing.
+- **Routing.** Every leaf tip sits on the top border, so tip nubs point up. The two outermost tips
+  are corners and can be squared off left or right at the composer, which makes a tree a
+  left/right selector in a frame chain ([05-puzzle-frame](05-puzzle-frame.md)).
+- **Upside down works.** The root sits on the bottom border, so it can take a downward nub. Starts
+  on the tips and the end on the root is a legal panel, traced downward.
+
+### Tree edge cases
+
+- **Hexagons must share one root-to-tip line.** Paths are unique, so a hexagon off that line is
+  unsatisfiable. The composer allows it anyway, same stance as everywhere: a bad panel is a
+  content problem, not a UI reject.
+- **A break prunes the whole subtree.** Every tip above it becomes unreachable. That is the
+  intended use, not a trap.
+- **As a pure selector, the tree is the pretty option, not the cheap one.** A 1×1-cell grid panel
+  with two squared corner nubs routes left/right for 1 tablet and no sapling. The tree buys the
+  look.
+- **Any sapling works** and the wood doesn't matter; colour comes from [dye](02-panel-dye.md).
 
 ## The size cap
 
@@ -325,6 +413,34 @@ Two traps live here:
 - **Recipe-book unlocks for the deleted JSON recipes are simply gone** from existing saves. Harmless,
   but a player who had them will see the entries reappear under the special recipe instead.
 
+## Tree panels: status
+
+From-scratch crafting is built. `PanelTreeRecipe` matches the sapling column (any
+`#minecraft:saplings` item), `PanelTreeLayouts.levels` is the pure column check
+(`PanelTreeRecipeTests`), and the result is `Panel.Tree.ofSize(levels)` at cost = levels.
+`generateTree` builds the full binary tree with the grid's half unit border margin and every parent
+centred under its pair of children, pinned in `GraphTests`. `ofSize` takes **levels** and sets
+`width`/`height` to `levels + 1` node rows, which is what makes the tooltip's `height - 1` read in
+levels; don't hand it a node-row count.
+
+Hexagon marks on a tree draw as apples (`PuzzlePanelRenderer.renderSymbols(asApples = true)`), on
+the solution texture rather than the backdrop so they carry their own tint. Same data, same
+validation; only trees draw them this way.
+
+Seen in game 2026-08-31: a blank 2-tall tree in a powered frame, root bottom centre, four tips
+evenly spread along the top, branches diagonal.
+
+### Not done (tree)
+
+- **Growing a tree.** `Panel.Tree.resize` is still `TODO()` and the recipe treats a panel in the
+  column as a stray item, so 3-tall (`MAX_LEVELS`) is unreachable until growth lands. Mark
+  transplant by branch position is designed, not built.
+- **Apples only in the world renderer.** The composer's `WPuzzleEditor` still draws the mark as a
+  hexagon.
+- **Not yet seen in game:** tracing along the diagonal branches, and the apples themselves.
+  `PuzzleSolver` is graph-generic so both should follow, but the solver's segment selection has
+  only ever been exercised on axis-aligned edges.
+
 ## Where the caps come from in code
 
 - The recycle stack limit is `PanelRecycleRecipe.craft` returning
@@ -337,6 +453,10 @@ Two traps live here:
 
 - `src/main/kotlin/com/xfastgames/witness/recipes/PanelGridRecipe.kt` — `plan()`,
   `craft()`, `getDisplays()`, and the `PanelGridLayouts` maths.
+- `src/main/kotlin/com/xfastgames/witness/recipes/PanelTreeRecipe.kt` — the sapling column,
+  `PanelTreeLayouts.levels`.
+- `src/test/kotlin/com/xfastgames/witness/recipes/PanelTreeRecipeTests.kt` — accepted and rejected
+  columns.
 - `src/test/kotlin/com/xfastgames/witness/recipes/PanelGridRecipeTests.kt` — accepted layouts
   and their targets.
 - `src/main/kotlin/com/xfastgames/witness/items/data/Panel.kt` — `Panel.Grid.ofSize`, `expandTo`,

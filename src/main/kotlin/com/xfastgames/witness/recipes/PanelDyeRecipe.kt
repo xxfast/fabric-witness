@@ -59,6 +59,7 @@ class PanelDyeRecipe : CustomRecipe() {
         fun init() {
             PanelRecycleRecipe.SERIALIZER
             PanelGridRecipe.SERIALIZER
+            PanelTreeRecipe.SERIALIZER
         }
     }
 

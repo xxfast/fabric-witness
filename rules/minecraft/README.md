@@ -78,8 +78,10 @@ what was invested, never more. Composer edits do not touch `cost`.
 ## Where the mod stands
 
 Unlike [../witness/](../witness/README.md) (mostly unmodelled puzzle logic), crafting and the
-composer are **implemented and live**. The three special recipes register their serializers through
-`PanelDyeRecipe.init()` before datapacks load; the tablet recipe is plain JSON. The composer ships
+composer are **implemented and live**. The four special recipes register their serializers through
+`PanelDyeRecipe.init()` before datapacks load; the tablet recipe is plain JSON. Tree panels craft
+from a sapling column ([01](01-puzzle-panel-crafting.md#tree-panels)); growing one is designed but
+not built. The composer ships
 with start / end / break / hexagon working ([04-1](04-1-puzzle-composer-modifiers.md)); it has no
 tabs yet, and the Grid tab that edits which nodes and segments exist at all is designed but not
 built ([04-2](04-2-puzzle-composer-grid.md)). Crafting open questions are economy and legibility,
