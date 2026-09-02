@@ -41,7 +41,7 @@ fun <T> walkCables(
 data class CableWalk<T>(val component: Set<T>, val lit: Set<T>)
 
 /** How far power travels along a run from its nearest source, in blocks. */
-const val CABLE_MAX_DISTANCE: Int = 64
+const val CABLE_MAX_DISTANCE: Int = 128
 
 /** Cap on how much of a run one change will look at, so a change never walks a whole map. */
 const val CABLE_MAX_VISITED: Int = 512

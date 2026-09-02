@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Puzzle panels can now be up to 10x10 cells, up from 8x8, so grids from the game fit
+- Cables now carry power for 128 blocks from their nearest source, up from 64, since the game's
+  cables often run far
+
 ## [0.13.0] - 2026-08-30
 
 ### Added

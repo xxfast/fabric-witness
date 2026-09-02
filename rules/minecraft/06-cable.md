@@ -37,7 +37,7 @@ any block in it touches a source, and **dark** otherwise; every cable in a run i
 - **Outputs:** a lit run gives strength 15 to every block it joins that is not itself a cable: a
   frame (powering it), a door, a lamp, dust, a piston. Weak power, so a solid block on the end of
   a run does not relay it any further.
-- **Length:** a run carries power up to **64 blocks** from its nearest source, measured along the
+- **Length:** a run carries power up to **128 blocks** from its nearest source, measured along the
   cable, then stops. Chain runs through a frame, or drop a repeater in, to go further.
 
 ## Colour
@@ -90,7 +90,7 @@ between). Solving A opens it and lights A's run in A's colour; so does solving B
 a puzzle. Nothing to dye: the colour comes from the panel.
 
 **Dominance, stated plainly:** for getting a frame's power to a door, a cable dominates dust and
-repeaters: no decay for 64 blocks, no support needed, climbs, and it is one item instead of two.
+repeaters: no decay for 128 blocks, no support needed, climbs, and it is one item instead of two.
 That is the point of the block. Dust keeps its own jobs: feeding a frame from a vanilla circuit,
 tapping a run mid-way for a vanilla mechanism, and anything comparator- or timing-shaped. The stand
 relay ([05](05-puzzle-frame.md)) is now mostly a convenience for dust on the ground; a cable up the
@@ -101,7 +101,7 @@ consumes them.
 
 ## Edge cases
 
-- **A run is one state.** There is no half-lit cable; if the source is 64 blocks away the whole
+- **A run is one state.** There is no half-lit cable; if the source is 128 blocks away the whole
   run past that point is dark, not dim.
 - **A cable from a frame's exit side round to one of its inputs is a latch**, the same class as a
   loop of frames: once solved it holds itself on. Accepted, as any redstone component that can be
@@ -194,7 +194,7 @@ dark casing, and the ribbon geometry, signed off after the F3-guided fix to the 
 - Recipe: 3 copper → 6 cables. No dye. Unlocks in the recipe book on picking up a copper ingot
   (`advancement/recipes/redstone/cable.json`, added 2026-08-30).
 - `walkCables` (`CableNetwork.kt`) is the pure component-then-spread walk, bounded at
-  `CABLE_MAX_DISTANCE = 64` and `CABLE_MAX_VISITED = 512`; `CableNetworkTests` pins it. **One
+  `CABLE_MAX_DISTANCE = 128` and `CABLE_MAX_VISITED = 512`; `CableNetworkTests` pins it. **One
   walk per change**, redstone-cheap: `refresh` writes the run with `UPDATE_CLIENTS` and each
   changed cable tells its neighbours once; cables ignore updates that come from cables, a broken
   cable re-walks what is left beside it, and every run-wide tie (`color` between two panels,
@@ -228,7 +228,7 @@ asked. Frame joins draw the arm regardless of exit; the frame decides whether po
 
 **Network power is a walk, not a neighbour update.** A signal with no decay cannot be carried by
 `neighborChanged` alone. On any change to a cable or to a block touching one, walk the connected
-same-colour cable graph from the changed block (bounded at 64 steps from each source, or 512
+same-colour cable graph from the changed block (bounded at 128 steps from each source, or 512
 blocks total, whichever first), find whether any cable touches a source, and set `lit` on every
 cable in the walk that differs. `Panel.regions` (`items/data/Regions.kt`) is the in-repo flood
 fill to model on; keep the graph walk pure over an abstract neighbour function so it is unit
