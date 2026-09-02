@@ -18,6 +18,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Cables, frames and stands are one network traced back to a real redstone source, so nothing
     holds itself up once its source is cut: rows, loops and cables fed back round all go dark
   - A cable run's length counts from the last frame or stand it left
+- A panel taken out of a frame, or dropped when the frame is broken, comes out with its line
+  cleared, so a solved panel no longer shows as solved in the hand
 
 ## [0.13.0] - 2026-08-30
 

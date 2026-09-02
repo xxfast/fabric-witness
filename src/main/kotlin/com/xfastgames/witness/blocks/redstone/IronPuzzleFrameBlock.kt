@@ -261,6 +261,14 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             RedstoneNetwork.vanillaSignal(world, pos, inputDirections(state, panel))
 
         /**
+         * This stack with any drawn line stripped. A solution only counts where it was drawn: a
+         * panel goes in with no line, so a solved one can never be carried to another frame as a
+         * key, and comes out with none, so it does not pose as solved in the hand either.
+         */
+        private fun ItemStack.unsolved(): ItemStack =
+            panel?.let { drawn -> copy().apply { panel = drawn.withLine(emptyGraph()) } } ?: this
+
+        /**
          * Left-click retrieval, mirroring vanilla item frames: attacking a loaded frame pops the
          * panel out and leaves the frame standing, so the frame only starts breaking once it is
          * empty. Wired to `AttackBlockCallback` in [com.xfastgames.witness.Witness.onInitialize].
@@ -282,7 +290,7 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             // Drops in creative too, unlike ItemFrame.dropItem: a drawn-on panel is not a stock
             // item the player can pull from the menu again. popResource is already server-side
             // only and respects the blockDrops gamerule.
-            Block.popResourceFromFace(world, pos, state.getValue(HORIZONTAL_FACING).opposite, frameStack)
+            Block.popResourceFromFace(world, pos, state.getValue(HORIZONTAL_FACING).opposite, frameStack.unsolved())
 
             world.playSound(player, pos, SoundEvents.ITEM_FRAME_REMOVE_ITEM, SoundSource.BLOCKS, 1f, 1f)
             RedstoneNetwork.refresh(world, pos)
@@ -401,7 +409,7 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
     override fun playerWillDestroy(world: Level, pos: BlockPos, state: BlockState, player: Player): BlockState {
         val entity: BlockEntity? = world.getBlockEntity(pos)
         require(entity is PuzzleFrameBlockEntity)
-        entity.inventory.items.forEach { stack -> Block.popResource(world, pos, stack) }
+        entity.inventory.items.forEach { stack -> Block.popResource(world, pos, stack.unsolved()) }
         return super.playerWillDestroy(world, pos, state, player)
     }
 
@@ -461,10 +469,7 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
                     player.setItemInHand(InteractionHand.MAIN_HAND, holdingStack)
                 else player.setItemInHand(InteractionHand.OFF_HAND, holdingStack)
 
-                // A solution only counts where it was drawn: a panel arrives with no line, so a
-                // solved panel can never be carried to another frame as a key.
-                frameStack.panel?.let { carried -> frameStack.panel = carried.withLine(emptyGraph()) }
-                inventory.items[0] = frameStack
+                inventory.items[0] = frameStack.unsolved()
                 player.playSound(SoundEvents.ARMOR_EQUIP_IRON.value(), 1f, 1f)
             }
 
@@ -479,7 +484,7 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
                 // removeItemNoUpdate hands back the stack itself. removeItem(slot, amount) would
                 // split it, which empties the stack still sitting in the slot list.
                 val frameStack: ItemStack = inventory.removeItemNoUpdate(0)
-                player.setItemInHand(freeHand, frameStack)
+                player.setItemInHand(freeHand, frameStack.unsolved())
             }
 
             // when there's a panel and player is not sneaking

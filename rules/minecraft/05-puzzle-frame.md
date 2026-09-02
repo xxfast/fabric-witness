@@ -224,7 +224,8 @@ exit (top / bottom) and the lever-off cascade with the line stripped.
 - Unpowered: `PuzzlePanelRenderer.renderPanel(lit = false)` draws only the backdrop at
   `UNLIT_BRIGHTNESS` under ambient light; the face click plays `POINTLESS_CLICK` and returns
   without a screen.
-- The line is stripped on insert (`interact`), so a solution never travels in the item.
+- The line is stripped on insert and on every way out (`interact`, `retrieveOnAttack`,
+  `playerWillDestroy`), so a solution never travels in the item.
 - `connections()` is the single source for the four `*_connected` flags (placement and
   `neighborChanged` both call it). They still only select model parts; power uses
   `sideDirection` directly.
