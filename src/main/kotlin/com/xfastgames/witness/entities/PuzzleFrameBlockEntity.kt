@@ -3,6 +3,7 @@ package com.xfastgames.witness.entities
 import com.google.common.graph.Graph
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
+import com.xfastgames.witness.blocks.redstone.RedstoneNetwork
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
@@ -131,7 +132,11 @@ class PuzzleFrameBlockEntity(pos: BlockPos, state: BlockState) :
             val next: BlockState = state
                 .setValue(IronPuzzleFrameBlock.SOLVED, true)
                 .setValue(IronPuzzleFrameBlock.EXIT, IronPuzzleFrameBlock.Exit.of(path.exitSides()))
-            if (next != state) level.setBlock(blockPos, next, Block.UPDATE_ALL)
+            if (next != state) {
+                level.setBlock(blockPos, next, Block.UPDATE_ALL)
+                // Frames ignore updates from frames, so the chain past this one is walked here.
+                RedstoneNetwork.refresh(level, blockPos)
+            }
         }
         sync()
     }

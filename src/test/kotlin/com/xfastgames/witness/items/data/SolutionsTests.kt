@@ -102,6 +102,31 @@ class SolutionsTests {
     }
 
     @Test
+    fun `A panel knows whether it has a single end`() {
+        val diagonal: Float = END_POINT_LENGTH / kotlin.math.sqrt(2f)
+        val cornerNub = Node(1f + diagonal, 1f + diagonal, Modifier.END)
+        val oneDiagonalEnd: Panel = panel.withGraph(
+            ValueGraphBuilder.undirected().build<Node, Edge>().apply {
+                putEdgeValue(start, corner, Edge.NORMAL)
+                putEdgeValue(corner, Node(1f, 1f), Edge.NORMAL)
+                putEdgeValue(Node(1f, 1f), cornerNub, Edge.NORMAL)
+            }
+        )
+        val twoEnds: Panel = panel.withGraph(
+            ValueGraphBuilder.undirected().build<Node, Edge>().apply {
+                putEdgeValue(start, corner, Edge.NORMAL)
+                putEdgeValue(corner, finish, Edge.NORMAL)
+                putEdgeValue(corner, Node(1f + END_POINT_LENGTH, 0f, Modifier.END), Edge.NORMAL)
+            }
+        )
+
+        assertThat(panel.hasSingleEnd()).isTrue()
+        // A diagonal corner nub points out of two sides but is still one end.
+        assertThat(oneDiagonalEnd.hasSingleEnd()).isTrue()
+        assertThat(twoEnds.hasSingleEnd()).isFalse()
+    }
+
+    @Test
     fun `A path that does not end on a nub exits nowhere`() {
         assertThat(listOf(start, corner).exitSides()).isEmpty()
         assertThat(emptyList<Node>().exitSides()).isEmpty()

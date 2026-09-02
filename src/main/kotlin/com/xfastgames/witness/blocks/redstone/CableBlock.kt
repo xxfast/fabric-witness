@@ -1,8 +1,6 @@
 package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.Witness
-import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
-import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.blockSettings
 import com.xfastgames.witness.utils.d
@@ -22,7 +20,6 @@ import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.SoundType
-import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
@@ -202,30 +199,6 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         }
     }
 
-    /**
-     * The colour a source next to [pos] would light the run in: the panel's, when the source is a
-     * frame sending power out of its exit; white for plain redstone. Null when nothing there is a
-     * source. Frames answer through their own [Block.getSignal], so their input sides read 0 and
-     * only the exit side counts.
-     */
-    private fun sourceColor(world: Level, pos: BlockPos): DyeColor? {
-        var found: DyeColor? = null
-        Direction.entries.forEach { direction ->
-            val neighbourPos: BlockPos = pos.relative(direction)
-            if (isRun(world.getBlockState(neighbourPos))) return@forEach
-            if (world.getSignal(neighbourPos, direction) <= 0) return@forEach
-            val entity: BlockEntity? = world.getBlockEntity(neighbourPos)
-            val panelColor: DyeColor? = (entity as? PuzzleFrameBlockEntity)?.inventory?.items?.get(0)?.panel?.backgroundColor
-            // A frame's colour wins over redstone's white, so a run fed by both still reads as the panel's.
-            if (panelColor != null) return panelColor
-            found = found ?: SOURCELESS_COLOR
-        }
-        return found
-    }
-
-    private fun runNeighbours(world: Level, pos: BlockPos): List<BlockPos> =
-        Direction.entries.map(pos::relative).filter { next -> isRun(world.getBlockState(next)) }
-
     private fun withConnections(state: BlockState, world: BlockGetter, pos: BlockPos): BlockState =
         Direction.entries.fold(state) { next, direction ->
             next.setValue(CONNECTIONS[direction.ordinal], joins(world, pos, direction))
@@ -307,54 +280,39 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
     }
 
     /**
-     * Re-joins this cable's arms and relights its whole run (see [walkCables]) in the colour of
-     * the panel feeding it. Server only, and redstone-cheap: **one walk per change**. The run is
-     * written with [Block.UPDATE_CLIENTS] and each changed cable then tells its neighbours once;
-     * cables ignore updates that come from cables ([neighborChanged]), so a run never re-walks
-     * itself, and every run-wide value breaks ties by position, never by who asked. Both mattered:
-     * on 2026-08-30 a run re-walked once per neighbour update it had fired, and two "first found
-     * wins" ties (`wide`, `color`) flipped with the walk's start, which hit vanilla's chained-update
-     * cap ("Too many chained neighbor updates", millions of writes a tick).
+     * Writes the cables in [cells] as one pass: re-joined arms, [lit], the run's [colour], and the
+     * ribbon geometry, so the floor, the frames and the bends all agree. Clients only: the network
+     * tells the neighbours once the whole of it is written ([RedstoneNetwork.refresh]). Every
+     * run-wide tie (`wide` between two floor deciders) goes to the lowest position, never to who
+     * asked: on 2026-08-30 "first found wins" flipped with the walk's start and hit vanilla's
+     * chained-update cap ("Too many chained neighbor updates", millions of writes a tick).
+     *
+     * @return the cables whose state changed.
      */
-    private fun refresh(world: Level, pos: BlockPos) {
-        if (world.isClientSide) return
-        val state: BlockState = world.getBlockState(pos)
-        if (!isRun(state)) return
-        val colours: MutableMap<BlockPos, DyeColor> = mutableMapOf()
-        val walk: CableWalk<BlockPos> = walkCables(
-            start = pos.immutable(),
-            neighbours = { at -> runNeighbours(world, at) },
-            isSource = { at -> sourceColor(world, at)?.also { colour -> colours[at] = colour } != null },
-        )
-        // One colour per run: a frame's over redstone's white, ties to the lowest source position.
-        val sources: List<DyeColor> = colours.entries.sortedWith(compareBy({ it.key.y }, { it.key.x }, { it.key.z })).map { it.value }
-        val colour: DyeColor = sources.firstOrNull { it != SOURCELESS_COLOR } ?: sources.firstOrNull() ?: SOURCELESS_COLOR
-        val joined: Map<BlockPos, BlockState> = walk.component.associateWith { at -> withConnections(world.getBlockState(at), world, at) }
+    fun writeRun(world: Level, cells: Set<BlockPos>, lit: (BlockPos) -> Boolean, colour: (BlockPos) -> DyeColor): List<BlockPos> {
+        val joined: Map<BlockPos, BlockState> = cells.associateWith { at -> withConnections(world.getBlockState(at), world, at) }
         val floors: Map<BlockPos, Boolean> = joined.mapValues { (at, state) -> isFloor(world, at, state) }
         // In a fixed order: where two deciders disagree the first seeded wins, and that must not
         // depend on which cable started the walk (the x / z ping-pong at -134 7 216, 19:58).
-        val cells: List<BlockPos> = joined.keys.sortedWith(compareBy({ it.y }, { it.x }, { it.z }))
+        val ordered: List<BlockPos> = joined.keys.sortedWith(compareBy({ it.y }, { it.x }, { it.z }))
         val widths: Map<BlockPos, Axis> = ribbonWidths(
-            cells = cells,
+            cells = ordered,
             arms = { at -> arms(joined.getValue(at)) },
             floor = { at -> floors.getValue(at) },
             neighbour = { at, way -> at.relative(Direction.entries[way.ordinal]) },
-            seeds = cells.mapNotNull { at -> ribbonSeed(world, at, joined.getValue(at), floors.getValue(at))?.let { at to it } }.toMap(),
+            seeds = ordered.mapNotNull { at -> ribbonSeed(world, at, joined.getValue(at), floors.getValue(at))?.let { at to it } }.toMap(),
         )
-        walk.component.forEach { at ->
+        return ordered.filter { at ->
             val current: BlockState = world.getBlockState(at)
-            val lit: Boolean = at in walk.lit
+            val isLit: Boolean = lit(at)
             val next: BlockState = joined.getValue(at)
-                .setValue(LIT, lit)
-                .setValue(COLOR, if (lit) colour else current.getValue(COLOR))
+                .setValue(LIT, isLit)
+                .setValue(COLOR, if (isLit) colour(at) else current.getValue(COLOR))
                 .setValue(WIDE, widths.getValue(at).toDirectionAxis())
                 .setValue(UNDER_LIP, isLip(joined, floors, at.above()))
                 .setValue(FLOOR, floors.getValue(at))
-            if (next != current) {
-                world.setBlock(at, next, Block.UPDATE_CLIENTS)
-                // Doors, dust and frames beside this cable hear about it once; cables do not listen.
-                world.updateNeighborsAt(at, this, null)
-            }
+            if (next != current) world.setBlock(at, next, Block.UPDATE_CLIENTS)
+            next != current
         }
     }
 
@@ -362,13 +320,13 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         withConnections(defaultBlockState(), ctx.level, ctx.clickedPos)
 
     override fun onPlace(state: BlockState, world: Level, pos: BlockPos, oldState: BlockState, movedByPiston: Boolean) {
-        if (oldState.block !== this) refresh(world, pos)
+        if (oldState.block !== this) RedstoneNetwork.refresh(world, pos)
     }
 
-    /** A broken cable splits its run: each cable that was beside it walks what is left. */
+    /** A broken cable splits its network: each member that was beside it walks what is left. */
     override fun affectNeighborsAfterRemoval(state: BlockState, world: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
         super.affectNeighborsAfterRemoval(state, world, pos, movedByPiston)
-        runNeighbours(world, pos).forEach { next -> refresh(world, next) }
+        RedstoneNetwork.membersBeside(world, pos).forEach { next -> RedstoneNetwork.refresh(world, next) }
     }
 
     override fun neighborChanged(
@@ -379,9 +337,9 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         wireOrientation: Orientation?,
         notify: Boolean
     ) {
-        // A cable's run is already settled by whichever refresh wrote it; only the world around it can change it.
-        if (sourceBlock === this) return
-        refresh(world, pos)
+        // The network is already settled by whichever refresh wrote it; only the world around it can change it.
+        if (RedstoneNetwork.isMember(sourceBlock)) return
+        RedstoneNetwork.refresh(world, pos)
     }
 
     /**

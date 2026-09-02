@@ -6,6 +6,7 @@ import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.endSides
+import com.xfastgames.witness.items.data.hasSingleEnd
 import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.data.withLine
 import com.xfastgames.witness.utils.guava.emptyGraph
@@ -23,6 +24,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.InteractionHand
@@ -148,42 +150,40 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             )
         }
 
-        /**
-         * Recomputes the derived state (joins, power) and writes it only if something changed, so
-         * chains of frames updating each other settle instead of ping-ponging.
-         */
         /** A solid face on the block the frame's back is against (`facing` points at the back). */
         private fun wallBehind(world: BlockGetter, pos: BlockPos, facing: Direction): Boolean {
             val behind: BlockPos = pos.relative(facing)
             return world.getBlockState(behind).isFaceSturdy(world, behind, facing.opposite)
         }
 
-        fun refresh(world: Level, pos: BlockPos, state: BlockState = world.getBlockState(pos)) {
-            if (state.block !is IronPuzzleFrameBlock) return
-            // Server-authoritative, as RedstoneLampBlock does it; UPDATE_ALL carries the result down.
-            if (world.isClientSide) return
-            val entity: BlockEntity? = world.getBlockEntity(pos)
-            val held: Panel? = (entity as? PuzzleFrameBlockEntity)?.inventory?.items?.get(0)?.panel
-            val hasPanel: Boolean = held != null
-            val facing: Direction = state.getValue(HORIZONTAL_FACING)
-            val powered: Boolean = hasPanel && (hasRedstoneInput(world, pos, state, held) || isFedByChain(world, pos, facing))
+        /**
+         * Writes the frame at [at] as powered or not (rules/minecraft/05-puzzle-frame.md), with
+         * its joins refreshed, and strips the line when Solved is lost. Clients only: the
+         * network tells the neighbours once the whole of it is written ([RedstoneNetwork.refresh]).
+         *
+         * @return whether anything changed.
+         */
+        fun write(world: Level, at: BlockPos, powered: Boolean): Boolean {
+            val state: BlockState = world.getBlockState(at)
             // Solved is sticky while powered, and only while powered: a cut resets the chain.
             val solved: Boolean = state.getValue(SOLVED) && powered
             var next: BlockState = state
                 .setValue(POWERED, powered)
                 .setValue(SOLVED, solved)
                 .setValue(EXIT, if (solved) state.getValue(EXIT) else Exit.NONE)
-            connections(world, pos, facing).forEach { (property, joined) ->
+            connections(world, at, state.getValue(HORIZONTAL_FACING)).forEach { (property, joined) ->
                 next = next.setValue(property, joined)
             }
-            if (next != state) world.setBlock(pos, next, Block.UPDATE_ALL)
-            // Losing Solved also loses the line: the panel goes back to a puzzle, not a display of
-            // an answer it no longer gets credit for (rules/minecraft/05-puzzle-frame.md).
+            if (next != state) world.setBlock(at, next, Block.UPDATE_CLIENTS)
+            // Losing Solved also loses the line: the panel goes back to a puzzle, not a display
+            // of an answer it no longer gets credit for.
+            val entity: BlockEntity? = world.getBlockEntity(at)
             if (state.getValue(SOLVED) && !solved && entity is PuzzleFrameBlockEntity) {
                 val stack: ItemStack = entity.inventory.getItem(0)
                 stack.panel?.let { drawn -> entity.inventory.setItem(0, stack.copy().apply { panel = drawn.withLine(emptyGraph()) }) }
                 entity.sync()
             }
+            return next != state
         }
 
         /** The world direction out of [side] of a frame that faces [facing]; see [connections]. */
@@ -195,41 +195,70 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
         }
 
         /**
-         * Whether a joined, solved frame sends its power here: one whose exit side faces this
-         * block (rules/minecraft/05-puzzle-frame.md, "where the power goes"). Each frame resolves
-         * its own sides with its own facing, so two frames facing different ways still join.
+         * The frames joined to the one at [pos]: those on its four bracket sides, plus any frame
+         * whose own bracket side reaches back to it, so a join is the same from both ends even
+         * when the two face different ways (rules/minecraft/05-puzzle-frame.md, "facing does not
+         * matter"). Never the stand: it is a link of its own in the network, not a frame.
          */
-        fun isFedByChain(world: BlockGetter, pos: BlockPos, facing: Direction): Boolean =
-            Side.entries.any { side ->
-                val neighbourPos: BlockPos = pos.relative(sideDirection(facing, side))
-                val neighbour: BlockState = world.getBlockState(neighbourPos)
-                neighbour.block is IronPuzzleFrameBlock &&
-                    neighbour.getValue(SOLVED) &&
-                    neighbour.getValue(EXIT).sides.any { exit ->
-                        neighbourPos.relative(sideDirection(neighbour.getValue(HORIZONTAL_FACING), exit)) == pos
-                    }
+        fun joinedFrames(world: BlockGetter, pos: BlockPos, facing: Direction): List<BlockPos> {
+            val own: Set<Direction> = Side.entries.map { side -> sideDirection(facing, side) }.toSet()
+            return Direction.entries.mapNotNull { direction ->
+                val at: BlockPos = pos.relative(direction)
+                val neighbour: BlockState = world.getBlockState(at)
+                if (neighbour.block !is IronPuzzleFrameBlock) return@mapNotNull null
+                val theirs: Set<Direction> = Side.entries.map { side -> sideDirection(neighbour.getValue(HORIZONTAL_FACING), side) }.toSet()
+                if (direction in own || direction.opposite in theirs) at else null
             }
-
-        /** World directions a solved frame puts power out of: one per exit side. */
-        private fun outputDirections(state: BlockState): Set<Direction> {
-            if (!state.getValue(SOLVED)) return emptySet()
-            val facing: Direction = state.getValue(HORIZONTAL_FACING)
-            return state.getValue(EXIT).sides.map { side -> sideDirection(facing, side) }.toSet()
         }
 
         /**
-         * Redstone into the frame from any side, like a lamp, except the sides the panel has an
-         * end nub on: those are exits, and an exit never takes power in, whether or not the frame
-         * is solved yet. Static, from the panel, so a shared cable run can never feed a frame back
-         * through its own output (rules/minecraft/05-puzzle-frame.md, "where the power goes").
+         * Whether the solved frame at [from] sends chain power to the joined frame at [to]
+         * (rules/minecraft/05-puzzle-frame.md, "where the power goes"): every joined frame when its
+         * [panel] has a single end, otherwise only the frame its used nub points at. Each frame
+         * resolves its own sides with its own facing, so two frames facing different ways still join.
          */
-        private fun hasRedstoneInput(world: Level, pos: BlockPos, state: BlockState, panel: Panel?): Boolean {
+        fun feedsFrame(state: BlockState, panel: Panel?, from: BlockPos, to: BlockPos): Boolean {
+            if (panel?.hasSingleEnd() == true) return true
             val facing: Direction = state.getValue(HORIZONTAL_FACING)
-            val exits: Set<Direction> = panel?.endSides().orEmpty().map { side -> sideDirection(facing, side) }.toSet()
-            return Direction.entries.any { direction ->
-                direction !in exits && world.getSignal(pos.relative(direction), direction) > 0
-            }
+            return state.getValue(EXIT).sides.any { exit -> from.relative(sideDirection(facing, exit)) == to }
         }
+
+        /**
+         * World directions a solved frame puts its redstone signal out of: all four bracket sides
+         * for a panel with a single end, the way the game's cable leaves a panel on whichever side
+         * the room needs; the used nub's side(s) for a panel with a choice of ends. Empty unsolved.
+         */
+        fun outputDirections(state: BlockState, panel: Panel?): Set<Direction> {
+            if (!state.getValue(SOLVED)) return emptySet()
+            val facing: Direction = state.getValue(HORIZONTAL_FACING)
+            val sides: Collection<Side> = if (panel?.hasSingleEnd() == true) Side.entries else state.getValue(EXIT).sides
+            return sides.map { side -> sideDirection(facing, side) }.toSet()
+        }
+
+        /**
+         * World directions a signal may come into the frame from: any side for a panel with a
+         * single end (the game runs its cable in wherever it likes), and every side but the nub
+         * sides for a panel with a choice of ends, since those are its exits. Static, from the
+         * panel, whether or not the frame is solved yet.
+         */
+        fun inputDirections(state: BlockState, panel: Panel?): Set<Direction> {
+            if (panel == null) return emptySet()
+            if (panel.hasSingleEnd()) return Direction.entries.toSet()
+            val facing: Direction = state.getValue(HORIZONTAL_FACING)
+            return Direction.entries.toSet() - panel.endSides().map { side -> sideDirection(facing, side) }.toSet()
+        }
+
+        /** Whether the frame at [to] (holding [panel]) takes network power from the member at [from]. */
+        fun takesInputFrom(state: BlockState, panel: Panel?, from: BlockPos, to: BlockPos): Boolean =
+            inputDirections(state, panel).any { direction -> to.relative(direction) == from }
+
+        /**
+         * Redstone into the frame from outside the network, like a lamp, on an input side. Members
+         * never count: the network walk carries their power, and a solved neighbour counted here
+         * would be a source in its own right, the latch the walk exists to prevent.
+         */
+        fun hasVanillaInput(world: Level, pos: BlockPos, state: BlockState, panel: Panel): Boolean =
+            RedstoneNetwork.vanillaSignal(world, pos, inputDirections(state, panel))
 
         /**
          * Left-click retrieval, mirroring vanilla item frames: attacking a loaded frame pops the
@@ -256,7 +285,7 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             Block.popResourceFromFace(world, pos, state.getValue(HORIZONTAL_FACING).opposite, frameStack)
 
             world.playSound(player, pos, SoundEvents.ITEM_FRAME_REMOVE_ITEM, SoundSource.BLOCKS, 1f, 1f)
-            refresh(world, pos, state)
+            RedstoneNetwork.refresh(world, pos)
             return InteractionResult.SUCCESS
         }
     }
@@ -287,8 +316,10 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
      */
     override fun isSignalSource(state: BlockState): Boolean = true
 
-    override fun getSignal(state: BlockState, world: BlockGetter, pos: BlockPos, direction: Direction): Int =
-        if (direction.opposite in outputDirections(state)) SOLVED_SIGNAL else 0
+    override fun getSignal(state: BlockState, world: BlockGetter, pos: BlockPos, direction: Direction): Int {
+        val panel: Panel? = (world.getBlockEntity(pos) as? PuzzleFrameBlockEntity)?.inventory?.items?.get(0)?.panel
+        return if (direction.opposite in outputDirections(state, panel)) SOLVED_SIGNAL else 0
+    }
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
@@ -313,7 +344,19 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
         wireOrientation: net.minecraft.world.level.redstone.Orientation?,
         notify: Boolean
     ) {
-        refresh(world, pos, state)
+        // The network is already settled by whichever refresh wrote it; only the world around it can change it.
+        if (RedstoneNetwork.isMember(sourceBlock)) return
+        RedstoneNetwork.refresh(world, pos)
+    }
+
+    override fun onPlace(state: BlockState, world: Level, pos: BlockPos, oldState: BlockState, movedByPiston: Boolean) {
+        if (oldState.block !is IronPuzzleFrameBlock) RedstoneNetwork.refresh(world, pos)
+    }
+
+    /** A broken frame splits its network: each member that was beside it walks what is left. */
+    override fun affectNeighborsAfterRemoval(state: BlockState, world: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        super.affectNeighborsAfterRemoval(state, world, pos, movedByPiston)
+        RedstoneNetwork.membersBeside(world, pos).forEach { next -> RedstoneNetwork.refresh(world, next) }
     }
 
     override fun createBlockStateDefinition(stateDefinition: StateDefinition.Builder<Block, BlockState>) {
@@ -462,8 +505,8 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
         }
 
         if (world.isClientSide) return InteractionResult.SUCCESS
-        // The panel came or went, so power may have too. Server only: UPDATE_ALL syncs it.
-        refresh(world, pos, state)
+        // The panel came or went, so power may have too. Server only.
+        RedstoneNetwork.refresh(world, pos)
         entity.sync()
         world.sendBlockUpdated(pos, state, state, Block.UPDATE_ALL)
         return InteractionResult.SUCCESS

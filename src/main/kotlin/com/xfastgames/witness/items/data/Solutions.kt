@@ -96,6 +96,14 @@ fun Panel.endSides(): Set<Side> = graph.nodes()
     }
     .toSet()
 
+/**
+ * Whether this panel has exactly one end nub. A one-end panel offers no choice of route, so a
+ * solved frame holding one feeds every frame joined to it instead of the nub's side alone
+ * (rules/minecraft/05-puzzle-frame.md, "where the power goes"). A diagonal corner nub is one end
+ * even though it points out of two sides.
+ */
+fun Panel.hasSingleEnd(): Boolean = graph.nodes().count { node -> node.modifier == Modifier.END } == 1
+
 private const val EXIT_EPSILON = 0.001f
 
 /** The drawn line for an ordered path: every node, joined in order. */

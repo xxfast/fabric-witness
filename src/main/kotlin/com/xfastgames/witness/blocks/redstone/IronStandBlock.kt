@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING
 import net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED
 import net.minecraft.resources.Identifier
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
@@ -37,9 +38,20 @@ class IronStandBlock(settings: BlockBehaviour.Properties) : Block(settings) {
 
         private const val RELAYED_SIGNAL = 15
 
-        /** Redstone into the base: every side but the top, which is where it goes out. */
-        private fun hasInput(world: Level, pos: BlockPos): Boolean = Direction.entries.any { direction ->
-            direction != Direction.UP && world.getSignal(pos.relative(direction), direction) > 0
+        /**
+         * Redstone into the base from outside the network: every side but the top, which is where
+         * it goes out. A cable underneath feeds the stand through the walk instead
+         * ([RedstoneNetwork.refresh]), so a run lit by the frame on this stand can never feed it back.
+         */
+        fun hasVanillaInput(world: Level, pos: BlockPos): Boolean =
+            RedstoneNetwork.vanillaSignal(world, pos, Direction.entries.filter { direction -> direction != Direction.UP })
+
+        /** Writes the stand at [at] as powered or not, clients only; returns whether it changed. */
+        fun write(world: Level, at: BlockPos, powered: Boolean): Boolean {
+            val state: BlockState = world.getBlockState(at)
+            if (state.getValue(POWERED) == powered) return false
+            world.setBlock(at, state.setValue(POWERED, powered), Block.UPDATE_CLIENTS)
+            return true
         }
     }
 
@@ -52,7 +64,7 @@ class IronStandBlock(settings: BlockBehaviour.Properties) : Block(settings) {
     override fun getStateForPlacement(ctx: BlockPlaceContext): BlockState =
         defaultBlockState()
             .setValue(HORIZONTAL_FACING, ctx.horizontalDirection)
-            .setValue(POWERED, hasInput(ctx.level, ctx.clickedPos))
+            .setValue(POWERED, hasVanillaInput(ctx.level, ctx.clickedPos))
 
     override fun createBlockStateDefinition(stateDefinition: StateDefinition.Builder<Block, BlockState>) {
         stateDefinition.add(HORIZONTAL_FACING)
@@ -60,8 +72,8 @@ class IronStandBlock(settings: BlockBehaviour.Properties) : Block(settings) {
     }
 
     /**
-     * Held as block state rather than computed on demand so a change notifies the frame above
-     * through `UPDATE_ALL`; a lever on the far side of the base would not reach it otherwise.
+     * Held as block state, written by the network walk together with the frame above it, so the
+     * two never disagree; a lever on the far side of the base reaches the frame through the walk.
      */
     override fun neighborChanged(
         state: BlockState,
@@ -71,9 +83,19 @@ class IronStandBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         wireOrientation: Orientation?,
         notify: Boolean
     ) {
-        if (world.isClientSide) return
-        val powered: Boolean = hasInput(world, pos)
-        if (powered != state.getValue(POWERED)) world.setBlock(pos, state.setValue(POWERED, powered), Block.UPDATE_ALL)
+        // The network is already settled by whichever refresh wrote it; only the world around it can change it.
+        if (RedstoneNetwork.isMember(sourceBlock)) return
+        RedstoneNetwork.refresh(world, pos)
+    }
+
+    override fun onPlace(state: BlockState, world: Level, pos: BlockPos, oldState: BlockState, movedByPiston: Boolean) {
+        if (oldState.block !is IronStandBlock) RedstoneNetwork.refresh(world, pos)
+    }
+
+    /** A broken stand splits its network: each member that was beside it walks what is left. */
+    override fun affectNeighborsAfterRemoval(state: BlockState, world: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        super.affectNeighborsAfterRemoval(state, world, pos, movedByPiston)
+        RedstoneNetwork.membersBeside(world, pos).forEach { next -> RedstoneNetwork.refresh(world, next) }
     }
 
     override fun isSignalSource(state: BlockState): Boolean = true

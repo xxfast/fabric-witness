@@ -12,6 +12,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Puzzle panels can now be up to 10x10 cells, up from 8x8, so grids from the game fit
 - Cables now carry power for 128 blocks from their nearest source, up from 64, since the game's
   cables often run far
+- A solved frame with a single end point now powers every frame joined to it and puts its signal
+  out of all four sides, so panels from the game route as their rooms need: cable in one side, out
+  another
+  - Cables, frames and stands are one network traced back to a real redstone source, so nothing
+    holds itself up once its source is cut: rows, loops and cables fed back round all go dark
+  - A cable run's length counts from the last frame or stand it left
 
 ## [0.13.0] - 2026-08-30
 

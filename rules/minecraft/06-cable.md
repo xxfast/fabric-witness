@@ -15,7 +15,13 @@ what a puzzle frame's power travels along when the door is not right next to the
 
 A cable is a block. It joins to the cables around it, to frames, to stands, and to ordinary
 redstone, and it carries power the full length of a run without weakening. A run is **lit** when
-any block in it touches a source, and **dark** otherwise; every cable in a run is in the same state.
+power reaches it from a source, and **dark** otherwise; every cable in a run is in the same state.
+
+Cables, frames and stands are **one network**. Power starts at ordinary redstone (a lever, dust, a
+repeater) and is traced through cables, into frames, out of solved frames and on again, as far as
+it can go. Nothing in the network is ever powered by its own output: a cable a frame lights is
+downstream of that frame, so cutting the frame's source darkens both, and no loop of cables and
+frames holds itself up.
 
 - **Placement:** anywhere, floating included. A cable does not need a block under it, so a run
   can leave the ground, climb a wall and cross a gap. It is a flat ribbon, **3 px wide and 1
@@ -30,10 +36,11 @@ any block in it touches a source, and **dark** otherwise; every cable in a run i
   the panel's plane, the way the game's cables do, and the climb under it keeps that; under a
   stand it faces the stand. A run that reaches a frame along the panel's plane enters its
   side flat instead: a ribbon cannot do both without a twist, and the floor comes first.
-- **Sources:** a solved frame's exit side, a powered stand, and any vanilla redstone signal into
-  the cable (dust, lever, torch, repeater). A cable does **not** take power from a frame's other
-  sides; those are the frame's inputs, and a cable touching one of them feeds the frame instead.
-  A cable on a side the panel has a nub on is an output only: it never feeds that frame.
+- **Sources:** any vanilla redstone signal into the cable (dust, lever, torch, repeater), and a
+  solved frame's output sides ([05](05-puzzle-frame.md)): the used nub's side for a panel with a
+  choice of ends, all four bracket sides for a panel with one end. A cable on any other side of
+  a frame feeds the frame instead. A stand is fed by a cable directly underneath it and feeds the
+  frame on it; it never feeds a cable.
 - **Outputs:** a lit run gives strength 15 to every block it joins that is not itself a cable: a
   frame (powering it), a door, a lamp, dust, a piston. Weak power, so a solid block on the end of
   a run does not relay it any further.
@@ -103,12 +110,14 @@ consumes them.
 
 - **A run is one state.** There is no half-lit cable; if the source is 128 blocks away the whole
   run past that point is dark, not dim.
-- **A cable from a frame's exit side round to one of its inputs is a latch**, the same class as a
-  loop of frames: once solved it holds itself on. Accepted, as any redstone component that can be
-  fed back into itself. Reset by popping the panel.
+- **A cable from a frame's output round to one of its inputs is not a latch.** Power is traced
+  from the source through the whole network, so the loop goes dark with the source. Only vanilla
+  redstone in the loop (dust pressed against a one-end frame's side, a repeater) can hold it up,
+  as it would any vanilla component.
 - **Touching runs merge.** Two runs that share a block face are one run, lit by either source, in
-  the colour of whichever came first. That is the bug you get for free by letting two runs meet
-  under one stand; keep a block between them.
+  the colour of the lowest-placed panel lighting it. That is the bug you get for free by letting
+  two runs meet under one stand; keep a block between them. A run ends at a frame: the cable on
+  the far side of a solved frame is a new run in that frame's colour.
 - **Dust beside a cable connects both ways**, exactly as dust beside dust. Keep dust off a run you
   mean to be private.
 - **Off cables are near black**, whatever fed them last; colour is only ever shown with power.
@@ -193,21 +202,31 @@ dark casing, and the ribbon geometry, signed off after the F3-guided fix to the 
   source found. Unlit cables keep their last colour in state but draw dark.
 - Recipe: 3 copper → 6 cables. No dye. Unlocks in the recipe book on picking up a copper ingot
   (`advancement/recipes/redstone/cable.json`, added 2026-08-30).
-- `walkCables` (`CableNetwork.kt`) is the pure component-then-spread walk, bounded at
-  `CABLE_MAX_DISTANCE = 128` and `CABLE_MAX_VISITED = 512`; `CableNetworkTests` pins it. **One
-  walk per change**, redstone-cheap: `refresh` writes the run with `UPDATE_CLIENTS` and each
-  changed cable tells its neighbours once; cables ignore updates that come from cables, a broken
-  cable re-walks what is left beside it, and every run-wide tie (`color` between two panels,
+- `walkNetwork` (`NetworkWalk.kt`) is the pure walk, shared with frames and stands since
+  2026-09-03: the component over `links`, then a shortest-steps spread from every `isSource`
+  along the links that `feeds`, where only a cable-to-cable link `decays` (counts toward
+  `CABLE_MAX_DISTANCE = 128`; a frame or stand resets the count) and the whole thing is bounded
+  at `CABLE_MAX_VISITED = 512`. Each powered member records its origin, the source or the last
+  frame it came through, and first arrival names it so a one-end frame emitting back into its own
+  input run cannot recolour it. `walkCables` (`CableNetwork.kt`) is the cable-only view of it and
+  `CableNetworkTests` pins that shape; `NetworkWalkTests` pins the rest.
+- `RedstoneNetwork.refresh` runs the walk for any member. **One walk per change**, redstone-cheap:
+  it writes cables (`writeRun`), frames and stands with `UPDATE_CLIENTS`, then each changed
+  member tells its neighbours once; members ignore updates that come from members, a broken
+  member re-walks each member beside it, and every run-wide tie (`color` between two panels,
   `wide` between two floor deciders) goes to the lowest position. Do not go back to `UPDATE_ALL`
   or "first found wins": on 2026-08-30 that re-walked a 512-block run once per neighbour update
   and flipped two ties with the walk's start, millions of writes a tick ("Too many chained
   neighbor updates").
-- Sources: any non-cable neighbour with `getSignal > 0` towards the cable. Frames answer only
-  on their exit side, so a cable on an input side stays dark. Stands answer upward only, so a
-  cable **joins and feeds a stand only from underneath**: a stub into a stand's side was drawn
-  at first and read as a lie (seen, then removed), and a run passing beside a stand's base fed
-  the frame on it back through the stand (seen: lever off, frame stayed On; then removed from
-  `getSignal` too).
+- `color` is per run (the cables joined to each other between frames): the panel of the
+  lowest-placed frame among the run's origins, else white.
+- Sources: any neighbour outside the network with `getSignal > 0` towards the cable
+  (`RedstoneNetwork.vanillaSignal`). Frames feed cables through the walk on their
+  `outputDirections` only, so a cable on an input side stays dark unless something else lights
+  it. A cable **joins and feeds a stand only from underneath**: a stub into a stand's side was
+  drawn at first and read as a lie (seen, then removed), and a run passing beside a stand's base
+  fed the frame on it back through the stand (seen: lever off, frame stayed On; then removed from
+  `getSignal` too). With the stand in the walk that feedback is impossible by construction.
 - Emission: `isSignalSource`, `getSignal` = 15 when lit, all sides; no `getDirectSignal`.
 - The texture is vanilla white concrete under the tint; no emissive glow yet.
 
@@ -227,16 +246,16 @@ on that side; a stand on that side; a block with `isSignalSource` or a redstone 
 asked. Frame joins draw the arm regardless of exit; the frame decides whether power comes out.
 
 **Network power is a walk, not a neighbour update.** A signal with no decay cannot be carried by
-`neighborChanged` alone. On any change to a cable or to a block touching one, walk the connected
-same-colour cable graph from the changed block (bounded at 128 steps from each source, or 512
-blocks total, whichever first), find whether any cable touches a source, and set `lit` on every
-cable in the walk that differs. `Panel.regions` (`items/data/Regions.kt`) is the in-repo flood
+`neighborChanged` alone. On any change to a member or to a block touching one, walk the connected
+network from the changed block (bounded at 128 cable steps from each source or relay, or 512
+blocks total, whichever first), spread from every vanilla source, and write every member that
+differs. `Panel.regions` (`items/data/Regions.kt`) is the in-repo flood
 fill to model on; keep the graph walk pure over an abstract neighbour function so it is unit
 testable without Minecraft.
 
-**Sources**, per cable, checked during the walk: a frame whose `exit` faces this cable and is
-`solved`; a `powered` stand whose base touches this cable; any neighbour whose
-`getSignal` towards this cable is > 0, excluding cables.
+**Sources**, per member, checked during the walk: any neighbour outside the network whose
+`getSignal` towards it is > 0. Frames and stands pass power on inside the walk; they are never
+sources for a cable in their own right.
 
 **Emission.** `isSignalSource` true, `getSignal` = 15 when `lit`, all sides, cables excluded
 (they read `lit` directly). No `getDirectSignal`, same reasoning as the frame.
@@ -254,8 +273,8 @@ the same colour at `UNLIT_BRIGHTNESS`, the panel's unlit treatment reused.
 
 ## Not done
 
-- Slices 3 and 4: stand base / dust as sources (dust already works through `getSignal`), cap
-  tuning and chunk borders.
+- Slice 4: cap tuning and chunk borders. Slice 3 landed with the network walk (2026-09-03) and
+  was seen working in game the same day.
 - Proper cable textures and a lit glow (emissive), instead of borrowed concrete.
 - Junction boxes and multi-cable gates (the game's door with several cables into one box, lit
   segments per input). A door here is just a block a lit run touches; AND-ing two panels means
@@ -269,8 +288,10 @@ the same colour at `UNLIT_BRIGHTNESS`, the panel's unlit treatment reused.
 ## Sources
 
 - `rules/minecraft/05-puzzle-frame.md`: what a cable plugs into and where power leaves a frame.
+- `src/main/kotlin/com/xfastgames/witness/blocks/redstone/RedstoneNetwork.kt`: the network and
+  its one `refresh`; `NetworkWalk.kt` the pure walk under it.
 - `src/main/kotlin/com/xfastgames/witness/blocks/redstone/IronPuzzleFrameBlock.kt`: `exit`,
-  `getSignal`, the connection predicate pattern.
+  `outputDirections`, `inputDirections`, `getSignal`, the connection predicate pattern.
 - `src/main/kotlin/com/xfastgames/witness/blocks/redstone/IronStandBlock.kt`: the relay.
 - `src/main/kotlin/com/xfastgames/witness/items/data/Regions.kt`: the flood fill to model the walk
   on.
