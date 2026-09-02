@@ -53,10 +53,11 @@ sealed class Panel(val type: Type) {
 
         companion object {
             /**
-             * Per-axis ceiling in nodes, which is 8 cells. Range by what stays legible in the
-             * solver, what fits in one stack when recycled, and what is sane to sync on an itemstack.
+             * Per-axis ceiling in nodes, which is 10 cells, the largest grid The Witness itself uses.
+             * Range by what stays legible in the solver, what fits in one stack when recycled, and
+             * what is sane to sync on an itemstack.
              */
-            const val MAX_NODES: Int = 9
+            const val MAX_NODES: Int = 11
 
             fun ofSize(size: Int): Grid = generatePanel(size, size)
             fun ofSize(width: Int, height: Int): Grid = generatePanel(width, height)

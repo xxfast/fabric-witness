@@ -103,11 +103,11 @@ class PanelGridRecipeTests {
 
     @Test
     fun `the size cap is a hard stop on either axis`() {
-        assertThat(target(Case(8, 8, 1, 2, 1, 9 to 8))).isEqualTo(9 to 8)
-        assertThat(target(Case(9, 9, 1, 2, 1, 9 to 9))).isNull()
-        assertThat(target(Case(9, 2, 1, 2, 1, 9 to 2))).isNull()
-        assertThat(target(Case(2, 9, 1, 1, 2, 2 to 9))).isNull()
-        assertThat(target(Case(8, 8, 8, 3, 3, 8 to 8, 1, 1))).isNull()
+        assertThat(target(Case(10, 10, 1, 2, 1, 11 to 10))).isEqualTo(11 to 10)
+        assertThat(target(Case(11, 11, 1, 2, 1, 11 to 11))).isNull()
+        assertThat(target(Case(11, 2, 1, 2, 1, 11 to 2))).isNull()
+        assertThat(target(Case(2, 11, 1, 1, 2, 2 to 11))).isNull()
+        assertThat(target(Case(10, 10, 8, 3, 3, 10 to 10, 1, 1))).isNull()
     }
 
     /**

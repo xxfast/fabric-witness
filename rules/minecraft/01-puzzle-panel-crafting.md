@@ -165,15 +165,15 @@ the rule a player can actually discover is one sentence:
 Thin is not the same as slow. A 3×1 footprint costs 2 tablets for +2 columns, the same rate as two
 separate 2×1 crafts, in half the crafts. Only footprints that are fat in *both* axes charge extra.
 
-Two routes from nothing to the 8×8 cap:
+Two routes from nothing to the 10×10 cap:
 
 | Route | Tablets | Crafts | Tablets per cell |
 |-------|---------|--------|------------------|
-| Thin strips, one axis at a time | 15 | 9 | 0.23 |
-| Fat square footprints          | 28 | 5 | 0.44 |
+| Thin strips, one axis at a time | 19 | 11 | 0.19 |
+| Fat square footprints          | 36 | 6 | 0.36 |
 
-Same panel either way. The thin route costs 13 fewer tablets, about 1.5 ancient debris, in exchange
-for 4 more trips to the crafting table. Finding that is the reward for reading the formula, and
+Same panel either way. The thin route costs 17 fewer tablets, about 2 ancient debris, in exchange
+for 5 more trips to the crafting table. Finding that is the reward for reading the formula, and
 paying the premium is what you do when you can't be bothered.
 
 Panels are also cheaper per cell the bigger they get, on any route, because one tablet extends a
@@ -182,25 +182,26 @@ whole row and a row on a wide panel is many cells. The first panel is the expens
 ### Open question: the premium may be too cheap to skip
 
 Crafting costs nothing but clicks in Minecraft, so once a player works out the thin route there is
-no reason to ever pay the premium again, and fat footprints become dead content. 9 crafts against 5
+no reason to ever pay the premium again, and fat footprints become dead content. 11 crafts against 6
 is a small enough gap that this is probably fine, but it is the thing to watch in playtest. If it
 needs a lever, raise the price of the *seed* rather than touching the formula, since changing the
 formula is what reintroduces the two-rules problem this merge removed.
 
 ## The size cap
 
-**8×8 cells (9×9 nodes)** per axis, non-square shapes allowed up to the same limit. A layout whose
-result would exceed it simply doesn't craft. Three independent reasons:
+**10×10 cells (11×11 nodes)** per axis, non-square shapes allowed up to the same limit. That is the
+largest grid The Witness itself uses, so every panel from the game fits. A layout whose result would
+exceed it simply doesn't craft. Three independent reasons:
 
 1. **Recycle pays out in one stack**, so a panel worth more than 64 tablets can't be refunded
-   honestly. The most expensive panel the rule can reach is 28, comfortably under.
+   honestly. The most expensive panel the rule can reach is 36, comfortably under.
 2. **Legibility.** A bigger panel keeps its physical size on the block face, so the lines just get
    thinner. Past some density, tracing it with the solver stops being playable.
 3. **Weight.** The whole puzzle graph travels with the item and syncs to every client that sees the
-   block. 8×8 cells is 81 nodes and 144 edges.
+   block. 10×10 cells is 121 nodes and 220 edges.
 
-Reason 2 is the one to playtest. If 8×8 is unreadable in the solver, drop the cap to 6×6 rather than
-fighting the renderer.
+Reason 2 is the one to playtest. If 10×10 is unreadable in the solver, drop the cap to 8×8 rather
+than fighting the renderer.
 
 ## Edge cases
 
@@ -320,7 +321,7 @@ Two traps live here:
   tooltip prints `Maximum size` on a capped panel, which is the only hint available.
 - **`displays` is illustrative**, a finite list for an infinite rule. Players reading it as a
   whitelist is a real risk with no clean fix.
-- **8×8 legibility is unverified.** See the [size cap](#the-size-cap).
+- **10×10 legibility is unverified.** See the [size cap](#the-size-cap).
 - **Recipe-book unlocks for the deleted JSON recipes are simply gone** from existing saves. Harmless,
   but a player who had them will see the entries reappear under the special recipe instead.
 
