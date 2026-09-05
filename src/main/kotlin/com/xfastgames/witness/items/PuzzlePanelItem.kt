@@ -75,7 +75,7 @@ class PuzzlePanelItem(settings: Properties) : Item(settings), Clientside {
 
         val sizeString = when (puzzle) {
             is Panel.Grid -> "${puzzle.width - 1} x ${puzzle.height - 1}"
-            is Panel.Tree -> "${puzzle.height - 1} Tall"
+            is Panel.Tree -> "${puzzle.levels} Tall"
             is Panel.Freeform -> "${puzzle.width - 1} x ${puzzle.height - 1} Size"
         }
 

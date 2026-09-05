@@ -4,6 +4,7 @@ package com.xfastgames.witness.items.data
 
 import com.google.common.graph.Graphs
 import com.google.common.graph.MutableValueGraph
+import com.google.common.graph.ValueGraph
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -15,7 +16,7 @@ import kotlin.math.hypot
  * be joined, and what its cells are (cells are out of scope here; they decide the Modifiers tab's
  * region symbols). [anchors] and [canJoin] are those first two answers. Everything else in this
  * file, adding, removing, toggling a segment, filling, clearing, is one editor built on top of
- * them, shared by every panel type that answers them.
+ * them, shared by every panel type that answers them: the grid and, since pruning, the tree.
  *
  * Absence needs no new data: a node or edge simply missing from the [Panel.graph] already means
  * what the design says everywhere downstream (renderer, solver, `expandTo`, NBT round trip). This
@@ -36,10 +37,11 @@ private fun Panel.isAnchor(x: Float, y: Float): Boolean =
  * carrying no modifier or symbol, since a position is not the node that may or may not be sitting
  * on it.
  *
- * Only [Panel.Grid] has a finite, drawable anchor set today. [Panel.Tree]'s anchors are the
- * branch positions of its tree and [Panel.Freeform]'s are "anywhere"; neither is a set this editor
- * can enumerate or hit-test, so both answer with nothing rather than a wrong answer
- * (rules/minecraft/04-2-puzzle-composer-grid.md#what-it-does-not-do).
+ * A [Panel.Grid] regenerates its lattice from its `width` and `height`; a [Panel.Tree] regenerates
+ * the full template of its `levels` ([Panel.Tree.generateTree]), so a pruned limb always has
+ * somewhere to go back to (rules/minecraft/01-1-tree-panel.md#pruning-the-grid-tab-on-a-tree).
+ * [Panel.Freeform]'s anchors are "anywhere", not a set this editor can enumerate or hit-test, so
+ * it answers with nothing rather than a wrong answer.
  */
 fun Panel.anchors(): List<Node> = when (this) {
     is Panel.Grid -> {
@@ -53,7 +55,32 @@ fun Panel.anchors(): List<Node> = when (this) {
         }
     }
 
-    is Panel.Tree, is Panel.Freeform -> emptyList()
+    is Panel.Tree -> template().nodes().toList()
+
+    is Panel.Freeform -> emptyList()
+}
+
+/** The full tree this panel was crafted as, blank: what its anchors and joinable pairs are read off. */
+private fun Panel.Tree.template(): ValueGraph<Node, Edge> = Panel.Tree.generateTree(levels)
+
+/** The template node at this position, if any. */
+private fun Panel.Tree.templateNodeAt(x: Float, y: Float): Node? =
+    template().nodes().find { node -> near(node.x, x) && near(node.y, y) }
+
+/**
+ * Every pair of anchors the type allows a segment between, each once. A grid's are the row and
+ * column neighbours one unit apart; a tree's are the template's branches.
+ */
+fun Panel.joinablePairs(): List<Pair<Node, Node>> = when (this) {
+    is Panel.Grid -> anchors().flatMap { anchor ->
+        listOf(Node(anchor.x + 1f, anchor.y), Node(anchor.x, anchor.y + 1f))
+            .filter { neighbour -> canJoin(anchor, neighbour) }
+            .map { neighbour -> anchor to neighbour }
+    }
+
+    is Panel.Tree -> template().edges().map { pair -> pair.nodeU() to pair.nodeV() }
+
+    is Panel.Freeform -> emptyList()
 }
 
 /**
@@ -63,16 +90,27 @@ fun Panel.anchors(): List<Node> = when (this) {
  * the actual node on the graph has, and none of that changes whether the pair is adjacent.
  *
  * A grid pair joins when both positions are anchors and differ by exactly one unit on a single
- * axis, i.e. a row or column neighbour. [Panel.Tree] and [Panel.Freeform] are not editable in this
- * MVP, so nothing on them may be joined here.
+ * axis, i.e. a row or column neighbour. A tree pair joins when the template has a branch between
+ * them: a fork and one of its children. [Panel.Freeform] is not editable here, so nothing on it
+ * may be joined.
  */
-fun Panel.canJoin(a: Node, b: Node): Boolean {
-    if (this !is Panel.Grid) return false
-    if (!isAnchor(a.x, a.y) || !isAnchor(b.x, b.y)) return false
+fun Panel.canJoin(a: Node, b: Node): Boolean = when (this) {
+    is Panel.Grid -> {
+        if (!isAnchor(a.x, a.y) || !isAnchor(b.x, b.y)) false
+        else {
+            val dx: Float = abs(a.x - b.x)
+            val dy: Float = abs(a.y - b.y)
+            (near(dx, 1f) && near(dy, 0f)) || (near(dy, 1f) && near(dx, 0f))
+        }
+    }
 
-    val dx: Float = abs(a.x - b.x)
-    val dy: Float = abs(a.y - b.y)
-    return (near(dx, 1f) && near(dy, 0f)) || (near(dy, 1f) && near(dx, 0f))
+    is Panel.Tree -> {
+        val u: Node? = templateNodeAt(a.x, a.y)
+        val v: Node? = templateNodeAt(b.x, b.y)
+        u != null && v != null && template().hasEdgeConnecting(u, v)
+    }
+
+    is Panel.Freeform -> false
 }
 
 /**
@@ -118,16 +156,11 @@ fun Panel.nearestJoinablePair(x: Float, y: Float, tolerance: Float): Pair<Node, 
     var best: Pair<Node, Node>? = null
     var bestDistance: Float = Float.MAX_VALUE
 
-    anchors().forEach { anchor ->
-        // Only the neighbours one step along each axis, so every pair is considered once.
-        listOf(Node(anchor.x + 1f, anchor.y), Node(anchor.x, anchor.y + 1f)).forEach { neighbour ->
-            if (canJoin(anchor, neighbour)) {
-                val distance: Float = distanceToSegment(x, y, anchor, neighbour)
-                if (distance < bestDistance) {
-                    bestDistance = distance
-                    best = anchor to neighbour
-                }
-            }
+    joinablePairs().forEach { (anchor, neighbour) ->
+        val distance: Float = distanceToSegment(x, y, anchor, neighbour)
+        if (distance < bestDistance) {
+            bestDistance = distance
+            best = anchor to neighbour
         }
     }
 
@@ -151,12 +184,14 @@ private fun distanceToSegment(x: Float, y: Float, a: Node, b: Node): Float {
  * A drag reports a cursor position per frame, so a fast sweep jumps several anchors at once. Rather
  * than drop those steps and leave gaps in a stroke, the path is walked one unit at a time, x axis
  * first, then y. A diagonal sweep therefore lays down a staircase, which is the only thing a
- * grid-constrained stroke can mean.
+ * grid-constrained stroke can mean. On a tree the walk is the template's one path between the two
+ * anchors, branch by branch.
  *
  * Empty when either end is off the lattice, or on a type with no anchors.
  */
 fun Panel.anchorPathBetween(from: Node, to: Node): List<Node> {
     if (!isAnchor(from.x, from.y) || !isAnchor(to.x, to.y)) return emptyList()
+    if (this is Panel.Tree) return templatePathBetween(from, to)
 
     val steps: MutableList<Node> = mutableListOf()
     var x: Float = from.x
@@ -175,10 +210,38 @@ fun Panel.anchorPathBetween(from: Node, to: Node): List<Node> {
     return steps
 }
 
+/** Breadth-first over the template from [from] to [to]; a tree has exactly one route, or none. */
+private fun Panel.Tree.templatePathBetween(from: Node, to: Node): List<Node> {
+    val template: ValueGraph<Node, Edge> = template()
+    val start: Node = templateNodeAt(from.x, from.y) ?: return emptyList()
+    val goal: Node = templateNodeAt(to.x, to.y) ?: return emptyList()
+    if (start == goal) return emptyList()
+
+    val cameFrom: MutableMap<Node, Node> = mutableMapOf()
+    val pending: ArrayDeque<Node> = ArrayDeque(listOf(start))
+    while (pending.isNotEmpty()) {
+        val current: Node = pending.removeFirst()
+        if (current == goal) break
+        template.adjacentNodes(current)
+            .filter { it != start && it !in cameFrom }
+            .forEach { next -> cameFrom[next] = current; pending += next }
+    }
+    if (goal !in cameFrom) return emptyList()
+
+    val path: MutableList<Node> = mutableListOf(goal)
+    var cursor: Node = goal
+    while (cameFrom.getValue(cursor) != start) {
+        cursor = cameFrom.getValue(cursor)
+        path += cursor
+    }
+    return path.asReversed()
+}
+
 /**
  * Adds a node at this anchor, joined by [Edge.NORMAL] to every neighbour already present. No-op if
- * the anchor is already occupied, or if [x]/[y] is not an anchor at all (including on a [Panel.Tree]
- * or [Panel.Freeform], which have none).
+ * the anchor is already occupied, or if [x]/[y] is not an anchor at all (including on a
+ * [Panel.Freeform], which has none). On a tree that is the pencil restoring a branch position,
+ * joined to whichever of its fork and limbs are present.
  */
 fun Panel.withNodeAdded(x: Float, y: Float): Panel {
     if (!isAnchor(x, y)) return this
@@ -200,14 +263,19 @@ fun Panel.withNodeAdded(x: Float, y: Float): Panel {
  * Removes [node], its segments, and any [Modifier.END] nub hanging off it. A nub is a node plus
  * the one edge holding it on (`EndPoints.kt`), so it cannot outlive the node it hangs from
  * (rules/minecraft/04-2-puzzle-composer-grid.md#edge-cases). No-op if [node] is not present.
+ *
+ * On a tree the eraser prunes: [node] goes with everything above it, nubs included, and the fork
+ * it hung from is a tip now (rules/minecraft/01-1-tree-panel.md#pruning-the-grid-tab-on-a-tree).
  */
 fun Panel.withNodeRemoved(node: Node): Panel {
     if (node !in graph.nodes()) return this
 
     val updated: MutableValueGraph<Node, Edge> = Graphs.copyOf(graph)
-    val nub: Node? = updated.adjacentNodes(node).firstOrNull { it.modifier == Modifier.END }
-    nub?.let { updated.removeNode(it) }
-    updated.removeNode(node)
+    val doomed: Set<Node> = when (this) {
+        is Panel.Tree -> with(Panel.Tree) { graph.subtreeOf(node) }
+        else -> setOfNotNull(node, updated.adjacentNodes(node).firstOrNull { it.modifier == Modifier.END })
+    }
+    doomed.forEach { updated.removeNode(it) }
     return withGraph(updated)
 }
 
@@ -257,6 +325,10 @@ fun Panel.withSegmentRemoved(ax: Float, ay: Float, bx: Float, by: Float): Panel?
 
     val updated: MutableValueGraph<Node, Edge> = Graphs.copyOf(graph)
     if (!updated.hasEdgeConnecting(nodeA, nodeB)) return null
+
+    // A tree branch is a limb: erasing it prunes everything it carried, the same as erasing the
+    // node it leads to (rules/minecraft/01-1-tree-panel.md#pruning-the-grid-tab-on-a-tree).
+    if (this is Panel.Tree) return withNodeRemoved(if (nodeA.y > nodeB.y) nodeA else nodeB)
 
     updated.removeEdge(nodeA, nodeB)
     // Only these two can have been left bare: nothing else lost an edge. A nub counts as a segment
