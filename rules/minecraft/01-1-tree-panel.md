@@ -150,7 +150,7 @@ levels on one panel is the target, and the layout is what makes it legible:
 | 5 | 32 | 13 | 1.4 | 0.019 |
 
 The Orchard panel's line is 3.7% of its width and its tips 1.4 lines apart, so the four-level tree
-is drawn at the game's own density. For scale, the 8×8 grid at its cap has a line 2.8% wide.
+is drawn at the game's own density. For scale, the 10×10 grid at its cap has a line 2.3% wide.
 
 Two layouts were seen in game on 2026-09-05 before this one and both were wrong on sight: levels
 halving toward the crown (every branch at one angle) put half the tree into the first fork with a
