@@ -331,7 +331,7 @@ object PuzzlePanelRenderer {
      * this is not settled, and it is the one number to change when it is.
      *
      * On a tree panel the same mark draws [asApples] instead, the orchard look
-     * (rules/minecraft/01-puzzle-panel-crafting.md#what-a-tree-panel-is): a coloured apple rather
+     * (rules/minecraft/01-1-tree-panel.md#what-a-tree-panel-is): a coloured apple rather
      * than a backdrop notch, on the solution texture so it can carry its own tint.
      */
     fun renderSymbols(

@@ -1,10 +1,12 @@
 package com.xfastgames.witness.items.data
 
 import com.google.common.graph.Graph
+import com.google.common.graph.Graphs
 import com.google.common.graph.MutableValueGraph
 import com.google.common.graph.ValueGraph
 import com.google.common.graph.ValueGraphBuilder
 import com.xfastgames.witness.items.data.Panel.Companion.Type
+import com.xfastgames.witness.utils.guava.edgeValueOf
 import com.xfastgames.witness.utils.guava.emptyGraph
 import com.xfastgames.witness.utils.pow
 import com.mojang.serialization.Codec
@@ -15,6 +17,8 @@ import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.world.item.DyeColor
+import kotlin.math.ceil
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 private const val KEY_WIDTH = "width"
@@ -25,6 +29,7 @@ private const val KEY_BACKGROUND_COLOR = "backgroundColor"
 private const val KEY_PANEL_TYPE = "type"
 private const val KEY_TUTORIAL = "tutorial"
 private const val KEY_SYMBOLS = "symbols"
+private const val KEY_LEVELS = "levels"
 
 @Suppress("UnstableApiUsage")
 sealed class Panel(val type: Type) {
@@ -216,63 +221,247 @@ sealed class Panel(val type: Type) {
             else shrink(width - length)
     }
 
+    /**
+     * A tree panel (rules/minecraft/01-1-tree-panel.md). [levels] is the size in the player's
+     * unit, branch steps from the first fork to a tip; [width] and [height] are the square panel
+     * the crown needs, in units, and are not a function of levels a reader should rely on.
+     */
     data class Tree(
         override val line: Graph<Node>,
         override val graph: ValueGraph<Node, Edge>,
         override val backgroundColor: DyeColor,
         override val width: Int,
         override val height: Int,
+        val levels: Int,
         override val tutorial: Boolean = false,
         override val symbols: List<CellSymbol> = emptyList(),
     ) : Panel(Type.Tree) {
 
         companion object {
             /**
-             * Legibility ceiling in levels: 8 leaf tips across the top row is the same on-screen
-             * node spacing as the 8×8 grid at its own cap
-             * (rules/minecraft/01-puzzle-panel-crafting.md#the-height-cap).
+             * The Orchard's own maximum: 16 tips on one panel
+             * (rules/minecraft/01-1-tree-panel.md#the-height-cap).
              */
-            const val MAX_LEVELS: Int = 3
+            const val MAX_LEVELS: Int = 4
 
-            /** [levels] is the tree's size in the player's unit: branch steps from root to tip. */
-            fun ofSize(levels: Int): Tree = Tree(
-                line = emptyGraph(),
-                backgroundColor = DyeColor.WHITE,
-                graph = generateTree(levels),
-                width = levels + 1,
-                height = levels + 1
-            )
+            /** Smallest panel a tree is drawn on, in units, so a one-level tree isn't a thumbnail. */
+            const val MIN_SIZE: Int = 3
 
             /**
-             * A full binary tree of [levels] branch steps: 2^levels leaf tips spread along the top
-             * row, every parent centred under its pair of children, the root alone at the bottom.
-             * Rows sit one panel unit apart inside the grid's half-unit border margin, so a panel
-             * `levels + 1` units square frames it exactly like a grid with that many node rows.
+             * Proportions measured off the Orchard's first panel
+             * (rules/minecraft/01-1-tree-panel.md#layout), as fractions of the panel: the crown's
+             * width, the tree's height from root to tips, and the least distance between
+             * neighbouring tips as a multiple of the line (`PuzzleSolver.LINE_THICKNESS`). Seen
+             * in game 2026-09-05: with the grid's half-unit margin, tips two lines apart and
+             * levels halving, the tree filled the panel edge to edge and read nothing like the
+             * game's; these numbers are what closed the gap, so change them against a shot.
+             */
+            const val CROWN_WIDTH: Float = 0.77f
+            const val TREE_HEIGHT: Float = 0.65f
+            const val TIP_GAP_IN_LINES: Float = 1.4f
+            private const val LINE: Float = 0.25f
+
+            /**
+             * Height of the trunk, then of each level from the first fork up, relative to each
+             * other. Measured off the same panel: trunk 20, then 27 / 26 / 15 / 12 of the tree's
+             * height. A shorter tree uses the first entries, so its crown is the same shape.
+             */
+            val LEVEL_WEIGHTS: List<Float> = listOf(0.75f, 1f, 1f, 0.6f, 0.45f)
+
+            /** The square panel, in units, whose [CROWN_WIDTH] fits `2^levels` tips at [TIP_GAP_IN_LINES]. */
+            fun sizeFor(levels: Int): Int {
+                val tips: Int = 2.pow(levels)
+                val crown: Float = (tips - 1) * TIP_GAP_IN_LINES * LINE
+                return maxOf(MIN_SIZE, ceil(crown / CROWN_WIDTH).toInt())
+            }
+
+            /**
+             * [levels] is the tree's size in the player's unit: branch steps from the first fork
+             * to a tip. Comes with the Orchard's marks: a start on the root and an end on every
+             * tip (rules/minecraft/01-1-tree-panel.md#what-a-tree-panel-is).
+             */
+            fun ofSize(levels: Int): Tree {
+                val size: Int = sizeFor(levels)
+                val blank: ValueGraph<Node, Edge> = generateTree(levels)
+                val root: Node = blank.nodes().minBy(Node::y)
+                val graph: MutableValueGraph<Node, Edge> = Graphs.copyOf(blank)
+                    .withNodeReplaced(root, root.copy(modifier = Modifier.START))
+                    .withTipEnds()
+                return Tree(
+                    line = emptyGraph(),
+                    backgroundColor = DyeColor.WHITE,
+                    graph = graph,
+                    width = size,
+                    height = size,
+                    levels = levels
+                )
+            }
+
+            /**
+             * A full binary tree of [levels] branch steps on a [sizeFor] panel, blank
+             * (rules/minecraft/01-1-tree-panel.md#layout): `2^levels` tips spread evenly across
+             * a crown [CROWN_WIDTH] of the panel wide, the tree [TREE_HEIGHT] of the panel tall
+             * and centred both ways, every parent centred under its pair of children, a trunk
+             * below the first fork, and the root alone at the trunk's foot. Level heights follow
+             * [LEVEL_WEIGHTS].
              */
             @Suppress("UnstableApiUsage")
             fun generateTree(levels: Int): ValueGraph<Node, Edge> {
                 val graph: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected().build()
+                val size: Int = sizeFor(levels)
                 val tipCount: Int = 2.pow(levels)
-                // The top row spans `levels` units, the same width the rows are tall.
-                val spread: Float = levels.toFloat()
+
+                val crown: Float = size * CROWN_WIDTH
+                val crownLeft: Float = (size - crown) / 2
+                val treeHeight: Float = size * TREE_HEIGHT
+                val rootY: Float = (size - treeHeight) / 2
+                val crownY: Float = rootY + treeHeight
+
+                // Heights bottom-up: the trunk, then one per level, scaled to the tree's height.
+                val weights: List<Float> = LEVEL_WEIGHTS.take(levels + 1)
+                val scale: Float = treeHeight / weights.sum()
+                val levelHeights: List<Float> = weights.drop(1).map { weight -> weight * scale }
+
                 var row: List<Node> = List(tipCount) { index ->
-                    val x: Float = 0.5f + if (tipCount == 1) 0f else index * spread / (tipCount - 1)
-                    Node(x, 0.5f + levels)
+                    val x: Float = crownLeft + if (tipCount == 1) crown / 2 else index * crown / (tipCount - 1)
+                    Node(x, crownY)
                 }
                 row.forEach { tip -> graph.addNode(tip) }
-                (levels - 1 downTo 0).forEach { level ->
+                var y: Float = crownY
+                levelHeights.asReversed().forEach { levelHeight ->
+                    y -= levelHeight
+                    val parentY: Float = y
                     row = row.chunked(2).map { children ->
-                        val parent = Node(children.map { it.x }.sum() / children.size, 0.5f + level)
+                        val parent = Node(children.map { it.x }.sum() / children.size, parentY)
                         graph.addNode(parent)
                         children.forEach { child -> graph.putEdgeValue(parent, child, Edge.NORMAL) }
                         parent
                     }
                 }
+                val fork: Node = row.single()
+                val root = Node(fork.x, rootY)
+                graph.putEdgeValue(root, fork, Edge.NORMAL)
                 return graph
+            }
+
+            /** The tips: every node with one branch that is not itself a nub, and not the root. */
+            @Suppress("UnstableApiUsage")
+            internal fun ValueGraph<Node, Edge>.tips(): List<Node> {
+                val root: Node = nodes().filter { it.modifier != Modifier.END }.minBy(Node::y)
+                return nodes()
+                    .filter { node -> node.modifier != Modifier.END && node != root }
+                    .filter { node -> adjacentNodes(node).none { it.y > node.y && it.modifier != Modifier.END } }
+                    .sortedBy(Node::x)
+            }
+
+            /** An end nub straight up off every tip that has none, the Orchard's default. */
+            @Suppress("UnstableApiUsage")
+            internal fun MutableValueGraph<Node, Edge>.withTipEnds(): MutableValueGraph<Node, Edge> = apply {
+                tips().forEach { tip ->
+                    if (adjacentNodes(tip).any { it.modifier == Modifier.END }) return@forEach
+                    putEdgeValue(tip, Node(tip.x, tip.y + END_POINT_LENGTH, Modifier.END), Edge.NORMAL)
+                }
+            }
+
+            /** This graph with [old] swapped for [new], every edge kept. */
+            @Suppress("UnstableApiUsage")
+            internal fun MutableValueGraph<Node, Edge>.withNodeReplaced(old: Node, new: Node): MutableValueGraph<Node, Edge> = apply {
+                if (old == new) return@apply
+                val neighbours: List<Pair<Node, Edge>> = adjacentNodes(old).map { neighbour ->
+                    neighbour to (edgeValueOf(old, neighbour) ?: Edge.NORMAL)
+                }
+                removeNode(old)
+                addNode(new)
+                neighbours.forEach { (neighbour, edge) -> putEdgeValue(new, neighbour, edge) }
+            }
+
+            /**
+             * The node a walk by branch position starts from: the first fork. On a tree laid out
+             * before the trunk existed the root *is* the first fork, so a tree with a two-child
+             * root is read that way rather than mistaking its left branch for a trunk.
+             */
+            @Suppress("UnstableApiUsage")
+            internal fun firstFork(graph: ValueGraph<Node, Edge>, root: Node): Node {
+                val branches: List<Node> = graph.adjacentNodes(root).filter { it.y > root.y && it.modifier != Modifier.END }
+                return branches.singleOrNull() ?: root
             }
         }
 
-        override fun resize(length: Int): Tree = TODO()
+        /**
+         * A copy [levels] tall with this tree's marks transplanted into it by **branch position**
+         * (rules/minecraft/01-1-tree-panel.md#growing-a-tree). Node coordinates are recomputed on
+         * every size change, so nothing is matched by position: both trees are walked from the
+         * root in parallel, children ordered left to right, and each source node's role and
+         * symbol land on the target node at the same turn sequence. The source becomes the bottom
+         * levels of the result.
+         *
+         * End nubs are the exception. A nub only hangs off a tip, and the old tips are forks
+         * now, so their nubs drop and the new tips get fresh ones; the root is still the root,
+         * and keeps its nub. The drawn [line] is dropped, as on a grid.
+         */
+        @Suppress("UnstableApiUsage")
+        fun expandTo(levels: Int): Tree {
+            if (levels <= this.levels) return this
+
+            val target: ValueGraph<Node, Edge> = generateTree(levels)
+            val transplanted: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected().build()
+            val replacements: MutableMap<Node, Node> = mutableMapOf()
+            val carriedEdges: MutableMap<Set<Node>, Edge> = mutableMapOf()
+
+            fun ValueGraph<Node, Edge>.children(node: Node): List<Node> =
+                adjacentNodes(node).filter { it.y > node.y && it.modifier != Modifier.END }.sortedBy(Node::x)
+
+            fun walk(source: Node, into: Node) {
+                replacements[into] = into.copy(modifier = source.modifier, symbol = source.symbol)
+                graph.children(source).zip(target.children(into)).forEach { (sourceChild, targetChild) ->
+                    graph.edgeValue(source, sourceChild).orElse(null)?.let { edge ->
+                        carriedEdges[setOf(into, targetChild)] = edge
+                    }
+                    walk(sourceChild, targetChild)
+                }
+            }
+
+            val sourceRoot: Node = graph.nodes().filter { it.modifier != Modifier.END }.minBy(Node::y)
+            val targetRoot: Node = target.nodes().minBy(Node::y)
+            // The root and the first fork are matched by role, not by walking, so a tree from
+            // before the trunk existed (root doubling as the fork) still lands on the fork.
+            replacements[targetRoot] = targetRoot.copy(modifier = sourceRoot.modifier, symbol = sourceRoot.symbol)
+            val sourceFork: Node = firstFork(graph, sourceRoot)
+            val targetFork: Node = firstFork(target, targetRoot)
+            if (sourceFork != sourceRoot) {
+                graph.edgeValue(sourceRoot, sourceFork).orElse(null)?.let { edge ->
+                    carriedEdges[setOf(targetRoot, targetFork)] = edge
+                }
+            }
+            walk(sourceFork, targetFork)
+            if (sourceFork == sourceRoot) {
+                // Old layout: the root's marks belong to the fork it was; the new foot stays blank.
+                replacements[targetRoot] = targetRoot
+            }
+
+            target.nodes().forEach { node -> transplanted.addNode(replacements[node] ?: node) }
+            target.edges().forEach { pair ->
+                val u: Node = replacements[pair.nodeU()] ?: pair.nodeU()
+                val v: Node = replacements[pair.nodeV()] ?: pair.nodeV()
+                val edge: Edge = carriedEdges[setOf(pair.nodeU(), pair.nodeV())] ?: (target.edgeValueOf(pair) ?: Edge.NORMAL)
+                transplanted.putEdgeValue(u, v, edge)
+            }
+
+            // The root's nub travels with the root: same offset from it, same edge.
+            val newRoot: Node = replacements.getValue(targetRoot)
+            graph.adjacentNodes(sourceRoot).filter { it.modifier == Modifier.END }.forEach { nub ->
+                val moved: Node = nub.copy(x = newRoot.x + (nub.x - sourceRoot.x), y = newRoot.y + (nub.y - sourceRoot.y))
+                transplanted.putEdgeValue(newRoot, moved, graph.edgeValue(sourceRoot, nub).orElse(Edge.NORMAL))
+            }
+
+            // The new tips get the Orchard's ends, like a fresh tree's.
+            transplanted.withTipEnds()
+
+            val size: Int = sizeFor(levels)
+            return copy(line = emptyGraph(), graph = transplanted, width = size, height = size, levels = levels)
+        }
+
+        override fun resize(length: Int): Tree = expandTo(length)
     }
 
     data class Freeform(
@@ -341,7 +530,13 @@ fun CompoundTag.toPanel(): Panel {
 
     return when (type) {
         Type.Grid -> Panel.Grid(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial, symbols)
-        Type.Tree -> Panel.Tree(line, grid, backgroundColor, getIntTolerant(KEY_HEIGHT), getIntTolerant(KEY_HEIGHT), tutorial, symbols)
+        // Trees saved before `levels` was its own field were `levels + 1` units tall.
+        Type.Tree -> Panel.Tree(
+            line, grid, backgroundColor,
+            getIntTolerant(KEY_HEIGHT), getIntTolerant(KEY_HEIGHT),
+            getIntTolerant(KEY_LEVELS, getIntTolerant(KEY_HEIGHT) - 1),
+            tutorial, symbols
+        )
         Type.Freeform -> Panel.Freeform(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial, symbols)
     }
 }
@@ -360,7 +555,10 @@ fun Panel.toNbt(): CompoundTag = CompoundTag().also { tag ->
             tag.putInt(KEY_HEIGHT, height)
         }
 
-        is Panel.Tree -> tag.putInt(KEY_HEIGHT, height)
+        is Panel.Tree -> {
+            tag.putInt(KEY_HEIGHT, height)
+            tag.putInt(KEY_LEVELS, levels)
+        }
     }
 }
 
