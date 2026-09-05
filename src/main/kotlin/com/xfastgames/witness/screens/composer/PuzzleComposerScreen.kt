@@ -15,6 +15,7 @@ import com.xfastgames.witness.screens.widgets.WRadioImageButton
 import com.xfastgames.witness.screens.widgets.WSideTab
 import com.xfastgames.witness.screens.widgets.WSideTabGroup
 import com.xfastgames.witness.screens.widgets.WSideTabPosition
+import com.xfastgames.witness.screens.widgets.icons.AppleIcon
 import com.xfastgames.witness.screens.widgets.icons.BreakIcon
 import com.xfastgames.witness.screens.widgets.icons.EndIcon
 import com.xfastgames.witness.screens.widgets.icons.EraserIcon
@@ -141,14 +142,51 @@ class PuzzleComposerScreenDescription(
     private val modifiersTab = WSideTab(icon = ModifiersTabIcon, position = WSideTabPosition.TOP, group = tabGroup, isSelected = true)
     private val gridTab = WSideTab(icon = GridTabIcon, position = WSideTabPosition.BOTTOM, group = tabGroup)
 
-    private val modifiersCard: WPlainPanel = WPlainPanel().apply {
-        add(startButton, 0, 0)
-        add(endButton, startButton.width + 2, 0)
-        add(breakButton, 0, 16)
-        add(hexagonDotButton, startButton.width + 2, 16)
-        add(squareButton, 0, 32)
-        add(removeButton, startButton.width + 2, 32)
+    /**
+     * The Modifiers rail is a function of the panel's type
+     * (rules/minecraft/04-1-puzzle-composer-modifiers.md#what-each-types-rail-holds): a tree has
+     * no cells, so the square is absent rather than greyed, and the hexagon tool wears the apple
+     * the mark draws as on a tree. The same button objects are re-laid out rather than a second
+     * card built, since the click listener tells tools apart by identity.
+     *
+     * Re-checked every client tick because the output slot is filled by vanilla slot sync, which
+     * fires no widget listener on the client; the check is a type compare, so idle ticks cost
+     * nothing.
+     */
+    private inner class WModifiersRail : WPlainPanel() {
+        private var laidOutFor: Panel.Companion.Type? = null
+
+        init {
+            setSize(startButton.width * 2 + 2, 48)
+            layoutFor(Panel.Companion.Type.Grid)
+        }
+
+        override fun tick() = refresh()
+
+        fun refresh() {
+            val type: Panel.Companion.Type =
+                composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel?.type ?: Panel.Companion.Type.Grid
+            if (type != laidOutFor) layoutFor(type)
+        }
+
+        private fun layoutFor(type: Panel.Companion.Type) {
+            laidOutFor = type
+            children.toList().forEach { child -> remove(child) }
+            val tree: Boolean = type == Panel.Companion.Type.Tree
+            hexagonDotButton.icon = if (tree) AppleIcon else HexagonDotIcon
+            val rail: List<WRadioImageButton> =
+                if (tree) listOf(startButton, endButton, breakButton, hexagonDotButton)
+                else listOf(startButton, endButton, breakButton, hexagonDotButton, squareButton, removeButton)
+            rail.forEachIndexed { index, button ->
+                add(button, (index % 2) * (startButton.width + 2), (index / 2) * 16)
+            }
+            // A tool armed on a type that this one lacks does not carry over: the start tool is on
+            // every type, and it is the first thing placed on a fresh panel.
+            if (toggleGroup.selected !in rail) toggleGroup.select(startButton)
+        }
     }
+
+    private val modifiersCard: WPlainPanel = WModifiersRail()
     // The Grid rail is two tools rather than two actions: which one is armed decides whether a
     // gesture draws or erases, the same shape of rail as the Modifiers tab above
     // (rules/minecraft/04-2-puzzle-composer-grid.md#pencil-and-eraser).

@@ -54,12 +54,44 @@ private fun Panel.borderSigns(node: Node): Pair<Float, Float>? {
  * point. Empty when [node] can't carry an end point at all.
  */
 fun Panel.endPointOrientations(node: Node): List<Pair<Float, Float>> {
+    if (this is Panel.Tree) return treeEndPointOrientations(node)
     val (signX: Float, signY: Float) = borderSigns(node) ?: return emptyList()
     if (signX == 0f || signY == 0f) return listOf(signX to signY)
     val diagonal: Float = 1f / sqrt(2f)
     return listOf(
         signX * diagonal to signY * diagonal,
         0f to signY,
+        signX to 0f
+    )
+}
+
+/**
+ * A tree's border is its tips (rules/minecraft/01-1-tree-panel.md#pruning-the-grid-tab-on-a-tree),
+ * wherever they sit: a fork whose limbs were pruned is a tip a level below the crown, and the
+ * bounding box would call it interior. Tips point up, the root points down, and the tips at the
+ * *template's* two x extremes are corners with the usual cycle, so pruning the inner crown never
+ * turns a stub in the middle into a corner. A fork with a limb above it takes none.
+ */
+@Suppress("UnstableApiUsage")
+private fun Panel.treeEndPointOrientations(node: Node): List<Pair<Float, Float>> {
+    if (node.modifier == Modifier.END || node !in graph.nodes()) return emptyList()
+    val branches: List<Node> = graph.nodes().filter { it.modifier != Modifier.END }
+    val root: Node = branches.minBy(Node::y)
+    if (node == root) return listOf(0f to -1f)
+    val hasLimbAbove: Boolean = graph.adjacentNodes(node).any { it.y > node.y && it.modifier != Modifier.END }
+    if (hasLimbAbove) return emptyList()
+
+    val template: List<Node> = anchors()
+    val signX: Float = when {
+        node.x <= template.minOf { it.x } + BORDER_EPSILON -> -1f
+        node.x >= template.maxOf { it.x } - BORDER_EPSILON -> 1f
+        else -> 0f
+    }
+    if (signX == 0f) return listOf(0f to 1f)
+    val diagonal: Float = 1f / sqrt(2f)
+    return listOf(
+        signX * diagonal to diagonal,
+        0f to 1f,
         signX to 0f
     )
 }

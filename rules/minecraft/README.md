@@ -81,11 +81,11 @@ what was invested, never more. Composer edits do not touch `cost`.
 Unlike [../witness/](../witness/README.md) (mostly unmodelled puzzle logic), crafting and the
 composer are **implemented and live**. The four special recipes register their serializers through
 `PanelDyeRecipe.init()` before datapacks load; the tablet recipe is plain JSON. Tree panels craft
-from a sapling column and grow from a tree panel in its place ([01-1](01-1-tree-panel.md));
-pruning one is designed but not built. The composer ships
-with start / end / break / hexagon working ([04-1](04-1-puzzle-composer-modifiers.md)); it has no
-tabs yet, and the Grid tab that edits which nodes and segments exist at all is designed but not
-built ([04-2](04-2-puzzle-composer-grid.md)). Crafting open questions are economy and legibility,
+from a sapling column, grow from a tree panel in its place, and are pruned at the composer's Grid
+tab ([01-1](01-1-tree-panel.md)). The composer ships
+with start / end / break / hexagon / square working and a rail that follows the panel's type
+([04-1](04-1-puzzle-composer-modifiers.md)), and a Grid tab that carves a grid and prunes a tree
+([04-2](04-2-puzzle-composer-grid.md)). Crafting open questions are economy and legibility,
 listed in [01](01-puzzle-panel-crafting.md#not-done). The frame ([05](05-puzzle-frame.md)) is
 the mod's redstone component: powered by redstone, solved server-side, and passing power to the
 next frame out of the end the line used.

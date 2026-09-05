@@ -354,13 +354,35 @@ sealed class Panel(val type: Type) {
                     .sortedBy(Node::x)
             }
 
-            /** An end nub straight up off every tip that has none, the Orchard's default. */
+            /**
+             * An end nub straight up off every tip that has none, the Orchard's default, skipping
+             * the tips in [except]: growth passes the author's own nodes there, so a stub they
+             * left bare stays bare.
+             */
             @Suppress("UnstableApiUsage")
-            internal fun MutableValueGraph<Node, Edge>.withTipEnds(): MutableValueGraph<Node, Edge> = apply {
+            internal fun MutableValueGraph<Node, Edge>.withTipEnds(except: Set<Node> = emptySet()): MutableValueGraph<Node, Edge> = apply {
                 tips().forEach { tip ->
+                    if (tip in except) return@forEach
                     if (adjacentNodes(tip).any { it.modifier == Modifier.END }) return@forEach
                     putEdgeValue(tip, Node(tip.x, tip.y + END_POINT_LENGTH, Modifier.END), Edge.NORMAL)
                 }
+            }
+
+            /**
+             * [node] and everything that hangs above it, nubs included: what the eraser takes when
+             * it prunes a limb (rules/minecraft/01-1-tree-panel.md#pruning-the-grid-tab-on-a-tree).
+             */
+            @Suppress("UnstableApiUsage")
+            internal fun ValueGraph<Node, Edge>.subtreeOf(node: Node): Set<Node> {
+                val limb: MutableSet<Node> = mutableSetOf(node)
+                val pending: ArrayDeque<Node> = ArrayDeque(listOf(node))
+                while (pending.isNotEmpty()) {
+                    val current: Node = pending.removeFirst()
+                    adjacentNodes(current)
+                        .filter { it !in limb && (it.y > current.y || it.modifier == Modifier.END) }
+                        .forEach { above -> limb += above; pending += above }
+                }
+                return limb
             }
 
             /** This graph with [old] swapped for [new], every edge kept. */
@@ -395,9 +417,14 @@ sealed class Panel(val type: Type) {
          * symbol land on the target node at the same turn sequence. The source becomes the bottom
          * levels of the result.
          *
-         * End nubs are the exception. A nub only hangs off a tip, and the old tips are forks
-         * now, so their nubs drop and the new tips get fresh ones; the root is still the root,
-         * and keeps its nub. The drawn [line] is dropped, as on a grid.
+         * Pruning survives: a limb the source does not have stays absent in the result, and a
+         * source child is matched to the target child on the same side of its parent rather than
+         * by order, so a lone surviving branch lands where it was.
+         *
+         * End nubs: a matched node that is still a tip keeps its nub (a pruned stub with an end
+         * stays a short branch, a bare stub stays the broken branch), the root keeps its nub, and
+         * every tip the template adds gets a fresh end, like a fresh tree's. The old tips that
+         * became forks lose theirs. The drawn [line] is dropped, as on a grid.
          */
         @Suppress("UnstableApiUsage")
         fun expandTo(levels: Int): Tree {
@@ -407,17 +434,31 @@ sealed class Panel(val type: Type) {
             val transplanted: MutableValueGraph<Node, Edge> = ValueGraphBuilder.undirected().build()
             val replacements: MutableMap<Node, Node> = mutableMapOf()
             val carriedEdges: MutableMap<Set<Node>, Edge> = mutableMapOf()
+            /** Target node -> the source node it stands for. */
+            val matched: MutableMap<Node, Node> = mutableMapOf()
+            val pruned: MutableSet<Node> = mutableSetOf()
 
             fun ValueGraph<Node, Edge>.children(node: Node): List<Node> =
                 adjacentNodes(node).filter { it.y > node.y && it.modifier != Modifier.END }.sortedBy(Node::x)
 
-            fun walk(source: Node, into: Node) {
+            fun walk(source: Node, into: Node, depth: Int) {
                 replacements[into] = into.copy(modifier = source.modifier, symbol = source.symbol)
-                graph.children(source).zip(target.children(into)).forEach { (sourceChild, targetChild) ->
+                matched[into] = source
+                // At the source crown every target child is new growth; below it, a side with
+                // no source child is a pruned limb, and it stays that way.
+                if (depth == this.levels) return
+                val sourceChildren: List<Node> = graph.children(source)
+                target.children(into).forEach { targetChild ->
+                    val left: Boolean = targetChild.x < into.x
+                    val sourceChild: Node? = sourceChildren.firstOrNull { (it.x < source.x) == left }
+                    if (sourceChild == null) {
+                        pruned += targetChild
+                        return@forEach
+                    }
                     graph.edgeValue(source, sourceChild).orElse(null)?.let { edge ->
                         carriedEdges[setOf(into, targetChild)] = edge
                     }
-                    walk(sourceChild, targetChild)
+                    walk(sourceChild, targetChild, depth + 1)
                 }
             }
 
@@ -426,6 +467,7 @@ sealed class Panel(val type: Type) {
             // The root and the first fork are matched by role, not by walking, so a tree from
             // before the trunk existed (root doubling as the fork) still lands on the fork.
             replacements[targetRoot] = targetRoot.copy(modifier = sourceRoot.modifier, symbol = sourceRoot.symbol)
+            matched[targetRoot] = sourceRoot
             val sourceFork: Node = firstFork(graph, sourceRoot)
             val targetFork: Node = firstFork(target, targetRoot)
             if (sourceFork != sourceRoot) {
@@ -433,29 +475,41 @@ sealed class Panel(val type: Type) {
                     carriedEdges[setOf(targetRoot, targetFork)] = edge
                 }
             }
-            walk(sourceFork, targetFork)
+            walk(sourceFork, targetFork, 0)
             if (sourceFork == sourceRoot) {
                 // Old layout: the root's marks belong to the fork it was; the new foot stays blank.
                 replacements[targetRoot] = targetRoot
+                matched.remove(targetRoot)
             }
 
-            target.nodes().forEach { node -> transplanted.addNode(replacements[node] ?: node) }
+            // Everything above a pruned limb goes with it, so a source tip that was a stub stays one.
+            val absent: Set<Node> = pruned.flatMap { limb -> target.subtreeOf(limb) }.toSet()
+
+            target.nodes().filter { it !in absent }.forEach { node -> transplanted.addNode(replacements[node] ?: node) }
             target.edges().forEach { pair ->
+                if (pair.nodeU() in absent || pair.nodeV() in absent) return@forEach
                 val u: Node = replacements[pair.nodeU()] ?: pair.nodeU()
                 val v: Node = replacements[pair.nodeV()] ?: pair.nodeV()
                 val edge: Edge = carriedEdges[setOf(pair.nodeU(), pair.nodeV())] ?: (target.edgeValueOf(pair) ?: Edge.NORMAL)
                 transplanted.putEdgeValue(u, v, edge)
             }
 
-            // The root's nub travels with the root: same offset from it, same edge.
-            val newRoot: Node = replacements.getValue(targetRoot)
-            graph.adjacentNodes(sourceRoot).filter { it.modifier == Modifier.END }.forEach { nub ->
-                val moved: Node = nub.copy(x = newRoot.x + (nub.x - sourceRoot.x), y = newRoot.y + (nub.y - sourceRoot.y))
-                transplanted.putEdgeValue(newRoot, moved, graph.edgeValue(sourceRoot, nub).orElse(Edge.NORMAL))
+            // Nubs travel with the nodes that keep the right to one: the root, and any matched
+            // node that is still a tip. Same offset from its node, same edge.
+            matched.forEach { (targetNode, sourceNode) ->
+                val stillTip: Boolean = targetNode == targetRoot || transplanted.children(replacements.getValue(targetNode)).isEmpty()
+                if (!stillTip) return@forEach
+                val placed: Node = replacements.getValue(targetNode)
+                graph.adjacentNodes(sourceNode).filter { it.modifier == Modifier.END }.forEach { nub ->
+                    val moved: Node = nub.copy(x = placed.x + (nub.x - sourceNode.x), y = placed.y + (nub.y - sourceNode.y))
+                    transplanted.putEdgeValue(placed, moved, graph.edgeValue(sourceNode, nub).orElse(Edge.NORMAL))
+                }
             }
 
-            // The new tips get the Orchard's ends, like a fresh tree's.
-            transplanted.withTipEnds()
+            // Tips the template added get the Orchard's ends, like a fresh tree's. A matched tip
+            // is the author's, with or without one.
+            val authored: Set<Node> = matched.keys.map { replacements.getValue(it) }.toSet()
+            transplanted.withTipEnds(except = authored)
 
             val size: Int = sizeFor(levels)
             return copy(line = emptyGraph(), graph = transplanted, width = size, height = size, levels = levels)

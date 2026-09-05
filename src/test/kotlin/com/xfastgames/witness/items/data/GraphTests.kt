@@ -318,6 +318,54 @@ class GraphTests {
         }
 
         @Test
+        fun `growing a pruned tree keeps the pruning and the surviving limb's side`() {
+            // Tree_2 with its LEFT limb pruned and an apple on the right limb's right tip.
+            val fresh: Panel.Tree = Panel.Tree.ofSize(2)
+            val fork: Node = fresh.graph.adjacentNodes(fresh.graph.root()).single { it.modifier != Modifier.END }
+            val (left: Node, right: Node) = fresh.graph.adjacentNodes(fork).filter { it.y > fork.y }.sortedBy { it.x }
+            val rightTips: List<Node> = fresh.graph.adjacentNodes(right).filter { it.y > right.y && it.modifier != Modifier.END }.sortedBy { it.x }
+            val pruned: Panel.Tree = fresh.withNodeRemoved(left) as Panel.Tree
+            val composed: Panel.Tree = pruned.copy(
+                graph = Panel.Tree.run { com.google.common.graph.Graphs.copyOf(pruned.graph).withNodeReplaced(rightTips[1], rightTips[1].copy(symbol = Atom.HEXAGON)) }
+            )
+
+            val grown: Panel.Tree = composed.expandTo(3)
+
+            val newFork: Node = grown.graph.adjacentNodes(grown.graph.root()).single { it.modifier != Modifier.END }
+            val limbs: List<Node> = grown.graph.adjacentNodes(newFork).filter { it.y > newFork.y }.sortedBy { it.x }
+            // Only the right limb, and it is on the right of the fork.
+            assertThat(limbs).hasSize(1)
+            assertThat(limbs.single().x).isGreaterThan(newFork.x)
+            // The apple is on the right limb's right branch, now a fork with two ended tips.
+            val branches: List<Node> = grown.graph.adjacentNodes(limbs.single()).filter { it.y > limbs.single().y }.sortedBy { it.x }
+            assertThat(branches[1].symbol).isEqualTo(Atom.HEXAGON)
+            assertThat(branches[0].symbol).isEqualTo(Atom.NONE)
+            assertThat(grown.graph.nubs()).hasSize(4)
+            // A Tree_3 has 32 nodes with nubs when full; half the crown is gone here.
+            assertThat(grown.graph.branchNodes()).hasSize(2 + 1 + 2 + 4)
+        }
+
+        @Test
+        fun `growing keeps a bare stub bare and an ended stub ended`() {
+            // Tree_2 with both limbs pruned back to the fork: the fork is the only tip.
+            val fresh: Panel.Tree = Panel.Tree.ofSize(2)
+            val fork: Node = fresh.graph.adjacentNodes(fresh.graph.root()).single { it.modifier != Modifier.END }
+            val limbs: List<Node> = fresh.graph.adjacentNodes(fork).filter { it.y > fork.y }
+            val stub: Panel.Tree = limbs.fold(fresh as Panel) { panel, limb -> panel.withNodeRemoved(limb) } as Panel.Tree
+
+            val grownBare: Panel.Tree = stub.expandTo(3)
+            val newFork: Node = grownBare.graph.adjacentNodes(grownBare.graph.root()).single { it.modifier != Modifier.END }
+            assertThat(grownBare.graph.adjacentNodes(newFork).filter { it.y > newFork.y }).isEmpty()
+            assertThat(grownBare.graph.nubs()).isEmpty()
+
+            val ended: Panel.Tree = requireNotNull(stub.withEndPointToggled(fork)) as Panel.Tree
+            val grownEnded: Panel.Tree = ended.expandTo(3)
+            assertThat(grownEnded.graph.nubs()).hasSize(1)
+            val endedFork: Node = grownEnded.graph.adjacentNodes(grownEnded.graph.root()).single { it.modifier != Modifier.END }
+            assertThat(grownEnded.graph.adjacentNodes(endedFork).filter { it.modifier == Modifier.END }).hasSize(1)
+        }
+
+        @Test
         fun `growing to the same or a smaller size is a no-op`() {
             val tree: Panel.Tree = Panel.Tree.ofSize(2)
             assertThat(tree.expandTo(2)).isSameInstanceAs(tree)

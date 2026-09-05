@@ -13,7 +13,7 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.resources.Identifier
 
 class WRadioImageButton(
-    val icon: Icon? = null,
+    var icon: Icon? = null,
     val group: WRadioGroup? = null,
     var isEnabled: Boolean = true,
     var isSelected: Boolean = false,

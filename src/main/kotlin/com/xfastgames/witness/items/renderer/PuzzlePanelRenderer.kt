@@ -96,9 +96,6 @@ object PuzzlePanelRenderer {
      */
     private val HEXAGON_RADIUS: Float = 1.5f.pc
 
-    /** Fruit disc of an apple: a touch wider than a hexagon, so it reads as hanging on the branch. */
-    private val APPLE_RADIUS: Float = 2.pc
-
     /** Side of a coloured square in panel units: well inside its one-unit cell, clear of the line. */
     private const val SQUARE_SIDE: Float = 0.4f
 
@@ -142,7 +139,7 @@ object PuzzlePanelRenderer {
             renderSymbols(
                 puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
                 matrices, queue, unlitLight, overlay,
-                asApples = puzzle is Panel.Tree,
+                hidden = puzzle is Panel.Tree,
             )
             renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, unlitLight, overlay)
             return
@@ -162,7 +159,7 @@ object PuzzlePanelRenderer {
         renderSymbols(
             puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
             matrices, queue, panelLight, overlay,
-            asApples = puzzle is Panel.Tree,
+            hidden = puzzle is Panel.Tree,
         )
         renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, panelLight, overlay)
         // Cue drawing is gated by the effect's own frame-pos match (set at trigger), not by
@@ -330,9 +327,10 @@ object PuzzlePanelRenderer {
      * line and read as a broken edge. See the open question in rules/witness/04-hexagon-dots.md:
      * this is not settled, and it is the one number to change when it is.
      *
-     * On a tree panel the same mark draws [asApples] instead, the orchard look
-     * (rules/minecraft/01-1-tree-panel.md#what-a-tree-panel-is): a coloured apple rather
-     * than a backdrop notch, on the solution texture so it can carry its own tint.
+     * On a tree panel the mark is [hidden]: it still validates, but the panel shows nothing, as
+     * the Orchard's panels show nothing. The composer draws it as an apple for the author
+     * (rules/minecraft/01-1-tree-panel.md#what-a-tree-panel-is); the world-side clue is the map
+     * maker's to build.
      */
     fun renderSymbols(
         graph: ValueGraph<Node, Edge>,
@@ -343,8 +341,9 @@ object PuzzlePanelRenderer {
         queue: SubmitNodeCollector,
         light: Int,
         overlay: Int,
-        asApples: Boolean = false,
+        hidden: Boolean = false,
     ) {
+        if (hidden) return
         val hexagons: List<Vector3f> = symbolPositions(graph)
         if (hexagons.isEmpty()) return
         val maxDimension: Int = maxOf(width, height)
@@ -354,33 +353,14 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.012)
 
-        val texture =
-            if (asApples) PuzzlePanelTextures.solutionFill
-            else PuzzlePanelTextures.backdrop(backgroundColor)
+        val texture = PuzzlePanelTextures.backdrop(backgroundColor)
         queue.submitCustomGeometry(matrices, RenderTypes.text(texture)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
-                hexagons.forEach { position ->
-                    if (asApples) apple(position) else hexagon(position, HEXAGON_RADIUS)
-                }
+                hexagons.forEach { position -> hexagon(position, HEXAGON_RADIUS) }
             }
         }
 
         matrices.popPose()
-    }
-
-    /** A small apple hanging on the branch: stem and leaf first, then the fruit caps the stem. */
-    private fun RenderContext.apple(position: Vector3f) {
-        rectangle(
-            Vector3f(position.x - 0.375f.pc, position.y + 1f.pc, position.z),
-            0.75f.pc, 2f.pc,
-            r = 0.36f, g = 0.22f, b = 0.11f
-        )
-        circle(
-            Vector3f(position.x + 1.25f.pc, position.y + 2.5f.pc, position.z),
-            0.9f.pc,
-            r = 0.30f, g = 0.55f, b = 0.20f
-        )
-        circle(Vector3f(position.x, position.y, position.z), APPLE_RADIUS, r = 0.75f, g = 0.12f, b = 0.10f)
     }
 
     /**

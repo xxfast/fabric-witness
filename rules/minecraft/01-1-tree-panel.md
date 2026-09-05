@@ -32,16 +32,19 @@ panel solves. The five panels then complicate how you read the tree, not the pan
    ground nearby with an eaten apple; so, reading it the only way it can be read, the branch that
    is whole on the panel but gone from the tree is the answer.
 
-Everything past "one apple, trace to it" is reconstructed from walkthroughs, not from the game;
-see the [open questions](#open-questions).
+Everything past "one apple, trace to it" is reconstructed from walkthroughs, not from the game,
+except the shape of the damage: a shot of the second panel (read 2026-09-05) shows the broken
+branch as a limb that stops short of the crown with no tip, and the first panel's tree has a limb
+that never takes its last fork. See the [open questions](#open-questions) for the rest.
 
 That splits cleanly into two halves. On the **panel side** a tree is a tiny vocabulary: a start at
-the root, an end at every tip, a break where a limb is snapped, and one path per tip so the whole
-puzzle is *which tip*. On the **world side** the clue lives outside the panel: the apple, the
-viewing angle, the missing limb. The mod keeps the panel side whole and moves the one clue it
-cannot leave outside, the apple, onto the panel as a mark. Perspective, mirroring and the eaten
-apple are environmental puzzles and stay out of scope, the same stance as
-[../witness/](../witness/README.md) takes on every world-drawn puzzle.
+the root, an end at every tip, a limb cut short with no end where one is snapped, and one path per
+tip so the whole puzzle is *which tip*. On the **world side** the clue lives outside the panel: the apple, the
+viewing angle, the missing limb. The mod keeps the panel side whole and leaves the world side to
+the map maker: the panel validates the apple's tip without showing it, and whatever in the world
+points the player at that tip is theirs to build. Perspective, mirroring and the eaten apple are
+environmental puzzles and stay out of scope, the same stance as [../witness/](../witness/README.md)
+takes on every world-drawn puzzle.
 
 ## The rule
 
@@ -117,9 +120,13 @@ left-left-right branch is still the left-left-right branch. The old tree becomes
 levels of the new one, and its marks go with it.
 
 The exception is ends on the old tips. Those tips become forks, an end can only hang off a tip,
-so they drop, and the new tips get fresh ends like a fresh tree's. Growing a composed tree keeps
-its starts, breaks and apples, and comes out with an end on every tip whether or not the old tree
-had one on each of its tips. A nub on the root survives, so an upside-down tree grows upside down.
+so they drop, and the tips the growth adds get fresh ends like a fresh tree's. Growing a composed
+tree keeps its starts, breaks and apples. A nub on the root survives, so an upside-down tree grows
+upside down.
+
+Pruning survives too. A limb that was not there stays not there, and a stub keeps whatever the
+author gave it: a stub with an end grows into the same short branch with the same end, a bare stub
+stays the broken branch. Only the crown grows.
 
 ## Layout
 
@@ -180,21 +187,28 @@ tools are absent from the rail for a tree rather than greyed, because there is n
 could land.
 
 - **One path per tip.** A tree has no cycles, so picking the exit picks the whole line. Solving one
-  is reading, not searching: find the tip whose branch line carries every apple and no break. That
-  puts a hard ceiling on difficulty, and that is the role, exactly as it was in the Orchard:
+  is reading, not searching: the tip the world points at, whose branch line carries no break.
+  That puts a hard ceiling on difficulty, and that is the role, exactly as it was in the Orchard:
   tutorial rows, flavour, and routing.
 - **A fresh tree is an orchard tree: a start on the root, an end straight up off every tip.**
   That is what every Orchard panel is, and it is what a tree is for; a blank tree is nothing until
   a start and every end are clicked in. The composer removes or moves any of them as on any
   panel. This is the one place a crafted panel is not blank, and it is deliberate.
-- **Hexagons are apples.** On a tree, a hexagon dot draws as a small apple hanging on its branch.
-  Same mark, same placement at the composer, same validation
-  ([../witness/04-hexagon-dots.md](../witness/04-hexagon-dots.md)); only the look changes, and only
-  on trees. The game hung the apple on the real tree because it had a real tree; the panel is all
-  the mod has, so the apple hangs on the panel.
-- **A break is a snapped limb.** A break on a branch reads as the Orchard's broken branch: the limb
-  is drawn, and stops short. Every tip above it is unreachable, so a break **prunes the whole
-  subtree**. That is the intended use, not a trap.
+- **The apple is the author's mark, and the panel never shows it.** The Orchard's panel is a bare
+  silhouette; the apple hangs on the real tree beside it. So a hexagon on a tree is drawn only at
+  the composer, as an apple on the tip the author means, and on the block face and in a frame it
+  is invisible. It still validates exactly as a hexagon does
+  ([../witness/04-hexagon-dots.md](../witness/04-hexagon-dots.md)): the line has to reach it. The
+  world-side clue that tells the player which tip is the map maker's to build, as the game built
+  an orchard, and the mod does not try to draw it on the panel. Decided 2026-09-05, after a frame
+  full of red apples looked nothing like the game.
+- **A broken limb is a pruned limb with no end.** The Orchard draws a broken branch as a stub: it
+  leaves its fork, stops short of the crown, and has no tip. That is a fork whose branches were
+  [pruned](#pruning-the-grid-tab-on-a-tree) and which was given no end: it sits a level below the
+  crown, so it draws short by itself, and the line can enter it but never finish there. Nothing
+  tree-specific is needed, and the [break](../witness/03-broken-edges.md) stays what it is on
+  every panel, a gap on a segment. A break on a tree branch is legal and makes every tip above it
+  unreachable, but it is not how the Orchard's damage looks.
 - **Routing.** Every tip sits on the top border, so tip ends point up. A tree with one end feeds
   every joined frame like any one-end panel; a tree with a choice of tips feeds the frame the used
   tip points at ([05](05-puzzle-frame.md#where-the-power-goes)). The two outermost tips are
@@ -213,10 +227,11 @@ draws the tree it has. The full binary tree the craft produces is the **template
   tip, so it is now on the border and can take an end.
 - The **pencil** on a missing branch position restores that branch, one step, with blank tips.
 
-Pruning and breaking are different limbs. A pruned branch **was never there**, and the tree looks
-like a smaller, lopsided tree. A broken branch **is there and snapped**, drawn as a stub, and its
-job is to be seen: in the game it is the clue that orients the panel to the tree. A designer wanting
-an asymmetric tree prunes; a designer wanting a visible dead end breaks.
+Pruning is how both of the Orchard's irregularities are made. A limb that never forks again, with
+an end on its tip, is a shorter branch and the tree is lopsided. A limb that never forks again,
+with **no** end, is the Orchard's broken branch: a stub the line can enter and never finish on,
+whose job is to be seen. In the game it is the clue that orients the panel to the tree. The two
+differ by one nub, and that nub is placed with the end tool like any other.
 
 **A tree's border is its tips.** On a grid, "the border" is the rectangle's edge; a tree has no
 rectangle, and a tip is on the edge of the tree by construction, whatever row it sits on. So a fork
@@ -255,12 +270,15 @@ job for 1 tablet and a sapling. The tree buys the look and the orchard reading.
 
 ## Edge cases
 
-- **Apples must share one root-to-tip line.** Paths are unique, so an apple off that line is
-  unsatisfiable. The composer allows it anyway, same stance as everywhere: a bad panel is a content
-  problem, not a UI reject. The Orchard only ever hung one apple per tree; the mod lets you hang
-  several, and they all have to be on the way to the same tip.
-- **A break below every tip is a panel with no solution.** Same category as the apple off the
-  line: allowed, and wrong.
+- **One apple, on a tip.** The apple tool on a tree goes on tips only and moves rather than
+  multiplies: click a tip, or the nub hanging off it, and the apple is there and nowhere else;
+  click it again and it is gone; click a fork, the root or a branch and nothing happens. Paths are unique, so a second
+  apple could only make the panel unsolvable, and an apple below a tip only ever said "one of
+  these", which is not what the author's mark is for. A tree authored before this rule keeps its
+  stray apples until the next click, which clears them.
+- **A tree with no end on any tip is a panel with no solution.** Prune everything back and leave
+  the stubs bare and the line has nowhere to finish. Same category as the apple off the line:
+  allowed, and wrong.
 - **Growing resets the ends, and only the ends.** A player who removed some tip ends at the
   composer, grew the tree, and finds an end on every new tip has hit the rule, not a bug. The tips
   they pruned ends from are forks now, and the new tips come as a fresh tree's do.
@@ -273,9 +291,6 @@ job for 1 tablet and a sapling. The tree buys the look and the orchard reading.
 
 ## Open questions
 
-- **How the game draws a broken branch.** Whether the Orchard panel shows a snapped limb as a gap
-  in the line or as a limb that stops short could not be settled against a primary source (the
-  guides say "broken", never how). The mod draws it as a break, since that is the mark it has.
 - **Whether every Orchard tip carries an end nub**, or only the candidates. The guides describe
   the trace as going "to where the fruit is", which reads as every tip being a legal end, and that
   is what the design above assumes. Unverified.
@@ -301,15 +316,19 @@ margin and every parent centred under its pair of children, pinned in `GraphTest
 ([geometry](#geometry)), not a function of levels a reader should count on.
 
 `Panel.Tree.expandTo(levels)` is the transplant: it generates the bigger tree, walks source and
-target from the root in parallel with children sorted left to right, and copies each source node's
-role and symbol and each branch's edge onto the node and edge at the same turn sequence. Nubs are
-skipped in the walk, so tip nubs drop; the root's nub is re-hung on the new root at the same offset.
+target from the root in parallel, and copies each source node's role and symbol and each branch's
+edge onto the node and edge at the same turn sequence. A source child is matched to the target
+child on the same **side** of its parent, not by order, so a lone surviving limb lands where it
+was; a target limb with no source counterpart below the source's crown is pruned along with
+everything above it. Nubs are re-hung on the root and on any matched node that is still a tip;
+fresh ends go only on the tips the template added (`withTipEnds(except = authored)`).
 Pinned in `GraphTests` (`growing carries marks by branch position and drops the tip nubs`, `growing
 keeps a nub on the root`). Same size or smaller returns the instance untouched, like the grid.
 
-Hexagon marks on a tree draw as apples (`PuzzlePanelRenderer.renderSymbols(asApples = true)`), on
-the solution texture rather than the backdrop so they carry their own tint. Same data, same
-validation; only trees draw them this way.
+Hexagon marks on a tree are not drawn in the world (`PuzzlePanelRenderer.renderSymbols(hidden =
+true)`, on the item, the block face and the frame alike); `WPuzzleEditor.drawApple` draws them as
+apples in the composer. Same data, same validation (`Panel.unsatisfiedHexagons`); only where they
+show differs.
 
 Seen in game 2026-09-05: a fresh Tree_4 in a frame, 16 tips, trunk, start on the root and a nub
 on every tip, matching the Orchard shot side by side. "This is perfect" was the sign-off, after
@@ -349,18 +368,12 @@ modifiers across. Do not try to match nodes by position, it matches nothing.
   Tree_2 with an apple and two breaks grown to Tree_3 (marks on the same branches, ends on the
   new tips); a dyed tree grown (colour kept); Tree_3 plus two tablets (must not craft); tracing a
   Tree_4 to a tip with the solver, which has never selected among tips 1.4 lines apart.
-- **The composer on a Tree_4.** `WPuzzleEditor` has only ever shown trees of two levels, and
-  still draws apples as hexagons.
-- **Pruning.** `Panel.Tree` answers no anchors to the Grid tab, so a tree is always the full binary
-  template. Ends are also still border-gated by the bounding box (`borderSigns` in `EndPoints.kt`
-  compares the node against the lattice's min and max x and y), which happens to be right for a
-  full tree, where the tips and the root are the only border nodes and the two outermost tips are
-  corners. A lower tip on a pruned tree is interior to that box, so "a tree's border is its tips"
-  needs its own rule before such an end can be placed.
-- **The orchard default.** `ofSize` produces a blank tree; see the open question.
-- **Apples only in the world renderer.** The composer's `WPuzzleEditor` still draws the mark as a
-  hexagon.
-- **Not yet seen in game:** tracing along the diagonal branches, and the apples themselves.
+- **The composer on a tree is unseen in game.** Pruning, the tree rail and the editor's apples
+  were all built 2026-09-05 and unit-tested only ([04-1](04-1-puzzle-composer-modifiers.md#not-done),
+  [04-2](04-2-puzzle-composer-grid.md#not-done)). What to look at on a Tree_4: erase a level-3 fork
+  and see the stub; give the stub an end with the end tool; grow it and see the stub survive.
+- **Not yet seen in game:** tracing along the diagonal branches, and a tree in a frame with its
+  hexagons hidden. Apples in a frame were seen 2026-09-05 and are what prompted hiding them.
   `PuzzleSolver` is graph-generic so both should follow, but the solver's segment selection has
   only ever been exercised on axis-aligned edges.
 
