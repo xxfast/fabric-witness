@@ -7,8 +7,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-09-06
+
 ### Added
 
+- Added tree panels, the Orchard's puzzles
+  - Craft one from a sapling with tablets stacked on it in a column, one tablet per level; craft a
+    tree panel in the sapling's place to grow it, up to the game's 16 tips
+  - The composer follows the panel's type: a tree's rail has no square tool, its hexagon tool
+    wears an apple that marks the answer tip (shown in the composer, never on the panel), and the
+    Grid tab prunes limbs the way the Orchard's trees are shortened and broken
 - Panels now have a line colour of their own: craft a panel with a dye and a glow ink sac to recolour
   the traced line without touching the background. Existing panels keep a white line
 
