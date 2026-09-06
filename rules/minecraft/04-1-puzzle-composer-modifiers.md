@@ -43,6 +43,47 @@ closed cells and the region tools stay in the rail; they just have nothing to la
 refusing the click. That is how the end tool already behaves on an interior node. A rail that
 reshuffled itself while you edited the grid would be worse than a tool that occasionally refuses.
 
+## What each type's rail holds
+
+| Tool | Grid | Tree | What it is on a tree |
+|------|------|------|----------------------|
+| Start | ● | ● | The trunk's foot, or a tip for an upside-down tree |
+| End | ● | ● | A nub off a tip, or off the root; the two outermost tips are corners and square off left or right ([01-1](01-1-tree-panel.md#what-a-tree-panel-is)) |
+| Break | ● | ● | A gap on a branch, as on any segment. The Orchard's broken limb is not this; it is a pruned limb with no end ([01-1](01-1-tree-panel.md#what-a-tree-panel-is)) |
+| Hexagon | ● | **Apple** | The same mark, drawn as an apple here and not at all in the world: the author's note of the intended tip. Tips only, one per tree |
+| Square | ● | absent | A tree has no cells |
+
+The Modifiers rail is what a panel's type says it is, so the two rails are the two rows above and
+nothing else is decided here. A third type brings its own column.
+
+```
+  Grid in the machine        Tree in the machine
+  ┌────┬────┐               ┌────┬────┐
+  │ ●  │ ⊣  │  start  end   │ ●  │ ⊣  │
+  ├────┼────┤               ├────┼────┤
+  │ ─  │ ⬡  │  break  hex   │ ─  │ 🍎 │  break  apple
+  ├────┼────┤               └────┴────┘
+  │ ■  │    │  square
+  └────┴────┘
+```
+
+**The apple is the hexagon tool as the author's aid.** On a tree the mark is never drawn on the
+block face or in a frame ([01-1](01-1-tree-panel.md#what-a-tree-panel-is)): the Orchard's panel
+shows no apple, and the clue that points the player at the right tip is the map maker's to build in
+the world. The composer is the one place the mark shows, as an apple on the tip it is on, so the
+author can see which tip they have made the answer. Same tool, same rules, same refusal on a broken
+segment.
+
+**The editor draws what the frame will draw, plus what the author needs to see.** On every other
+panel those are the same picture. A tree's apple is the one deliberate exception: shown here,
+hidden there.
+
+**The rail changes when the panel does, not when the tab does.** Put a tree in and the rail is the
+tree's before you click anything; swap it for a grid and the square is back. If the tool you had
+armed is not in the new rail, the start tool is armed instead: it exists on every type, and it is the
+first thing anyone places on a fresh panel. An empty machine shows the grid's rail, since a grid is
+what a panel is until something says otherwise.
+
 ## Not every rule is a tool
 
 Symmetry ([../witness/05-symmetry.md](../witness/05-symmetry.md)) is a statement about the whole
@@ -65,6 +106,12 @@ the Grid tab unchanged.
 - **End refuses interior nodes.** A nub has to point out of the panel, so only a node on the border
   can carry one. A corner cycles through its three orientations (diagonal, then squared off along
   each of its two borders) before going bare; everything else is a plain on/off toggle.
+- **The apple refuses everything but a tip, and there is only ever one.** On a tree the hexagon
+  tool picks the answer tip: a click on a tip or on its nub moves the apple there, a click on the
+  apple's tip or nub removes it, a click on a fork, the root, the root's nub or a branch is
+  refused ([01-1](01-1-tree-panel.md#edge-cases)). The nub counts because that is where the apple
+  is drawn, and a tool has to accept a click where it shows its result. On a grid the hexagon is
+  unchanged.
 - **Hexagon refuses a broken segment.** The line can never reach the middle of a gap, so a dot there
   would make the panel unsolvable by construction. A dot on either *end* of that segment is fine:
   the nodes are still reachable ([../witness/03-broken-edges.md](../witness/03-broken-edges.md)).
@@ -73,6 +120,14 @@ the Grid tab unchanged.
   therefore useless, but it is legal, and refusing it would be a rule this mod invented.
 - **Marks do not survive their target.** Delete the node or segment underneath a mark on the Grid
   tab and the mark goes with it. Nothing is remembered if you put it back.
+- **A tool armed on one type does not carry to a type without it.** Arm the square, put a tree in,
+  and the start tool is armed. Put the grid back and the square is in the rail again, unarmed.
+- **A tree's damage is made on the Grid tab, not here.** The Orchard's broken and shortened limbs
+  are pruned limbs ([01-1](01-1-tree-panel.md#pruning-the-grid-tab-on-a-tree)), with or without an
+  end; this tab only places the end.
+- **A fresh tree arrives already marked.** Start on the root, an end on every tip
+  ([01-1](01-1-tree-panel.md#what-a-tree-panel-is)); the tools remove or move them as on any panel.
+  A fresh grid arrives blank. The rail is the same either way.
 
 ---
 
@@ -80,11 +135,27 @@ the Grid tab unchanged.
 
 ## Status in this mod
 
-All five tools work. The rail is a fixed 2×3 radio group with the last button disabled; it does
-**not** yet vary with the panel's type. The square tool is the first type-dependent one, and it
-refuses on a tree rather than disappearing, which is the documented fallback above. It now
-lives on the Modifiers card of the composer's `WCardPanel` ([04](04-puzzle-composer.md)) rather than
-directly on the window.
+All five tools work, and the rail follows the panel's type
+([what each type's rail holds](#what-each-types-rail-holds)), built 2026-09-05. `WModifiersRail` in
+`PuzzleComposerScreen.kt` is one `WPlainPanel` that re-lays the same six button objects for the
+output slot's type: the grid gets all six (the last still disabled), a tree gets start, end, break
+and the hexagon button wearing `AppleIcon`. The buttons stay the same objects because the click
+listener tells tools apart by identity. If the armed tool is not in the new rail the start tool is
+armed. It lives on the Modifiers card of the composer's `WCardPanel` ([04](04-puzzle-composer.md)).
+A side effect worth knowing: the rail's first layout arms the start tool, so the composer now opens
+with a tool armed where it used to open with none and swallow the first click. That is what "exactly
+one tool is selected" above always said.
+
+**The rail re-checks the slot every client tick**, not on a listener. The output slot is filled by
+vanilla slot sync on the client, which fires no `WItemSlot` change listener there; `tick()` is
+the one hook that runs where the rail is drawn. The check is a type compare and a no-op when
+unchanged. Do not move the refresh onto the slot listeners; they run on the server.
+
+The editor draws a tree's hexagons as apples (`WPuzzleEditor.drawApple`); the world renderer
+skips them on a tree (`renderSymbols(hidden = true)`). The apple hangs off the tip's **nub** when
+it has one, not on the tip node the mark is stored on: the mark says "this end", and drawn at the
+node it sat where the branch meets the nub and read as short of the end (seen 2026-09-05). A bare
+stub, with no nub, wears it on the node.
 
 `WRadioGroup` keeps exactly one member armed: clicking the armed tool re-arms it instead of leaving
 the rail with nothing selected. That used to be a way to disarm the editor, which read as a dead
@@ -124,6 +195,18 @@ is what this should use.
 
 ## Not done
 
+- **The tree rail and the editor's apples were seen 2026-09-05**: four buttons, apple icon,
+  apples landing on the clicked tip and on a clicked fork, stem up. Not yet seen: swapping to a
+  grid and back (square returns, armed tool falls back to start when it vanishes), and the empty
+  machine (grid rail).
+- **The apple at the nub's end is unseen in game.** Moved there 2026-09-05 after a shot showed it
+  sitting where the branch meets the nub, covering the junction and reading as short of the end.
+  Confirmed cosmetic by pixel comparison before the move: no node moves. Look for the fruit
+  capping the nub, with the branch and nub both visible below it.
+- **Hit testing on diagonal branches.** The Modifiers hit test uses a segment's axis-aligned
+  bounding box, so on a tree a click near one branch can land on the sibling whose box overlaps
+  it. Same "first, not nearest" gap as above, now with a shape that makes it likely. If the
+  apple tool misfires in the shot, that is when `nearestEdge` gets wired in.
 - **Only one region symbol.** Squares are in ([../witness/06-colored-squares.md](../witness/06-colored-squares.md));
   stars, polyominoes, negative polyominoes, triangles and eliminators are not. Cells now have a home
   (`Panel.symbols`, keyed by cell centre in panel units), so what remains is the rail:

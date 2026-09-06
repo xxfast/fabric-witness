@@ -4,10 +4,12 @@
 
 One rule builds every puzzle panel and grows every puzzle panel. Lay tablets out in the crafting
 grid as a schematic of the panel you want, optionally with a panel you already have somewhere in it,
-and get the panel that schematic describes.
+and get the panel that schematic describes. A column grown from a sapling is a different
+schematic and makes a [tree panel](01-1-tree-panel.md) instead.
 
-Sizes below are in **cells** (the drawable squares) and costs are in tablets. See
-[the cost model](README.md#cells-nodes-and-cost) for how cells, nodes, and cost line up.
+Sizes below are in **cells** (the drawable squares) and costs are in tablets; a tree's size is in
+**levels** ([01-1](01-1-tree-panel.md)). See [the cost model](README.md#cells-nodes-and-cost) for how
+cells, nodes, and cost line up.
 
 ---
 
@@ -186,6 +188,13 @@ no reason to ever pay the premium again, and fat footprints become dead content.
 is a small enough gap that this is probably fine, but it is the thing to watch in playtest. If it
 needs a lever, raise the price of the *seed* rather than touching the formula, since changing the
 formula is what reintroduces the two-rules problem this merge removed.
+
+## Tree panels
+
+A layout containing a sapling is the [tree craft](01-1-tree-panel.md) instead: the same schematic
+with a sapling as the seed, one level per tablet, sized in levels. The two readings are disjoint,
+since no grid craft contains a sapling, so nothing ever matches both. Everything about trees, what
+they are, how they grow, and the orchard they come from, is in [01-1](01-1-tree-panel.md).
 
 ## The size cap
 

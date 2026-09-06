@@ -215,6 +215,80 @@ class SymbolTests {
             graph.nodes().single { it.x == node.x && it.y == node.y }
     }
 
+    /**
+     * The apple tool on a tree (rules/minecraft/01-1-tree-panel.md#what-a-tree-panel-is): tips
+     * only, one at a time. Tree_2: root, trunk, fork, two limbs, four tips.
+     */
+    @Nested
+    @DisplayName("The apple on a tree")
+    inner class AppleOnATree {
+
+        private val tree: Panel.Tree = Panel.Tree.ofSize(2)
+        private val root: Node = tree.graph.nodes().filter { it.modifier != Modifier.END }.minBy { it.y }
+        private val fork: Node = tree.graph.adjacentNodes(root).single()
+        private val limb: Node = tree.graph.adjacentNodes(fork).filter { it.y > fork.y }.minBy { it.x }
+        private val tips: List<Node> = with(Panel.Tree) { tree.graph.tips() }
+
+        private fun Panel.appleTips(): List<Node> = graph.nodes().filter { it.symbol == Atom.HEXAGON }
+
+        @Test
+        fun `a click on a tip puts the apple there`() {
+            val marked: Panel = requireNotNull(tree.withSymbolToggled(tips[1], null))
+            assertThat(marked.appleTips().map { it.x to it.y }).containsExactly(tips[1].x to tips[1].y)
+            // Its nub is still on it.
+            assertThat(marked.endPointOf(marked.appleTips().single())).isNotNull()
+        }
+
+        @Test
+        fun `a click on another tip moves the apple, one per tree`() {
+            val first: Panel = requireNotNull(tree.withSymbolToggled(tips[1], null))
+            val moved: Panel = requireNotNull(first.withSymbolToggled(tips[3], null))
+            assertThat(moved.appleTips().map { it.x to it.y }).containsExactly(tips[3].x to tips[3].y)
+        }
+
+        @Test
+        fun `a click on the apple's own tip removes it`() {
+            val first: Panel = requireNotNull(tree.withSymbolToggled(tips[1], null))
+            val marked: Node = first.appleTips().single()
+            val cleared: Panel = requireNotNull(first.withSymbolToggled(marked, null))
+            assertThat(cleared.appleTips()).isEmpty()
+        }
+
+        @Test
+        fun `a fork, the root and a branch all refuse`() {
+            assertThat(tree.withSymbolToggled(fork, null)).isNull()
+            assertThat(tree.withSymbolToggled(root, null)).isNull()
+            assertThat(tree.withSymbolToggled(limb, null)).isNull()
+            val branch = com.google.common.graph.EndpointPair.unordered(fork, limb)
+            assertThat(tree.withSymbolToggled(null, branch)).isNull()
+        }
+
+        @Test
+        fun `a click on a tip's nub is a click on the tip, since that is where the apple is drawn`() {
+            val nub: Node = requireNotNull(tree.endPointOf(tips[0]))
+            val marked: Panel = requireNotNull(tree.withSymbolToggled(nub, null))
+            assertThat(marked.appleTips().map { it.x to it.y }).containsExactly(tips[0].x to tips[0].y)
+            // And again on the nub takes it off.
+            val markedNub: Node = requireNotNull(marked.endPointOf(marked.appleTips().single()))
+            assertThat(requireNotNull(marked.withSymbolToggled(markedNub, null)).appleTips()).isEmpty()
+            // The root's nub, on an upside-down tree, is still not a tip.
+            val upsideDown: Panel = requireNotNull(tree.withEndPointToggled(root))
+            assertThat(upsideDown.withSymbolToggled(requireNotNull(upsideDown.endPointOf(root)), null)).isNull()
+        }
+
+        @Test
+        fun `a pruned fork is a tip and takes the apple`() {
+            // Prune both limbs and the fork is the crown: a stub the apple may sit on.
+            val limbs: List<Node> = tree.graph.adjacentNodes(fork).filter { it.y > fork.y }
+            val stub: Panel = limbs.fold(tree as Panel) { panel, each -> panel.withNodeRemoved(each) }
+            val stubTip: Node = stub.graph.nodes().single { it.x == fork.x && it.y == fork.y }
+
+            val marked: Panel = requireNotNull(stub.withSymbolToggled(stubTip, null))
+
+            assertThat(marked.appleTips().map { it.x to it.y }).containsExactly(fork.x to fork.y)
+        }
+    }
+
     private fun legacyNode(x: Float, y: Float, modifier: Modifier): CompoundTag =
         CompoundTag().apply {
             putFloat("x", x)

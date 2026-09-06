@@ -147,6 +147,15 @@ route here that produces a bigger panel, or a cheaper one, than the crafting tab
 
 ## Edge cases
 
+- **On a tree, erasing is pruning.** A node or a branch goes with everything above it, nubs
+  included ([01-1](01-1-tree-panel.md#pruning-the-grid-tab-on-a-tree)). Three consequences follow
+  the rule and will surprise the first time:
+  - An eraser **drag** follows the tree's one path between where it started and where it is, and
+    every branch it crosses prunes above it. Drag from a tip down through a fork and up its
+    sibling and both limbs go, because the stroke descended from the fork.
+  - Erasing the **root** takes the whole tree, its nub included. On a grid that is one click per
+    node; here it is one click.
+  - A **re-pencilled tip comes back bare.** The end tool on the other tab puts its end back.
 - **Deleting takes the marks with it.** A start disc, a hexagon, a break, an end point nub: gone
   with whatever carried it. Put the node or segment back and it comes back plain. Nothing is
   remembered.
@@ -182,10 +191,13 @@ route here that produces a bigger panel, or a cheaper one, than the crafting tab
 
 ## Status in this mod
 
-**Built for `Grid`.** The tab exists, with the pencil and the eraser, click and drag on both, faint
-dots at empty anchors, and the anchor walk that keeps a fast sweep from tearing its own stroke.
-`Tree` and `Freeform` answer "no anchors" and are therefore not editable here, which is the
-intended MVP boundary rather than a gap to fill in.
+**Built for `Grid` and `Tree`.** The tab exists, with the pencil and the eraser, click and drag on
+both, faint dots at empty anchors, and the anchor walk that keeps a fast sweep from tearing its own
+stroke. A tree's anchors are its full template, regenerated from its `levels` the way a grid's are
+from its `width` and `height`, and on a tree the eraser prunes: a node or a branch goes with
+everything above it, nubs included ([01-1](01-1-tree-panel.md#pruning-the-grid-tab-on-a-tree)).
+Built 2026-09-05, unit-tested in `LatticeTests`, not yet seen in game. `Freeform` answers "no
+anchors" and is not editable here, which is the intended boundary rather than a gap to fill in.
 
 Deleting a node or a segment had been impossible anywhere in the mod until this tab. The pre-graph
 tile model could do half of it: a segment cycled `FILLED → SHORTENED → null`, and `null` was a
@@ -199,7 +211,8 @@ panel-level rather than screen-level, so the operations are unit-testable withou
 
 | | |
 |---|---|
-| `anchors()` | Every position a node may occupy. `Grid` enumerates its lattice; `Tree` and `Freeform` return nothing |
+| `anchors()` | Every position a node may occupy. `Grid` enumerates its lattice; `Tree` its full template (`generateTree(levels)`); `Freeform` returns nothing |
+| `joinablePairs()` | Every pair a segment may run between, once each. `Grid` the unit neighbours, `Tree` the template's branches; what `nearestJoinablePair` searches |
 | `canJoin(a, b)` | Whether two positions may be joined. Compares position only, never node identity |
 | `nodeAt(x, y)` | The node actually present at a position, if any |
 | `withNodeAdded` / `withNodeRemoved` | The pencil's and the eraser's click. Removing takes the node's segments and its end point nub |
@@ -255,11 +268,17 @@ Deliberately out of scope:
 
 - **Size and type still change at the crafting table only.** This tab touches neither `width` /
   `height` nor `type` ([01](01-puzzle-panel-crafting.md)).
-- **Tree and Freeform are not editable.** Freeform has `width` / `height` but "anywhere" anchors, so
-  there is no finite set to draw or hit-test, and `resize` is undefined; nothing crafts one, only
-  `Panel.TEST` constructs one. Tree's anchors are the branch positions of its tree, which is real
-  work of its own. Both answer "no anchors" until someone needs them, so the tab draws nothing and
+- **Freeform is not editable.** It has `width` / `height` but "anywhere" anchors, so there is no
+  finite set to draw or hit-test, and `resize` is undefined; nothing crafts one, only `Panel.TEST`
+  constructs one. It answers "no anchors" until someone needs it, so the tab draws nothing and
   refuses every gesture rather than guessing.
+- **A tree's eraser is a pruner.** `withNodeRemoved` and `withSegmentRemoved` take the whole
+  subtree on a `Panel.Tree` (`Panel.Tree.subtreeOf`), where on a grid they take one node or one
+  segment; the pencil is the same on both. A drag on a tree walks the template's one path between
+  the two anchors (`templatePathBetween`) instead of the grid's unit staircase. Corner status for
+  a tree's end points is judged against the template's x extremes, not the surviving nodes', so
+  pruning the crown down to a single stub does not make that stub a corner (`EndPoints.kt`,
+  `treeEndPointOrientations`).
 - **No undo.** Every edit commits straight to the output panel, on both tabs. Arming the eraser is
   what stands in for it: the destructive gesture cannot be reached with the pencil out. Real undo
   would be a client-side stack of `Panel` snapshots in the screen description, since `commit` is the

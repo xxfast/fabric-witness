@@ -138,7 +138,8 @@ object PuzzlePanelRenderer {
             renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, unlitLight, overlay)
             renderSymbols(
                 puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
-                matrices, queue, unlitLight, overlay
+                matrices, queue, unlitLight, overlay,
+                hidden = puzzle is Panel.Tree,
             )
             renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, unlitLight, overlay)
             return
@@ -157,7 +158,8 @@ object PuzzlePanelRenderer {
         // the only way a player can tell it was crossed (rules/witness/04-hexagon-dots.md).
         renderSymbols(
             puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
-            matrices, queue, panelLight, overlay
+            matrices, queue, panelLight, overlay,
+            hidden = puzzle is Panel.Tree,
         )
         renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, panelLight, overlay)
         // Cue drawing is gated by the effect's own frame-pos match (set at trigger), not by
@@ -324,6 +326,11 @@ object PuzzlePanelRenderer {
      * A hexagon is drawn narrower than the line it marks, since at full width it would sever the
      * line and read as a broken edge. See the open question in rules/witness/04-hexagon-dots.md:
      * this is not settled, and it is the one number to change when it is.
+     *
+     * On a tree panel the mark is [hidden]: it still validates, but the panel shows nothing, as
+     * the Orchard's panels show nothing. The composer draws it as an apple for the author
+     * (rules/minecraft/01-1-tree-panel.md#what-a-tree-panel-is); the world-side clue is the map
+     * maker's to build.
      */
     fun renderSymbols(
         graph: ValueGraph<Node, Edge>,
@@ -333,8 +340,10 @@ object PuzzlePanelRenderer {
         matrices: PoseStack,
         queue: SubmitNodeCollector,
         light: Int,
-        overlay: Int
+        overlay: Int,
+        hidden: Boolean = false,
     ) {
+        if (hidden) return
         val hexagons: List<Vector3f> = symbolPositions(graph)
         if (hexagons.isEmpty()) return
         val maxDimension: Int = maxOf(width, height)
@@ -344,8 +353,8 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.012)
 
-        val backdrop = PuzzlePanelTextures.backdrop(backgroundColor)
-        queue.submitCustomGeometry(matrices, RenderTypes.text(backdrop)) { entry, consumer ->
+        val texture = PuzzlePanelTextures.backdrop(backgroundColor)
+        queue.submitCustomGeometry(matrices, RenderTypes.text(texture)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 hexagons.forEach { position -> hexagon(position, HEXAGON_RADIUS) }
             }

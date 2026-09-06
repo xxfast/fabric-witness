@@ -15,6 +15,7 @@ import com.xfastgames.witness.items.data.nearestJoinablePair
 import com.xfastgames.witness.items.data.nodeAt
 import com.xfastgames.witness.items.data.panel
 import com.xfastgames.witness.items.renderer.PuzzlePanelTextures
+import com.xfastgames.witness.utils.circle
 import com.xfastgames.witness.utils.fill
 import com.xfastgames.witness.utils.hexagon
 import com.xfastgames.witness.utils.roundedSquare
@@ -281,9 +282,23 @@ class WPuzzleEditor(
         val color: Int = 0xFF000000.toInt() or (puzzle.backgroundColor.getTextureDiffuseColor() and 0xFFFFFF)
         val diameter: Int = (lineThickness * HEXAGON_LINE_FRACTION).roundToInt().coerceAtLeast(1)
 
+        // On a tree the mark is an apple, here as on the block face
+        // (rules/minecraft/04-1-puzzle-composer-modifiers.md#what-each-types-rail-holds): the
+        // editor draws what the frame will draw.
+        val mark: (Int, Int) -> Unit =
+            if (puzzle is Panel.Tree) { cx, cy -> drawApple(context, cx, cy, lineThickness) }
+            else { cx, cy -> hexagon(context, cx, cy, diameter, color) }
+
         graph.nodes()
             .filter { node -> node.symbol == Atom.HEXAGON }
-            .forEach { node -> hexagon(context, px(node.x), py(node.y), diameter, color) }
+            .forEach { node ->
+                // On a tree the apple says "this end", so it hangs off the tip's nub when it has
+                // one rather than sitting where the branch meets it; a bare stub wears it itself.
+                val at: Node =
+                    if (puzzle is Panel.Tree) graph.adjacentNodes(node).firstOrNull { it.modifier == Modifier.END } ?: node
+                    else node
+                mark(px(at.x), py(at.y))
+            }
 
         graph.edges().forEach { side ->
             val edge: Edge = graph.edgeValueOf(side) ?: return@forEach
@@ -291,7 +306,7 @@ class WPuzzleEditor(
             val u: Node = side.nodeU()
             val v: Node = side.nodeV()
             // An edge hexagon marks the edge as a whole, so it sits at the midpoint.
-            hexagon(context, px((u.x + v.x) / 2), py((u.y + v.y) / 2), diameter, color)
+            mark(px((u.x + v.x) / 2), py((u.y + v.y) / 2))
         }
 
         // A square sits in its cell in its own dye colour, its corners rounded to the line's cap
@@ -303,6 +318,32 @@ class WPuzzleEditor(
                 Figure.SQUARE -> roundedSquare(context, px(symbol.x), py(symbol.y), side, lineThickness / 2, argb)
             }
         }
+    }
+
+    /**
+     * A small apple hanging on the branch, mirroring `PuzzlePanelRenderer.apple`: fruit one line
+     * thickness across, a stem a fifth as wide and half as tall straight up out of it, and a leaf
+     * off the stem's right. Pixel y runs down, so "up" is minus here.
+     */
+    private fun drawApple(context: GuiGraphicsExtractor, centerX: Int, centerY: Int, lineThickness: Int) {
+        val fruitRadius: Int = (lineThickness / 2).coerceAtLeast(1)
+        val stemWidth: Int = (lineThickness / 5).coerceAtLeast(1)
+        val stemHeight: Int = (lineThickness / 2).coerceAtLeast(1)
+        val stemTop: Int = centerY - fruitRadius - stemHeight + 1
+        fill(
+            context,
+            centerX - stemWidth / 2, stemTop,
+            centerX - stemWidth / 2 + stemWidth, centerY - fruitRadius + 1,
+            .36f, .22f, .11f, 1f
+        )
+        circle(
+            context,
+            centerX + (lineThickness * 0.31f).roundToInt(),
+            centerY - (lineThickness * 0.625f).roundToInt(),
+            (lineThickness * 0.22f).roundToInt().coerceAtLeast(1),
+            .30f, .55f, .20f, 1f
+        )
+        circle(context, centerX, centerY, fruitRadius, .75f, .12f, .10f, 1f)
     }
 
     private fun drawSolution(

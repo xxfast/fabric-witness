@@ -62,6 +62,38 @@ fun Panel.withSquareCycled(x: Float, y: Float): Panel? {
     return withSymbols(if (next == null) others else others + existing.copy(color = next))
 }
 
+/**
+ * The apple tool on a tree (rules/minecraft/01-1-tree-panel.md#what-a-tree-panel-is): the mark
+ * names the tip the author intends as the answer, so it goes on **tips only, one at a time**.
+ * Clicking a tip puts the apple there and takes it off wherever else it was; clicking the tip
+ * that has it removes it; a fork, the root or a branch refuses, the way the end tool refuses an
+ * interior node. A click on a tip's nub is a click on that tip: the composer draws the apple
+ * capping the nub, so that is where a player aims. One apple per tree is the Orchard's rule, and
+ * a tree has one path per tip, so a second apple could only ever make the panel unsolvable.
+ */
+private fun Panel.Tree.withAppleToggled(clicked: Node?, symbol: Atom): Panel? {
+    if (clicked == null) return null
+    val node: Node =
+        if (clicked.modifier == Modifier.END) graph.adjacentNodes(clicked).firstOrNull { it.modifier != Modifier.END } ?: return null
+        else clicked
+    val tips: List<Node> = with(Panel.Tree) { graph.tips() }
+    if (node !in tips) return null
+
+    val updated: MutableValueGraph<Node, Edge> = Graphs.copyOf(graph)
+    // Off everywhere first, nodes and branches alike, so a panel authored before the rule
+    // (an apple on a fork, say) is cleaned up by the next click rather than kept forever.
+    graph.nodes().filter { it.symbol == symbol && it != node }.forEach { marked ->
+        with(Panel.Tree) { updated.withNodeReplaced(marked, marked.copy(symbol = Atom.NONE)) }
+    }
+    graph.edges().forEach { pair ->
+        val edge: Edge = graph.edgeValue(pair.nodeU(), pair.nodeV()).orElse(null) ?: return@forEach
+        if (edge.symbol == symbol) updated.putEdgeValue(pair.nodeU(), pair.nodeV(), edge.copy(symbol = Atom.NONE))
+    }
+    val next: Atom = if (node.symbol == symbol) Atom.NONE else symbol
+    with(Panel.Tree) { updated.withNodeReplaced(node, node.copy(symbol = next)) }
+    return withGraph(updated)
+}
+
 /** The symbol in the cell centred at ([x], [y]), if any. */
 fun Panel.symbolAt(x: Float, y: Float): CellSymbol? =
     symbols.find { symbol -> abs(symbol.x - x) <= ANCHOR_EPSILON && abs(symbol.y - y) <= ANCHOR_EPSILON }
@@ -85,6 +117,7 @@ fun Panel.withSymbolToggled(
     edge: EndpointPair<Node>?,
     symbol: Atom = Atom.HEXAGON
 ): Panel? {
+    if (this is Panel.Tree) return withAppleToggled(node, symbol)
     if (node != null) {
         val next: Atom = if (node.symbol == symbol) Atom.NONE else symbol
         return withNodeReplaced(node, node.copy(symbol = next))
