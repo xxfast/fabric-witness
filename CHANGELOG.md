@@ -14,6 +14,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The composer's modifier tools are dark and blank until a panel is in the machine, and light up
+  with their icons when one lands
 - A cable now lights in the line colour of the panel that powers it, not the background, since the
   light that runs out into a cable is the line's glow. Panels made before the line had a colour of
   its own have a white line, so their cables light white until the line is dyed

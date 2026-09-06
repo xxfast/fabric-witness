@@ -81,8 +81,20 @@ hidden there.
 **The rail changes when the panel does, not when the tab does.** Put a tree in and the rail is the
 tree's before you click anything; swap it for a grid and the square is back. If the tool you had
 armed is not in the new rail, the start tool is armed instead: it exists on every type, and it is the
-first thing anyone places on a fresh panel. An empty machine shows the grid's rail, since a grid is
-what a panel is until something says otherwise.
+first thing anyone places on a fresh panel.
+
+## The empty machine
+
+With no panel in the machine the rail keeps the grid's shape, since a grid is what a panel is until
+something says otherwise, but every tool on it is **dark and blank**: no icon, no lit button, no
+highlight under the cursor, and a click does nothing. There is nothing to paint on, so the rail
+has nothing to offer and says so. The moment a panel lands the icons appear and the start tool is
+lit; pull the panel out and the rail goes dark again. "Exactly one tool is armed" still holds
+underneath: the armed tool is remembered while the rail is dark, so it is the one lit when the rail
+comes back, and it is simply not shown as lit meanwhile.
+
+The Grid tab's pencil and eraser, and the tutorial toggle, are not part of this and stay as they
+are with an empty machine.
 
 ## Not every rule is a tool
 
@@ -149,7 +161,17 @@ one tool is selected" above always said.
 **The rail re-checks the slot every client tick**, not on a listener. The output slot is filled by
 vanilla slot sync on the client, which fires no `WItemSlot` change listener there; `tick()` is
 the one hook that runs where the rail is drawn. The check is a type compare and a no-op when
-unchanged. Do not move the refresh onto the slot listeners; they run on the server.
+unchanged, plus one boolean per tool. Do not move the refresh onto the slot listeners; they run on
+the server.
+
+**The empty machine** ([design](#the-empty-machine)): the same `refresh` sets `isEnabled` on the
+five tools from whether the output slot holds a panel, every tick and not only on a type change,
+since an empty machine and a grid panel share a layout. `removeButton` is left out by identity: it
+is off for good until it has a tool. The output slot decides rather than the input because the
+click listeners already do nothing without an output panel, and [04](04-puzzle-composer.md)
+keeps the two in step (empty input clears the output). `WRadioImageButton.paint` puts `Disabled`
+ahead of `Selected` (`renderStateFor`, pinned in `WRadioImageButtonTests`) and skips the icon
+when disabled, so an armed tool can stay armed in its group while drawn dark and blank.
 
 The editor draws a tree's hexagons as apples (`WPuzzleEditor.drawApple`); the world renderer
 skips them on a tree (`renderSymbols(hidden = true)`). The apple hangs off the tip's **nub** when
@@ -198,7 +220,9 @@ is what this should use.
 - **The tree rail and the editor's apples were seen 2026-09-05**: four buttons, apple icon,
   apples landing on the clicked tip and on a clicked fork, stem up. Not yet seen: swapping to a
   grid and back (square returns, armed tool falls back to start when it vanishes), and the empty
-  machine (grid rail).
+  machine: six dark, blank buttons with nothing lit, icons and a lit start tool the moment a panel
+  lands, dark again when it is pulled out (built and signed off on sight 2026-09-06; no screenshot
+  on file).
 - **The apple at the nub's end is unseen in game.** Moved there 2026-09-05 after a shot showed it
   sitting where the branch meets the nub, covering the junction and reading as short of the end.
   Confirmed cosmetic by pixel comparison before the move: no node moves. Look for the fruit

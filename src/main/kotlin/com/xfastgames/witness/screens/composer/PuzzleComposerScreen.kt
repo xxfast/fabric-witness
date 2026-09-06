@@ -158,15 +158,24 @@ class PuzzleComposerScreenDescription(
 
         init {
             setSize(startButton.width * 2 + 2, 48)
-            layoutFor(Panel.Companion.Type.Grid)
+            refresh()
         }
 
         override fun tick() = refresh()
 
+        /**
+         * The rail is dark and blank until a panel is in the machine
+         * (rules/minecraft/04-1-puzzle-composer-modifiers.md#the-empty-machine). Enabled is set every
+         * tick and not only on a type change, since an empty machine and a grid panel share a
+         * layout. [removeButton] is excluded by identity: it is off for good until it has a tool.
+         */
         fun refresh() {
-            val type: Panel.Companion.Type =
-                composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel?.type ?: Panel.Companion.Type.Grid
+            val panel: Panel? = composerInventory.getItem(PUZZLE_OUTPUT_SLOT_INDEX).panel
+            val type: Panel.Companion.Type = panel?.type ?: Panel.Companion.Type.Grid
             if (type != laidOutFor) layoutFor(type)
+            val enabled: Boolean = panel != null
+            listOf(startButton, endButton, breakButton, hexagonDotButton, squareButton)
+                .forEach { button -> button.isEnabled = enabled }
         }
 
         private fun layoutFor(type: Panel.Companion.Type) {
