@@ -153,7 +153,7 @@ object PuzzlePanelRenderer {
         // The traced line caps the lightmap instead of the glow floor: it should pop against the
         // backdrop like the lit line in The Witness, and a maxed lightmap does that without
         // tripping shader-pack bloom.
-        renderLine(puzzle.line, puzzle.width, puzzle.height, matrices, queue, LightCoordsUtil.FULL_BRIGHT, overlay)
+        renderLine(puzzle.line, puzzle.lineColor, puzzle.width, puzzle.height, matrices, queue, LightCoordsUtil.FULL_BRIGHT, overlay)
         // Symbols go in front of both, so a hexagon stays visible once the line covers it: that is
         // the only way a player can tell it was crossed (rules/witness/04-hexagon-dots.md).
         renderSymbols(
@@ -485,8 +485,10 @@ object PuzzlePanelRenderer {
         matrices.popPose()
     }
 
+    /** The traced line, lit in the panel's [color] (rules/minecraft/02-panel-dye.md). */
     fun renderLine(
         line: Graph<Node>,
+        color: DyeColor,
         width: Int,
         height: Int,
         matrices: PoseStack,
@@ -502,6 +504,7 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.011)
 
+        val (r, g, b) = dyeRgb(color)
         queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 line.nodes().forEach { node ->
@@ -509,7 +512,7 @@ object PuzzlePanelRenderer {
                     // start the line merely travels over keeps its own disc and is covered by the
                     // line width alone, so it stays visible either side of the line.
                     val pickedUp: Boolean = node.modifier == Modifier.START && line.degree(node) <= 1
-                    circle(Vector3f(node.x, node.y, 0f), if (pickedUp) 4.pc else 2.pc)
+                    circle(Vector3f(node.x, node.y, 0f), if (pickedUp) 4.pc else 2.pc, r = r, g = g, b = b)
                 }
 
                 line.edges().forEach { side ->
@@ -517,7 +520,9 @@ object PuzzlePanelRenderer {
                     val endNode: Node = side.nodeV()
                     val start = Vector3f(startNode.x, startNode.y, 0f)
                     val end = Vector3f(endNode.x, endNode.y, 0f)
-                    edge(start, end, 4.pc, Edge.NORMAL)
+                    // A line only ever runs along traversable segments, so it is plain segments
+                    // throughout; the break shape is never needed here.
+                    line(start, end, 4.pc, r, g, b)
                 }
             }
         }

@@ -7,6 +7,8 @@ import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.cost
 import com.xfastgames.witness.items.data.panel
+import com.xfastgames.witness.items.data.withBackgroundColor
+import com.xfastgames.witness.items.data.withLineColor
 import net.minecraft.core.Registry
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
@@ -57,25 +59,15 @@ class PanelDyeRecipe : CustomRecipe() {
 
         /** Referenced from mod init to force registration of the recipe serializers. */
         fun init() {
+            PanelLineDyeRecipe.SERIALIZER
             PanelRecycleRecipe.SERIALIZER
             PanelGridRecipe.SERIALIZER
             PanelTreeRecipe.SERIALIZER
         }
     }
 
-    override fun matches(input: CraftingInput, world: Level): Boolean {
-        var panels = 0
-        var dyes = 0
-        input.items().forEach { stack ->
-            when {
-                stack.isEmpty -> Unit
-                stack.item is PuzzlePanelItem -> panels++
-                stack.has(DataComponents.DYE) -> dyes++
-                else -> return false
-            }
-        }
-        return panels == 1 && dyes == 1
-    }
+    override fun matches(input: CraftingInput, world: Level): Boolean =
+        PanelDyeing.target(input) == PanelDyeing.Target.BACKGROUND
 
     override fun assemble(input: CraftingInput): ItemStack {
         val panelStack: ItemStack = input.items().firstOrNull { it.item is PuzzlePanelItem } ?: return ItemStack.EMPTY
@@ -83,13 +75,7 @@ class PanelDyeRecipe : CustomRecipe() {
         val updatedColor: DyeColor = dyeStack.get(DataComponents.DYE) ?: return ItemStack.EMPTY
 
         val puzzle: Panel = panelStack.panel ?: return ItemStack.EMPTY
-        val tintedPanel: Panel = when (puzzle) {
-            is Panel.Grid -> puzzle.copy(backgroundColor = updatedColor)
-            is Panel.Tree -> puzzle.copy(backgroundColor = updatedColor)
-            is Panel.Freeform -> puzzle.copy(backgroundColor = updatedColor)
-        }
-
-        return panelStack.copyWithCount(1).apply { panel = tintedPanel }
+        return panelStack.copyWithCount(1).apply { panel = puzzle.withBackgroundColor(updatedColor) }
     }
 
     override fun getSerializer(): RecipeSerializer<out CustomRecipe> = SERIALIZER
@@ -160,4 +146,77 @@ class PanelRecycleRecipe : CustomRecipe() {
     )
 
     override fun recipeBookCategory(): RecipeBookCategory = RecipeBookCategories.CRAFTING_MISC
+}
+
+/**
+ * The line half of rules/minecraft/02-panel-dye.md: a puzzle panel, a dye and a glow ink sac give
+ * the same panel with its traced line lit in the dye's colour. Glow ink sac is what makes a
+ * sign's writing glow, and the line is the panel's glowing part.
+ */
+class PanelLineDyeRecipe : CustomRecipe() {
+
+    companion object {
+        private val PANEL_INGREDIENT: Ingredient = Ingredient.of(PuzzlePanelItem.ITEM)
+        private val DYE_INGREDIENT: Ingredient =
+            Ingredient.of(Items.DYE.asList().stream())
+        private val GLOW_INK_SAC_INGREDIENT: Ingredient = Ingredient.of(Items.GLOW_INK_SAC)
+        private val INGREDIENTS: List<Ingredient> = listOf(PANEL_INGREDIENT, DYE_INGREDIENT, GLOW_INK_SAC_INGREDIENT)
+
+        val INSTANCE: PanelLineDyeRecipe = PanelLineDyeRecipe()
+        val MAP_CODEC: MapCodec<PanelLineDyeRecipe> = MapCodec.unit(INSTANCE)
+        val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, PanelLineDyeRecipe> = StreamCodec.unit(INSTANCE)
+
+        val IDENTIFIER: Identifier = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "panel_line_dye")
+        val SERIALIZER: RecipeSerializer<PanelLineDyeRecipe> = Registry.register(
+            BuiltInRegistries.RECIPE_SERIALIZER,
+            IDENTIFIER,
+            RecipeSerializer(MAP_CODEC, STREAM_CODEC)
+        )
+    }
+
+    override fun matches(input: CraftingInput, world: Level): Boolean =
+        PanelDyeing.target(input) == PanelDyeing.Target.LINE
+
+    override fun assemble(input: CraftingInput): ItemStack {
+        val panelStack: ItemStack = input.items().firstOrNull { it.item is PuzzlePanelItem } ?: return ItemStack.EMPTY
+        val dyeStack: ItemStack = input.items().firstOrNull { it.has(DataComponents.DYE) } ?: return ItemStack.EMPTY
+        val updatedColor: DyeColor = dyeStack.get(DataComponents.DYE) ?: return ItemStack.EMPTY
+
+        val puzzle: Panel = panelStack.panel ?: return ItemStack.EMPTY
+        return panelStack.copyWithCount(1).apply { panel = puzzle.withLineColor(updatedColor) }
+    }
+
+    override fun getSerializer(): RecipeSerializer<out CustomRecipe> = SERIALIZER
+
+    override fun isSpecial(): Boolean = false
+
+    override fun placementInfo(): PlacementInfo = PlacementInfo.create(INGREDIENTS)
+
+    override fun display(): List<RecipeDisplay> = listOf(
+        ShapelessCraftingRecipeDisplay(
+            INGREDIENTS.map(Ingredient::display),
+            SlotDisplay.ItemSlotDisplay(PuzzlePanelItem.ITEM),
+            SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)
+        )
+    )
+
+    override fun recipeBookCategory(): RecipeBookCategory = RecipeBookCategories.CRAFTING_MISC
+}
+
+/** Counts the grid's contents for [PanelDyeing.target]; a glow ink sac carries no dye component. */
+private fun PanelDyeing.target(input: CraftingInput): PanelDyeing.Target? {
+    var panels = 0
+    var dyes = 0
+    var glowInkSacs = 0
+    var others = 0
+    input.items().forEach { stack ->
+        when {
+            stack.isEmpty -> Unit
+            stack.item is PuzzlePanelItem -> panels++
+            stack.has(DataComponents.DYE) -> dyes++
+            stack.`is`(Items.GLOW_INK_SAC) -> glowInkSacs++
+            else -> others++
+        }
+    }
+    return target(panels, dyes, glowInkSacs, others)
 }

@@ -14,6 +14,7 @@ import net.fabricmc.fabric.api.client.model.loading.v1.ModelModifier
 import net.minecraft.client.renderer.item.SpecialModelWrapper
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
+import net.minecraft.world.item.DyeColor
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
@@ -79,17 +80,22 @@ class PuzzlePanelItem(settings: Properties) : Item(settings), Clientside {
             is Panel.Freeform -> "${puzzle.width - 1} x ${puzzle.height - 1} Size"
         }
 
-        val colorString: String = puzzle.backgroundColor.name
+        fun DyeColor.displayName(): String = name
             .split("_")
             .joinToString(" ") {
                 it.lowercase(Locale.getDefault())
                     .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
             }
 
+        val colorString: String = puzzle.backgroundColor.displayName()
+        // Both colours are set at the crafting table (rules/minecraft/02-panel-dye.md), and the
+        // tooltip is the only place that says which one a panel already has.
+        val lineString: String = "${puzzle.lineColor.displayName()} line"
+
         val cost: String = stack.cost?.let { cost -> "Costs $cost apt" }.orEmpty()
 
         if (type.isAdvanced) {
-            textConsumer.accept(Component.literal("($sizeString $colorString $typeString)"))
+            textConsumer.accept(Component.literal("($sizeString $colorString $typeString, $lineString)"))
             textConsumer.accept(Component.literal(cost))
             if (puzzle.tutorial) textConsumer.accept(Component.literal("Tutorial"))
             if (maxedOut) textConsumer.accept(Component.literal("Maximum size"))

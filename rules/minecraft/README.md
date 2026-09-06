@@ -23,7 +23,7 @@ they cannot read or transform an existing item's data.
 |---|--------|------|------------------|
 | 01 | Puzzle panel crafting | [01-puzzle-panel-crafting.md](01-puzzle-panel-crafting.md) | size, colour, cost |
 | 01-1 | ↳ Tree panel | [01-1-tree-panel.md](01-1-tree-panel.md) | levels, cost; the sapling-seeded panel type and the orchard it comes from |
-| 02 | Panel dye | [02-panel-dye.md](02-panel-dye.md) | whole panel, sets colour |
+| 02 | Panel dye | [02-panel-dye.md](02-panel-dye.md) | whole panel, sets the background or the line colour |
 | 03 | Panel recycle | [03-panel-recycle.md](03-panel-recycle.md) | cost |
 
 **Workstations**: placed blocks with their own screen. Not crafting-table recipes; they transform a
@@ -67,7 +67,8 @@ is that cost never exceeds what was spent, which is what makes recycling safe.
 1. `ancient_debris` → **9** tablets ([00](00-ancient-puzzle-tablet.md)).
 2. Tablets → a panel, or panel + tablets → a **bigger** panel, colour kept, `cost += tablets placed`
    ([01](01-puzzle-panel-crafting.md)). One rule, because a tablet is a 1×1-cell panel costing 1.
-3. Panel + dye → the **same** panel recoloured ([02](02-panel-dye.md)).
+3. Panel + dye → the **same** panel with a new background; add a glow ink sac and it is the line
+   that is recoloured instead ([02](02-panel-dye.md)).
 4. Composer ([04](04-puzzle-composer.md)) shapes the panel's grid
    ([04-2](04-2-puzzle-composer-grid.md)) and marks it up ([04-1](04-1-puzzle-composer-modifiers.md)).
    No tablet cost; colour is unchanged (dye is step 3). Shape is free, size is paid for.
@@ -79,7 +80,7 @@ what was invested, never more. Composer edits do not touch `cost`.
 ## Where the mod stands
 
 Unlike [../witness/](../witness/README.md) (mostly unmodelled puzzle logic), crafting and the
-composer are **implemented and live**. The four special recipes register their serializers through
+composer are **implemented and live**. The five special recipes register their serializers through
 `PanelDyeRecipe.init()` before datapacks load; the tablet recipe is plain JSON. Tree panels craft
 from a sapling column, grow from a tree panel in its place, and are pruned at the composer's Grid
 tab ([01-1](01-1-tree-panel.md)). The composer ships
@@ -94,8 +95,8 @@ next frame out of the end the line used.
 
 - `src/main/kotlin/com/xfastgames/witness/recipes/PanelGridRecipe.kt`
 - `src/main/kotlin/com/xfastgames/witness/recipes/PanelTreeRecipe.kt`
-- `src/main/kotlin/com/xfastgames/witness/recipes/PanelDyeRecipe.kt` (holds both `PanelDyeRecipe`
-  and `PanelRecycleRecipe`)
+- `src/main/kotlin/com/xfastgames/witness/recipes/PanelDyeRecipe.kt` (holds `PanelDyeRecipe`,
+  `PanelLineDyeRecipe` and `PanelRecycleRecipe`)
 - `src/main/kotlin/com/xfastgames/witness/items/data/Panel.kt` (`Panel.Grid`, node geometry)
 - `src/main/kotlin/com/xfastgames/witness/blocks/redstone/PuzzleComposerBlock.kt`
 - `src/main/kotlin/com/xfastgames/witness/entities/PuzzleComposerBlockEntity.kt`

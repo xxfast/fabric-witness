@@ -155,7 +155,11 @@ fun VertexConsumer.line(
     v: Vector3f,
     thickness: Float,
     light: Int,
-    overlay: Int
+    overlay: Int,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
 ) {
     val max: Vector3f = maxOf(u, v)
     val min: Vector3f = minOf(u, v)
@@ -182,7 +186,7 @@ fun VertexConsumer.line(
     vertices.forEach { position ->
         val model: Matrix4f = entry.pose()
         this.addVertex(model, position.x, position.y, position.z)
-            .setColor(1f, 1f, 1f, 1f)
+            .setColor(r, g, b, a)
             .setUv(0f, 1f)
             .setOverlay(overlay)
             .setLight(light)
