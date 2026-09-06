@@ -14,6 +14,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A cable now lights in the line colour of the panel that powers it, not the background, since the
+  light that runs out into a cable is the line's glow. Panels made before the line had a colour of
+  its own have a white line, so their cables light white until the line is dyed
 - Puzzle panels can now be up to 10x10 cells, up from 8x8, so grids from the game fit
 - Cables now carry power for 128 blocks from their nearest source, up from 64, since the game's
   cables often run far

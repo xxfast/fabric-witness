@@ -49,11 +49,17 @@ frames holds itself up.
 
 ## Colour
 
-There is one kind of cable. Dark, it is near black. Lit, it takes the **background colour of the
-panel that powers it**, the way a cable in the game glows in its panel's colour: a yellow panel
-lights a yellow run, a blue panel a blue one. A run fed by plain redstone with no panel behind it
-lights white. The colour is not the player's to choose and it means nothing to the wiring; it
-says which panel the power came from.
+There is one kind of cable. Dark, it is near black. Lit, it takes the **line colour of the panel
+that powers it** ([02](02-panel-dye.md)), the way a cable in the game carries a solved panel's
+glow on out of the panel: a panel traced in yellow lights a yellow run, one traced in blue a blue
+one. The background colour has no say. A run fed by plain redstone with no panel behind it lights
+white. The colour is not the player's to choose at the cable; it is chosen at the crafting table
+with the panel's line, and it means nothing to the wiring. It says which panel the power came
+from.
+
+Every panel's line is white until it is dyed, so a world built before the line had a colour of its
+own finds all its panel-fed cables lighting white, whatever their backgrounds. Dye the line (panel
++ dye + glow ink sac) and the run follows.
 
 | Meets | Joins? | Power flows? |
 |-------|--------|--------------|
@@ -115,7 +121,7 @@ consumes them.
   redstone in the loop (dust pressed against a one-end frame's side, a repeater) can hold it up,
   as it would any vanilla component.
 - **Touching runs merge.** Two runs that share a block face are one run, lit by either source, in
-  the colour of the lowest-placed panel lighting it. That is the bug you get for free by letting
+  the line colour of the lowest-placed panel lighting it. That is the bug you get for free by letting
   two runs meet under one stand; keep a block between them. A run ends at a frame: the cable on
   the far side of a solved frame is a new run in that frame's colour.
 - **Dust beside a cable connects both ways**, exactly as dust beside dust. Keep dust off a run you
@@ -136,6 +142,9 @@ consumes them.
 along the ground and into the next stand's base lights end to end and turns that frame On; a
 second run climbs into a frame's side and does the same. 2026-08-30: the panel-coloured glow with
 dark casing, and the ribbon geometry, signed off after the F3-guided fix to the climb plane.
+2026-09-06: cables follow the panel's line colour, seen in game: an orange panel with a white line
+lit a white run, the same panel with its line dyed yellow lit a yellow one, and three runs from
+three panels held three colours side by side.
 
 - `CableBlock`, one block (`witness:cable`), six connection flags plus `lit` and a `color`
   (`DyeColor`) block-state value, light 12 when lit (the panel face's glow; was 7 until 2026-08-30), floating.
@@ -196,10 +205,10 @@ dark casing, and the ribbon geometry, signed off after the F3-guided fix to the 
   not) and index 1 on the edges, always `UNLIT_COLOR`, the black casing beside the game's lit
   strip. Seen 2026-08-30: a lit run reads as a glowing ribbon with a dark rim, a dark run as black. The item tints
   dark through a `minecraft:constant` tint in its item definition JSON.
-- `color` is written by the same walk that sets `lit`: `sourceColor` looks through each source
-  neighbour for a `PuzzleFrameBlockEntity` and takes its panel's `backgroundColor`; plain
-  redstone counts as white, and a panel's colour wins over white. One colour per run, the first
-  source found. Unlit cables keep their last colour in state but draw dark.
+- `color` is written by the same walk that sets `lit`: `RedstoneNetwork.refresh` takes each run's
+  lit frames, lowest position first, and the first panel's `cableColor`, which is its `lineColor`
+  (`Panel.kt`; was `backgroundColor` until 2026-09-06); plain redstone counts as white. One colour
+  per run. Unlit cables keep their last colour in state but draw dark.
 - Recipe: 3 copper → 6 cables. No dye. Unlocks in the recipe book on picking up a copper ingot
   (`advancement/recipes/redstone/cable.json`, added 2026-08-30).
 - `walkNetwork` (`NetworkWalk.kt`) is the pure walk, shared with frames and stands since

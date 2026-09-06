@@ -2,6 +2,7 @@ package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.data.Panel
+import com.xfastgames.witness.items.data.cableColor
 import com.xfastgames.witness.items.data.panel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -109,7 +110,7 @@ object RedstoneNetwork {
                 .filter(::isFrame)
                 .distinct()
                 .sortedWith(compareBy({ it.y }, { it.x }, { it.z }))
-            val colour: DyeColor = litFrames.firstNotNullOfOrNull { at -> panelAt(at)?.backgroundColor } ?: DyeColor.WHITE
+            val colour: DyeColor = litFrames.firstNotNullOfOrNull { at -> panelAt(at)?.cableColor } ?: DyeColor.WHITE
             run.map { at -> at to colour }
         }.toMap()
 

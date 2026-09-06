@@ -34,7 +34,9 @@ The **line** is everything drawn in the panel's lit colour once the player start
 
 - the drawn path itself, on the frame, in the hand, and in the composer's preview;
 - the start disc the line was picked up from;
-- the tip of the line while it is being traced.
+- the tip of the line while it is being traced;
+- a cable lit by the panel's frame, which carries the line's glow on out of the panel
+  ([06](06-cable.md#colour)).
 
 It does **not** paint:
 
@@ -86,12 +88,6 @@ already has just spends the ingredients for an identical panel.
 
 ## Open questions
 
-- **Which colour should a cable take?** A cable lit by a solved frame takes the panel's
-  *background* colour today ([06](06-cable.md#colour)). In the game the light that runs out into a
-  cable is the line's glow, so the honest reading is that a cable should take the **line** colour.
-  Doing that with a white default would turn every cable in every existing world white, since no
-  panel has a line colour yet. Left on the background for now; revisit once line colours are in
-  play and it is clear whether builders reach for them.
 - **The lattice has no colour of its own.** It is a fixed dark grey whatever the background, which
   is low contrast on a black panel. In the game the lattice is usually a shade of the background.
   A derived lattice colour is a visual-only change and a separate piece of work.
@@ -131,13 +127,14 @@ either pass needs:
   `drawCircle` with it; the fixed `SOLUTION_*` floats are gone.
 
 Lattice, hexagons, squares, the attract ring and the error flash draw from their own colours and
-are untouched, as the design asks.
+are untouched, as the design asks. Cables read `Panel.cableColor`, the line colour, through the
+network walk ([06](06-cable.md)).
 
 The advanced tooltip prints both colour names: `(3x3 White Grid, Blue line)`.
 
 ## Not done
 
-- Both open questions under [Design](#open-questions): cable colour and lattice colour.
+- The lattice colour, the open question under [Design](#open-questions).
 
 ## Sources
 

@@ -662,3 +662,9 @@ fun Panel.withLineColor(color: DyeColor): Panel = when (this) {
     is Panel.Tree -> copy(lineColor = color)
     is Panel.Freeform -> copy(lineColor = color)
 }
+
+/**
+ * The colour a cable lights in when this panel's frame powers it: the line's, since the light that
+ * runs out of a solved panel into its cable is the line's glow (rules/minecraft/06-cable.md#colour).
+ */
+val Panel.cableColor: DyeColor get() = lineColor

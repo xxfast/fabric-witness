@@ -255,6 +255,12 @@ class LatticeTests {
     }
 
     @Test
+    fun `a cable takes the line colour, not the background`() {
+        val panel: Panel = Panel.Grid.ofSize(3).withBackgroundColor(DyeColor.BLACK).withLineColor(DyeColor.BLUE)
+        assertThat(panel.cableColor).isEqualTo(DyeColor.BLUE)
+    }
+
+    @Test
     fun `a panel saved without a line colour has a white line`() {
         val tag: CompoundTag = Panel.Grid.ofSize(3).withLineColor(DyeColor.BLUE).toNbt()
         tag.remove("lineColor")
