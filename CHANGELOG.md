@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Panels now have a line colour of their own: craft a panel with a dye and a glow ink sac to recolour
+  the traced line without touching the background. Existing panels keep a white line
+
 ### Changed
 
 - Puzzle panels can now be up to 10x10 cells, up from 8x8, so grids from the game fit

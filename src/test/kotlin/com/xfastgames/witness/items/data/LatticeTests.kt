@@ -4,6 +4,7 @@ import com.google.common.graph.Graphs
 import com.google.common.graph.MutableValueGraph
 import com.google.common.truth.Truth.assertThat
 import com.xfastgames.witness.utils.guava.mutableValueGraph
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.item.DyeColor
 import org.junit.jupiter.api.Test
 
@@ -239,6 +240,26 @@ class LatticeTests {
         val b: Node = requireNotNull(restored.nodeAt(1.5f, 0.5f))
         assertThat(restored.graph.hasEdgeConnecting(a, b)).isFalse()
         assertThat(restored.backgroundColor).isEqualTo(DyeColor.RED)
+    }
+
+    // rules/minecraft/02-panel-dye.md#defaults: the two colours are independent, and a panel saved
+    // before the line had a colour reads back with a white one.
+    @Test
+    fun `the line colour survives an NBT round trip on its own`() {
+        val dyed: Panel = Panel.Grid.ofSize(3).withBackgroundColor(DyeColor.BLACK).withLineColor(DyeColor.BLUE)
+
+        val restored: Panel = dyed.toNbt().toPanel()
+
+        assertThat(restored.backgroundColor).isEqualTo(DyeColor.BLACK)
+        assertThat(restored.lineColor).isEqualTo(DyeColor.BLUE)
+    }
+
+    @Test
+    fun `a panel saved without a line colour has a white line`() {
+        val tag: CompoundTag = Panel.Grid.ofSize(3).withLineColor(DyeColor.BLUE).toNbt()
+        tag.remove("lineColor")
+
+        assertThat(tag.toPanel().lineColor).isEqualTo(DyeColor.WHITE)
     }
 
     // Trees (rules/minecraft/01-1-tree-panel.md#pruning-the-grid-tab-on-a-tree). Tree_2: root,

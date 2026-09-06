@@ -33,6 +33,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.world.Container
 import net.minecraft.world.item.ItemStack
 import net.minecraft.resources.Identifier
+import net.minecraft.world.item.DyeColor
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -51,9 +52,6 @@ private const val DRAG_PADDING = 0.5f
 private const val GRAPH_RED = .25f
 private const val GRAPH_GREEN = .25f
 private const val GRAPH_BLUE = .25f
-private const val SOLUTION_RED = .95f
-private const val SOLUTION_GREEN = .95f
-private const val SOLUTION_BLUE = .9f
 /**
  * A hexagon is drawn narrower than the line it marks so the line still shows either side of it.
  * Since it draws in the panel's background colour, at full line width it would sever the line and
@@ -176,7 +174,7 @@ class WPuzzleEditor(
         if (mode == EditorMode.GRID) drawLattice(context, puzzle, ::px, ::py, lineThickness)
 
         drawGraph(context, puzzle.graph, ::px, ::py, lineThickness)
-        drawSolution(context, puzzle.line, ::px, ::py, lineThickness)
+        drawSolution(context, puzzle.line, puzzle.lineColor, ::px, ::py, lineThickness)
         // Symbols draw last, over the solution as well as the grid: a hexagon stays visible once
         // the line covers it, which is the only way a player can tell it was crossed
         // (rules/witness/04-hexagon-dots.md).
@@ -211,7 +209,9 @@ class WPuzzleEditor(
                 px(anchor.x),
                 py(anchor.y),
                 anchorDiameter,
-                solution = false,
+                GRAPH_RED,
+                GRAPH_GREEN,
+                GRAPH_BLUE,
                 alpha = ANCHOR_DOT_ALPHA
             )
         }
@@ -225,7 +225,7 @@ class WPuzzleEditor(
                     puzzle.graph.visibleEdgeCount(node) == 0
             }
             .forEach { node ->
-                drawCircle(context, px(node.x), py(node.y), lineThickness, solution = false)
+                drawCircle(context, px(node.x), py(node.y), lineThickness, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE)
             }
     }
 
@@ -240,14 +240,14 @@ class WPuzzleEditor(
             val visibleEdges: Int = graph.visibleEdgeCount(node)
             when {
                 node.modifier == Modifier.START ->
-                    drawCircle(context, px(node.x), py(node.y), lineThickness * 2, solution = false)
+                    drawCircle(context, px(node.x), py(node.y), lineThickness * 2, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE)
 
                 // Rounds off the tip of an end point's nub; its edge draws like any other.
                 node.modifier == Modifier.END ->
-                    drawCircle(context, px(node.x), py(node.y), lineThickness, solution = false)
+                    drawCircle(context, px(node.x), py(node.y), lineThickness, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE)
 
                 visibleEdges > 1 ->
-                    drawCircle(context, px(node.x), py(node.y), lineThickness, solution = false)
+                    drawCircle(context, px(node.x), py(node.y), lineThickness, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE)
 
                 visibleEdges == 1 ->
                     drawSquare(context, px(node.x), py(node.y), lineThickness, PuzzlePanelTextures.lineFill)
@@ -346,19 +346,26 @@ class WPuzzleEditor(
         circle(context, centerX, centerY, fruitRadius, .75f, .12f, .10f, 1f)
     }
 
+    /** The traced line in the panel's line [color] (rules/minecraft/02-panel-dye.md), as the frame draws it. */
     private fun drawSolution(
         context: GuiGraphicsExtractor,
         line: Graph<Node>,
+        color: DyeColor,
         px: (Float) -> Int,
         py: (Float) -> Int,
         lineThickness: Int
     ) {
+        val rgb: Int = color.getTextureDiffuseColor()
+        val red: Float = ((rgb shr 16) and 0xFF) / 255f
+        val green: Float = ((rgb shr 8) and 0xFF) / 255f
+        val blue: Float = (rgb and 0xFF) / 255f
+        val tint: Int = 0xFF000000.toInt() or (rgb and 0xFFFFFF)
         line.nodes().forEach { node ->
             val diameter: Int = if (node.modifier == Modifier.START) lineThickness * 2 else lineThickness
-            drawCircle(context, px(node.x), py(node.y), diameter, solution = true)
+            drawCircle(context, px(node.x), py(node.y), diameter, red, green, blue)
         }
         line.edges().forEach { side ->
-            drawLine(context, side, px, py, lineThickness, PuzzlePanelTextures.solutionFill)
+            drawLine(context, side, px, py, lineThickness, PuzzlePanelTextures.solutionFill, tint)
         }
     }
 
@@ -389,7 +396,8 @@ class WPuzzleEditor(
         px: (Float) -> Int,
         py: (Float) -> Int,
         thickness: Int,
-        texture: Identifier
+        texture: Identifier,
+        tint: Int = TEXTURE_COLOR
     ) {
         drawLine(
             context,
@@ -398,7 +406,8 @@ class WPuzzleEditor(
             px(side.nodeV().x).toFloat(),
             py(side.nodeV().y).toFloat(),
             thickness,
-            texture
+            texture,
+            tint
         )
     }
 
@@ -409,7 +418,8 @@ class WPuzzleEditor(
         x2: Float,
         y2: Float,
         thickness: Int,
-        texture: Identifier
+        texture: Identifier,
+        tint: Int = TEXTURE_COLOR
     ) {
         val dx: Float = x2 - x1
         val dy: Float = y2 - y1
@@ -422,7 +432,7 @@ class WPuzzleEditor(
                 length,
                 thickness,
                 texture,
-                TEXTURE_COLOR
+                tint
             )
             return
         }
@@ -434,7 +444,7 @@ class WPuzzleEditor(
                 thickness,
                 length,
                 texture,
-                TEXTURE_COLOR
+                tint
             )
             return
         }
@@ -450,7 +460,7 @@ class WPuzzleEditor(
             length,
             thickness,
             texture,
-            TEXTURE_COLOR
+            tint
         )
         matrices.popMatrix()
     }
@@ -482,12 +492,11 @@ class WPuzzleEditor(
         x: Int,
         y: Int,
         diameter: Int,
-        solution: Boolean,
+        red: Float,
+        green: Float,
+        blue: Float,
         alpha: Float = 1f
     ) {
-        val red: Float = if (solution) SOLUTION_RED else GRAPH_RED
-        val green: Float = if (solution) SOLUTION_GREEN else GRAPH_GREEN
-        val blue: Float = if (solution) SOLUTION_BLUE else GRAPH_BLUE
         val radius: Float = diameter / 2f
         val left: Int = x - diameter / 2
         val top: Int = y - diameter / 2

@@ -88,8 +88,15 @@ fun RenderContext.hexagon(
     r = r, g = g, b = b, a = a,
 )
 
-fun RenderContext.line(start: Vector3f, end: Vector3f, thickness: Float) =
-    vertexConsumer.line(entry, start, end, thickness, light, overlay)
+fun RenderContext.line(
+    start: Vector3f,
+    end: Vector3f,
+    thickness: Float,
+    r: Float = 1f,
+    g: Float = 1f,
+    b: Float = 1f,
+    a: Float = 1f,
+) = vertexConsumer.line(entry, start, end, thickness, light, overlay, r, g, b, a)
 
 fun withRenderContext(
     entry: PoseStack.Pose,

@@ -26,6 +26,7 @@ private const val KEY_HEIGHT = "height"
 private const val KEY_LINE = "line"
 private const val KEY_GRAPH = "graph"
 private const val KEY_BACKGROUND_COLOR = "backgroundColor"
+private const val KEY_LINE_COLOR = "lineColor"
 private const val KEY_PANEL_TYPE = "type"
 private const val KEY_TUTORIAL = "tutorial"
 private const val KEY_SYMBOLS = "symbols"
@@ -42,6 +43,8 @@ sealed class Panel(val type: Type) {
     abstract val tutorial: Boolean
     /** Region symbols, one per occupied cell (rules/witness/06-colored-squares.md). */
     abstract val symbols: List<CellSymbol>
+    /** The colour the traced line lights up in (rules/minecraft/02-panel-dye.md). */
+    abstract val lineColor: DyeColor
 
     abstract fun resize(length: Int): Panel
 
@@ -53,6 +56,7 @@ sealed class Panel(val type: Type) {
         override val height: Int,
         override val tutorial: Boolean = false,
         override val symbols: List<CellSymbol> = emptyList(),
+        override val lineColor: DyeColor = DyeColor.WHITE,
     ) : Panel(Type.Grid) {
 
         companion object {
@@ -235,6 +239,7 @@ sealed class Panel(val type: Type) {
         val levels: Int,
         override val tutorial: Boolean = false,
         override val symbols: List<CellSymbol> = emptyList(),
+        override val lineColor: DyeColor = DyeColor.WHITE,
     ) : Panel(Type.Tree) {
 
         companion object {
@@ -526,6 +531,7 @@ sealed class Panel(val type: Type) {
         override val height: Int,
         override val tutorial: Boolean = false,
         override val symbols: List<CellSymbol> = emptyList(),
+        override val lineColor: DyeColor = DyeColor.WHITE,
     ) : Panel(Type.Freeform) {
         override fun resize(length: Int): Freeform = TODO()
     }
@@ -576,6 +582,9 @@ fun CompoundTag.toPanel(): Panel {
     val line: Graph<Node> = getGraph(KEY_LINE)
 
     val backgroundColor: DyeColor = DyeColor.values()[getIntTolerant(KEY_BACKGROUND_COLOR)]
+    // Absent on every panel saved before the line had a colour of its own; 0 is WHITE, the colour
+    // the solution texture already was, so those panels look exactly as they did.
+    val lineColor: DyeColor = DyeColor.values()[getIntTolerant(KEY_LINE_COLOR)]
     val grid: ValueGraph<Node, Edge> = getValueGraph(KEY_GRAPH)
     // Empty on pre-flag panels; those are not tutorials.
     val tutorial: Boolean = getBooleanTolerant(KEY_TUTORIAL)
@@ -583,15 +592,15 @@ fun CompoundTag.toPanel(): Panel {
     val symbols: List<CellSymbol> = getCellSymbols(KEY_SYMBOLS)
 
     return when (type) {
-        Type.Grid -> Panel.Grid(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial, symbols)
+        Type.Grid -> Panel.Grid(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial, symbols, lineColor)
         // Trees saved before `levels` was its own field were `levels + 1` units tall.
         Type.Tree -> Panel.Tree(
             line, grid, backgroundColor,
             getIntTolerant(KEY_HEIGHT), getIntTolerant(KEY_HEIGHT),
             getIntTolerant(KEY_LEVELS, getIntTolerant(KEY_HEIGHT) - 1),
-            tutorial, symbols
+            tutorial, symbols, lineColor
         )
-        Type.Freeform -> Panel.Freeform(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial, symbols)
+        Type.Freeform -> Panel.Freeform(line, grid, backgroundColor, getIntTolerant(KEY_WIDTH), getIntTolerant(KEY_HEIGHT), tutorial, symbols, lineColor)
     }
 }
 
@@ -600,6 +609,7 @@ fun Panel.toNbt(): CompoundTag = CompoundTag().also { tag ->
     tag.putInt(KEY_PANEL_TYPE, type.ordinal)
     tag.putGraph(KEY_LINE, line)
     tag.putInt(KEY_BACKGROUND_COLOR, backgroundColor.ordinal)
+    tag.putInt(KEY_LINE_COLOR, lineColor.ordinal)
     tag.putValueGraph(KEY_GRAPH, graph)
     tag.putBoolean(KEY_TUTORIAL, tutorial)
     tag.putCellSymbols(KEY_SYMBOLS, symbols)
@@ -638,4 +648,17 @@ fun CompoundTag.getPanel(key: String): Panel? {
 
 fun CompoundTag.putPanel(key: String, panel: Panel) {
     put(key, panel.toNbt())
+}
+/** Copy with the background painted [color]; the line keeps its own (rules/minecraft/02-panel-dye.md). */
+fun Panel.withBackgroundColor(color: DyeColor): Panel = when (this) {
+    is Panel.Grid -> copy(backgroundColor = color)
+    is Panel.Tree -> copy(backgroundColor = color)
+    is Panel.Freeform -> copy(backgroundColor = color)
+}
+
+/** Copy with the line lit in [color]; the background keeps its own (rules/minecraft/02-panel-dye.md). */
+fun Panel.withLineColor(color: DyeColor): Panel = when (this) {
+    is Panel.Grid -> copy(lineColor = color)
+    is Panel.Tree -> copy(lineColor = color)
+    is Panel.Freeform -> copy(lineColor = color)
 }
