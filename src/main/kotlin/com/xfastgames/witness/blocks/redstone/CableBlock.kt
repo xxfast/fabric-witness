@@ -1,6 +1,7 @@
 package com.xfastgames.witness.blocks.redstone
 
 import com.xfastgames.witness.Witness
+import com.xfastgames.witness.items.data.litRgb
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.blockSettings
 import com.xfastgames.witness.utils.d
@@ -155,7 +156,7 @@ class CableBlock(settings: BlockBehaviour.Properties) : Block(settings) {
         override fun onClient() {
             BlockColorRegistry.register(
                 BlockTintsFactory { state, _, _, tints ->
-                    tints.add(if (state.getValue(LIT)) state.getValue(COLOR).textureDiffuseColor else UNLIT_COLOR)
+                    tints.add(if (state.getValue(LIT)) state.getValue(COLOR).litRgb else UNLIT_COLOR)
                     tints.add(UNLIT_COLOR)
                 },
                 BLOCK

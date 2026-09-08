@@ -4,6 +4,7 @@ import com.google.common.graph.EndpointPair
 import com.google.common.graph.Graph
 import com.google.common.graph.ValueGraph
 import com.xfastgames.witness.items.data.Edge
+import com.xfastgames.witness.items.data.litRgb
 import com.xfastgames.witness.items.data.Modifier
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
@@ -355,7 +356,7 @@ class WPuzzleEditor(
         py: (Float) -> Int,
         lineThickness: Int
     ) {
-        val rgb: Int = color.getTextureDiffuseColor()
+        val rgb: Int = color.litRgb
         val red: Float = ((rgb shr 16) and 0xFF) / 255f
         val green: Float = ((rgb shr 8) and 0xFF) / 255f
         val blue: Float = (rgb and 0xFF) / 255f

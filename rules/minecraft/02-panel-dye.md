@@ -46,6 +46,14 @@ It does **not** paint:
 - **coloured squares**, which carry their own dye;
 - the tutorial attract ring and the red error flash.
 
+## The lit colour
+
+A dye has two shades in the game: the muted one its wool and terracotta wear, and the bright one
+its sign text glows in. The **background** is painted, so it takes the block shade. The **line**
+glows, so it takes the text shade, the same colour a sign dyed with that dye and lit with a glow
+ink sac writes in. The Orchard's line is the hot pink of the text shade, not the pastel of pink
+wool. A cable lit by the line carries the same shade on ([06](06-cable.md#colour)).
+
 ## Defaults
 
 A fresh panel has a **white** background and a **white** line, which is what every panel has today.
@@ -116,8 +124,9 @@ unlock advancement.
 
 ## Rendering
 
-The line is drawn from a pure white texture with a vertex tint, so the dye's diffuse RGB is all
-either pass needs:
+The line is drawn from a pure white texture with a vertex tint, so one RGB is all either pass
+needs. That RGB is `DyeColor.litRgb` (`Panel.kt`), the dye's `textColor`; the backdrop and squares
+keep using `textureDiffuseColor`, the block shade ([the lit colour](#the-lit-colour)):
 
 - World and item: `PuzzlePanelRenderer.renderLine` takes the panel's `lineColor` and tints the
   node circles and edges. `VertexConsumer.line` and `RenderContext.line` gained `r, g, b, a`
@@ -128,7 +137,7 @@ either pass needs:
 
 Lattice, hexagons, squares, the attract ring and the error flash draw from their own colours and
 are untouched, as the design asks. Cables read `Panel.cableColor`, the line colour, through the
-network walk ([06](06-cable.md)).
+network walk ([06](06-cable.md)), and `CableBlock`'s lit tint is the same `litRgb`.
 
 The advanced tooltip prints both colour names: `(3x3 White Grid, Blue line)`.
 

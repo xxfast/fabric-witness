@@ -309,9 +309,10 @@ object PuzzlePanelRenderer {
             RenderTypes.text(PuzzlePanelTextures.solutionFill)
         }
 
-    /** Dye entity RGB as 0..1 floats. */
-    private fun dyeRgb(color: DyeColor): Triple<Float, Float, Float> {
-        val rgb: Int = color.getTextureDiffuseColor()
+    /** Dye block RGB as 0..1 floats: the shade the backdrop and coloured squares wear. */
+    private fun dyeRgb(color: DyeColor): Triple<Float, Float, Float> = rgbFloats(color.textureDiffuseColor)
+
+    private fun rgbFloats(rgb: Int): Triple<Float, Float, Float> {
         return Triple(
             ((rgb shr 16) and 0xFF) / 255f,
             ((rgb shr 8) and 0xFF) / 255f,
@@ -504,7 +505,7 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.011)
 
-        val (r, g, b) = dyeRgb(color)
+        val (r, g, b) = rgbFloats(color.litRgb)
         queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
             withRenderContext(entry, consumer, light, overlay) {
                 line.nodes().forEach { node ->

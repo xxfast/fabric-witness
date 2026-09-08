@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Panel lines and lit cables glow in the dye's sign-text shade rather than its wool shade, so a
+  pink line is the Orchard's hot pink instead of pastel
+
 ## [0.14.0] - 2026-09-06
 
 ### Added

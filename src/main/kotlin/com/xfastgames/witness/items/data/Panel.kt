@@ -668,3 +668,11 @@ fun Panel.withLineColor(color: DyeColor): Panel = when (this) {
  * runs out of a solved panel into its cable is the line's glow (rules/minecraft/06-cable.md#colour).
  */
 val Panel.cableColor: DyeColor get() = lineColor
+
+/**
+ * The RGB a dye glows in when it is the lit part of a panel: its line, or a cable carrying that
+ * line on. This is the dye's sign-text colour, the one the game already lights glow-ink writing
+ * in, not its block colour, which is the muted shade a wool block wears. Pink text is hot pink;
+ * pink wool is pastel (rules/minecraft/02-panel-dye.md#the-lit-colour).
+ */
+val DyeColor.litRgb: Int get() = textColor
