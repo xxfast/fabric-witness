@@ -24,6 +24,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.RegistryFriendlyByteBuf
@@ -83,6 +84,7 @@ class PuzzleFrameBlockEntity(pos: BlockPos, state: BlockState) :
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "puzzle_frame_entity")
 
         const val INVENTORY_SIZE = 1
+        private const val KEY_INPUT = "input"
 
         val ENTITY_TYPE: BlockEntityType<PuzzleFrameBlockEntity> = registerBlockEntity(IDENTIFIER) {
             FabricBlockEntityTypeBuilder
@@ -106,6 +108,14 @@ class PuzzleFrameBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     val inventory = BlockInventory(INVENTORY_SIZE, this)
+
+    /**
+     * The direction the frame's power came in from on the last network walk, none when it is a
+     * source or dark. Written by [IronPuzzleFrameBlock.write]; read by the frame's `getSignal`,
+     * which vanilla asks outside any walk (rules/minecraft/05-puzzle-frame.md, "only one place
+     * to go"). Derived state, rewritten by every walk, never an input check.
+     */
+    var inputFrom: Direction? = null
 
     override fun getContainer(state: BlockState, world: LevelAccessor, pos: BlockPos): WorldlyContainer = inventory
 
@@ -145,11 +155,13 @@ class PuzzleFrameBlockEntity(pos: BlockPos, state: BlockState) :
         super.loadAdditional(view)
         inventory.items.clear()
         ContainerHelper.loadAllItems(view, inventory.items)
+        inputFrom = view.read(KEY_INPUT, Direction.CODEC).orElse(null)
     }
 
     override fun saveAdditional(view: ValueOutput) {
         super.saveAdditional(view)
         ContainerHelper.saveAllItems(view, inventory.items)
+        view.storeNullable(KEY_INPUT, Direction.CODEC, inputFrom)
     }
 
     override fun getUpdatePacket(): Packet<ClientGamePacketListener>? =

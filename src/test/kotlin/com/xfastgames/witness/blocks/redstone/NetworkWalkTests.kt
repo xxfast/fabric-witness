@@ -23,6 +23,36 @@ class NetworkWalkTests {
     private fun decays(frames: Set<Int>): (Int, Int) -> Boolean = { from, to -> from !in frames && to !in frames }
 
     @Test
+    fun `A member knows which neighbour first fed it, and a source knows none`() {
+        val frames: Set<Int> = (0 until 4).toSet()
+        val walk = walkNetwork(
+            start = 0,
+            links = row(4),
+            feeds = feeds(frames, solved = always),
+            isSource = { it == 1 },
+            decays = decays(frames),
+        )
+
+        assertThat(walk.via).containsExactly(0, 1, 2, 1, 3, 2)
+    }
+
+    @Test
+    fun `Feeding can depend on where the feeder's own power came in`() {
+        // Frames that pass power straight through: out of the side opposite the one it came in on.
+        val frames: Set<Int> = (0 until 5).toSet()
+        val walk = walkNetwork(
+            start = 0,
+            links = row(5),
+            feedsVia = { via, from, to -> via == null || to == from + (from - via) },
+            isSource = { it == 1 },
+            decays = decays(frames),
+        )
+
+        assertThat(walk.powered.keys).containsExactly(0, 1, 2, 3, 4)
+        assertThat(walk.via[3]).isEqualTo(2)
+    }
+
+    @Test
     fun `A solved chain is powered from its head to its first unsolved frame`() {
         val frames: Set<Int> = (0 until 5).toSet()
         val walk = walkNetwork(

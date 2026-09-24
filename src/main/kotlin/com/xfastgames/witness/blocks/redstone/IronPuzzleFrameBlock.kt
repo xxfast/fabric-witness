@@ -163,7 +163,7 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
          *
          * @return whether anything changed.
          */
-        fun write(world: Level, at: BlockPos, powered: Boolean): Boolean {
+        fun write(world: Level, at: BlockPos, powered: Boolean, input: Direction? = null): Boolean {
             val state: BlockState = world.getBlockState(at)
             // Solved is sticky while powered, and only while powered: a cut resets the chain.
             val solved: Boolean = state.getValue(SOLVED) && powered
@@ -175,15 +175,22 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
                 next = next.setValue(property, joined)
             }
             if (next != state) world.setBlock(at, next, Block.UPDATE_CLIENTS)
+            val entity: BlockEntity? = world.getBlockEntity(at)
+            // The side power came in on decides the output when there is only one other place to
+            // go, and `getSignal` is asked outside a walk, so the frame keeps it.
+            val rerouted: Boolean = entity is PuzzleFrameBlockEntity && entity.inputFrom != input
+            if (rerouted && entity is PuzzleFrameBlockEntity) {
+                entity.inputFrom = input
+                entity.setChanged()
+            }
             // Losing Solved also loses the line: the panel goes back to a puzzle, not a display
             // of an answer it no longer gets credit for.
-            val entity: BlockEntity? = world.getBlockEntity(at)
             if (state.getValue(SOLVED) && !solved && entity is PuzzleFrameBlockEntity) {
                 val stack: ItemStack = entity.inventory.getItem(0)
                 stack.panel?.let { drawn -> entity.inventory.setItem(0, stack.copy().apply { panel = drawn.withLine(emptyGraph()) }) }
                 entity.sync()
             }
-            return next != state
+            return next != state || rerouted
         }
 
         /** The world direction out of [side] of a frame that faces [facing]; see [connections]. */
@@ -211,27 +218,44 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
             }
         }
 
+        /** The panel side of a frame facing [facing] that [direction] leaves by; none for its front and back. */
+        fun sideOf(facing: Direction, direction: Direction): Side? =
+            Side.entries.firstOrNull { side -> sideDirection(facing, side) == direction }
+
+        /** The bracket sides of the frame at [pos] holding a frame or a cable: the places its power can go. */
+        fun neighbourSides(world: BlockGetter, pos: BlockPos, facing: Direction): Set<Side> =
+            Side.entries.filter { side ->
+                val block: Block = world.getBlockState(pos.relative(sideDirection(facing, side))).block
+                block is IronPuzzleFrameBlock || block is CableBlock
+            }.toSet()
+
         /**
          * Whether the solved frame at [from] sends chain power to the joined frame at [to]
          * (rules/minecraft/05-puzzle-frame.md, "where the power goes"): every joined frame when its
-         * [panel] has a single end, otherwise only the frame its used nub points at. Each frame
+         * [panel] has a single end, otherwise the frame on its [outputDirections]. Each frame
          * resolves its own sides with its own facing, so two frames facing different ways still join.
          */
-        fun feedsFrame(state: BlockState, panel: Panel?, from: BlockPos, to: BlockPos): Boolean {
+        fun feedsFrame(world: BlockGetter, state: BlockState, panel: Panel?, from: BlockPos, to: BlockPos, input: Direction?): Boolean {
             if (panel?.hasSingleEnd() == true) return true
-            val facing: Direction = state.getValue(HORIZONTAL_FACING)
-            return state.getValue(EXIT).sides.any { exit -> from.relative(sideDirection(facing, exit)) == to }
+            return to in outputDirections(world, from, state, panel, input).map(from::relative)
         }
 
         /**
-         * World directions a solved frame puts its redstone signal out of: all four bracket sides
-         * for a panel with a single end, the way the game's cable leaves a panel on whichever side
-         * the room needs; the used nub's side(s) for a panel with a choice of ends. Empty unsolved.
+         * World directions a solved frame puts its redstone signal out of ([outputSides]): all
+         * four bracket sides for a panel with a single end, the way the game's cable leaves a
+         * panel on whichever side the room needs; for a choice of ends, the one frame or cable
+         * beside it once [input] (the direction its power came in from) is left out, else the
+         * used nub's side(s). Empty unsolved.
          */
-        fun outputDirections(state: BlockState, panel: Panel?): Set<Direction> {
+        fun outputDirections(world: BlockGetter, pos: BlockPos, state: BlockState, panel: Panel?, input: Direction?): Set<Direction> {
             if (!state.getValue(SOLVED)) return emptySet()
             val facing: Direction = state.getValue(HORIZONTAL_FACING)
-            val sides: Collection<Side> = if (panel?.hasSingleEnd() == true) Side.entries else state.getValue(EXIT).sides
+            val sides: Set<Side> = outputSides(
+                singleEnd = panel?.hasSingleEnd() == true,
+                exit = state.getValue(EXIT).sides,
+                neighbours = neighbourSides(world, pos, facing),
+                input = input?.let { direction -> sideOf(facing, direction) },
+            )
             return sides.map { side -> sideDirection(facing, side) }.toSet()
         }
 
@@ -325,8 +349,9 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
     override fun isSignalSource(state: BlockState): Boolean = true
 
     override fun getSignal(state: BlockState, world: BlockGetter, pos: BlockPos, direction: Direction): Int {
-        val panel: Panel? = (world.getBlockEntity(pos) as? PuzzleFrameBlockEntity)?.inventory?.items?.get(0)?.panel
-        return if (direction.opposite in outputDirections(state, panel)) SOLVED_SIGNAL else 0
+        val entity: PuzzleFrameBlockEntity = world.getBlockEntity(pos) as? PuzzleFrameBlockEntity ?: return 0
+        val panel: Panel? = entity.inventory.items[0].panel
+        return if (direction.opposite in outputDirections(world, pos, state, panel, entity.inputFrom)) SOLVED_SIGNAL else 0
     }
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL

@@ -17,13 +17,19 @@ package com.xfastgames.witness.blocks.redstone
  * *after* that frame, so cutting the frame's own source darkens both. That is what removes the
  * latches a neighbour-update model cannot avoid.
  *
- * @return every member of the component, and for each powered member the member whose power it
- * carries: the source itself, or the last frame or stand the power passed through.
+ * [feeds] may depend on where [from]'s own power came in: [feedsVia] is handed the member that
+ * first fed [from] (none for a source), for the frame rule that leaves the input side out of its
+ * neighbour count. Pass one or the other.
+ *
+ * @return every member of the component, for each powered member the member whose power it
+ * carries (the source itself, or the last frame or stand the power passed through), and the
+ * neighbour it was first fed by.
  */
 fun <T> walkNetwork(
     start: T,
     links: (T) -> List<T>,
-    feeds: (from: T, to: T) -> Boolean,
+    feeds: (from: T, to: T) -> Boolean = { _, _ -> true },
+    feedsVia: (via: T?, from: T, to: T) -> Boolean = { _, from, to -> feeds(from, to) },
     isSource: (T) -> Boolean,
     canHold: (T) -> Boolean = { true },
     decays: (from: T, to: T) -> Boolean,
@@ -43,6 +49,7 @@ fun <T> walkNetwork(
     val sources: List<T> = component.filter { at -> canHold(at) && isSource(at) }.sortedWith(order)
     val distance: MutableMap<T, Int> = linkedMapOf()
     val origin: MutableMap<T, T> = linkedMapOf()
+    val via: MutableMap<T, T> = linkedMapOf()
     // Shortest "steps since the last reset" first, then arrival order, so a member is settled at
     // its best distance before anything further along is looked at and ties never depend on the
     // start. A reset link hands out distance 0, so this is not a plain breadth-first ring.
@@ -57,7 +64,7 @@ fun <T> walkNetwork(
         val (at: Int, _, from: T) = spread.poll()
         if (distance[from] != at) continue
         links(from).forEach { to ->
-            if (to !in component || !canHold(to) || !feeds(from, to)) return@forEach
+            if (to !in component || !canHold(to) || !feedsVia(via[from], from, to)) return@forEach
             val resets: Boolean = !decays(from, to)
             val next: Int = if (resets) 0 else at + 1
             if (next > maxDistance) return@forEach
@@ -66,12 +73,18 @@ fun <T> walkNetwork(
             distance[to] = next
             // First arrival names the origin: a one-end frame also emits back into the cable that
             // feeds it, and that must not recolour the input run as the frame's own output.
-            if (to !in origin) origin[to] = if (resets) from else origin.getValue(from)
+            if (to !in origin) {
+                origin[to] = if (resets) from else origin.getValue(from)
+                via[to] = from
+            }
             spread.add(Triple(next, arrivals++, to))
         }
     }
-    return NetworkWalk(component, origin)
+    return NetworkWalk(component, origin, via)
 }
 
-/** [powered] maps each powered member to the source, frame or stand its power comes from. */
-data class NetworkWalk<T>(val component: Set<T>, val powered: Map<T, T>)
+/**
+ * [powered] maps each powered member to the source, frame or stand its power comes from; [via]
+ * maps each member fed by another to the neighbour that first fed it (sources have none).
+ */
+data class NetworkWalk<T>(val component: Set<T>, val powered: Map<T, T>, val via: Map<T, T> = emptyMap())

@@ -72,13 +72,17 @@ object RedstoneNetwork {
             else -> emptyList()
         }
 
-        fun feeds(from: BlockPos, to: BlockPos): Boolean = when {
+        /** The direction out of [at] towards the member that fed it, if any. */
+        fun inputOf(at: BlockPos, via: BlockPos?): Direction? =
+            via?.let { from -> Direction.entries.firstOrNull { direction -> at.relative(direction) == from } }
+
+        fun feeds(via: BlockPos?, from: BlockPos, to: BlockPos): Boolean = when {
             isCable(from) -> !isFrame(to) || IronPuzzleFrameBlock.takesInputFrom(stateAt(to), panelAt(to), from, to)
             isStand(from) -> isFrame(to)
             isFrame(from) -> when {
                 !stateAt(from).getValue(IronPuzzleFrameBlock.SOLVED) -> false
-                isFrame(to) -> IronPuzzleFrameBlock.feedsFrame(stateAt(from), panelAt(from), from, to)
-                isCable(to) -> to in IronPuzzleFrameBlock.outputDirections(stateAt(from), panelAt(from)).map(from::relative)
+                isFrame(to) -> IronPuzzleFrameBlock.feedsFrame(world, stateAt(from), panelAt(from), from, to, inputOf(from, via))
+                isCable(to) -> to in IronPuzzleFrameBlock.outputDirections(world, from, stateAt(from), panelAt(from), inputOf(from, via)).map(from::relative)
                 else -> false
             }
             else -> false
@@ -94,7 +98,7 @@ object RedstoneNetwork {
         val walk: NetworkWalk<BlockPos> = walkNetwork(
             start = pos.immutable(),
             links = ::links,
-            feeds = ::feeds,
+            feedsVia = ::feeds,
             isSource = ::isSource,
             canHold = { at -> !isFrame(at) || panelAt(at) != null },
             decays = { from, to -> isCable(from) && isCable(to) },
@@ -122,7 +126,7 @@ object RedstoneNetwork {
         walk.component.forEach { at ->
             val powered: Boolean = at in walk.powered
             when {
-                isFrame(at) -> if (IronPuzzleFrameBlock.write(world, at, powered)) written += at
+                isFrame(at) -> if (IronPuzzleFrameBlock.write(world, at, powered, if (powered) inputOf(at, walk.via[at]) else null)) written += at
                 isStand(at) -> if (IronStandBlock.write(world, at, powered)) written += at
             }
         }

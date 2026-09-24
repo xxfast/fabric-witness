@@ -38,7 +38,8 @@ frames holds itself up.
   side flat instead: a ribbon cannot do both without a twist, and the floor comes first.
 - **Sources:** any vanilla redstone signal into the cable (dust, lever, torch, repeater), and a
   solved frame's output sides ([05](05-puzzle-frame.md)): the used nub's side for a panel with a
-  choice of ends, all four bracket sides for a panel with one end. A cable on any other side of
+  choice of ends, or the lone cable or frame beside it when there is only one place to go, all
+  four bracket sides for a panel with one end. A cable on any other side of
   a frame feeds the frame instead. A stand is fed by a cable directly underneath it and feeds the
   frame on it; it never feeds a cable.
 - **Outputs:** a lit run gives strength 15 to every block it joins that is not itself a cable: a

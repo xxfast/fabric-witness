@@ -211,9 +211,11 @@ could land.
   unreachable, but it is not how the Orchard's damage looks.
 - **Routing.** Every tip sits on the top border, so tip ends point up. A tree with one end feeds
   every joined frame like any one-end panel; a tree with a choice of tips feeds the frame the used
-  tip points at ([05](05-puzzle-frame.md#where-the-power-goes)). The two outermost tips are
-  corners and can be squared off left or right at the composer, which makes a tree a left/right
-  selector in a frame chain.
+  tip points at ([05](05-puzzle-frame.md#where-the-power-goes)). On a post with one cable
+  beside it, the Orchard build, the tips point up and the cable still lights: with only one place
+  to go a solved frame powers it whatever the nub says ([05](05-puzzle-frame.md), built and
+  seen in game 2026-09-24). The two outermost tips are corners and can be squared off left or
+  right at the composer, which makes a tree a left/right selector in a frame chain.
 - **Upside down works.** The root sits on the bottom border, so it can take a downward end. Starts
   on the tips and the end on the root is a legal panel, traced downward.
 
