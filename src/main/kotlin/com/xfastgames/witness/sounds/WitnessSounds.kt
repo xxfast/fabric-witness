@@ -4,6 +4,8 @@ import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.registerSound
 import net.minecraft.world.entity.player.Player
 import net.minecraft.sounds.SoundEvent
+import com.xfastgames.witness.blocks.redstone.ScreenPuzzleFrameBlock
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.resources.Identifier
 import kotlin.math.pow
 import kotlin.random.Random
@@ -39,28 +41,49 @@ fun Player.play(sound: WitnessSound, volumeScale: Float = 1f) =
  * chime shouldn't attenuate with distance. The per-surface reverb variants shipped alongside these
  * (`crt_`, `defaultverb_`, `glassverb_`) need an acoustic zone concept and aren't wired up yet.
  */
-object WitnessSounds {
-    val PANEL_START_TRACING = WitnessSound("panel_start_tracing", volume = .4f)
-    val PANEL_FINISH_TRACING = WitnessSound("panel_finish_tracing", volume = .2f)
-    val PANEL_ABORT_TRACING = WitnessSound("panel_abort_tracing", volume = .4f)
-    val PANEL_ABORT_FINISH_TRACING = WitnessSound("panel_abort_finish_tracing", volume = .3f)
+/**
+ * The nine panel cues as one surface plays them (`assets/witness/sounds/USAGE.md`, "Variants by
+ * surface"): [zone] null is the base set every panel uses, `"crt"` the tube treatment a screen frame
+ * plays (rules/minecraft/05-1-screen-frame.md). The name is composed as `<zone>_panel_<event>`, the
+ * way the original composes it, so a new surface is one more instance and its files.
+ */
+class PanelCues(private val zone: String?) {
+    private fun name(event: String): String = if (zone == null) "panel_$event" else "${zone}_panel_$event"
 
-    /** PitchDirection jittered per play so hovering a lattice of nodes doesn't get grating. */
-    val PANEL_SCINT_STARTPOINT = WitnessSound("panel_scint_startpoint", volume = .12f, pitchJitter = .9f)
-    val PANEL_SCINT_ENDPOINT = WitnessSound("panel_scint_endpoint", volume = .15f, pitchJitter = .9f)
+    val START_TRACING = WitnessSound(name("start_tracing"), volume = .4f)
+    val FINISH_TRACING = WitnessSound(name("finish_tracing"), volume = .2f)
+    val ABORT_TRACING = WitnessSound(name("abort_tracing"), volume = .4f)
+    val ABORT_FINISH_TRACING = WitnessSound(name("abort_finish_tracing"), volume = .3f)
 
-    val PANEL_PATH_COMPLETE = WitnessSound("panel_path_complete", volume = .15f)
+    /** Pitch jittered per play so hovering a lattice of nodes doesn't get grating. */
+    val SCINT_STARTPOINT = WitnessSound(name("scint_startpoint"), volume = .12f, pitchJitter = .9f)
+    val SCINT_ENDPOINT = WitnessSound(name("scint_endpoint"), volume = .15f, pitchJitter = .9f)
 
     /**
      * Registered but not played yet: this is the interim warning for a rule that fails visibly
      * mid-trace, which is eliminators (rules/witness/11-eliminators.md), not a guess at whether
      * the finished path would validate.
      */
-    val PANEL_POTENTIAL_FAILURE = WitnessSound("panel_potential_failure", volume = .4f)
+    val POTENTIAL_FAILURE = WitnessSound(name("potential_failure"), volume = .4f)
 
-    /** Four alternates behind the one event, picked at random by `sounds.json`. */
-    val PANEL_SUCCESS = WitnessSound("panel_success", volume = .3f)
-    val PANEL_FAILURE = WitnessSound("panel_failure", volume = .3f)
+    /** The base set has four alternates behind the one event, picked at random by `sounds.json`. */
+    val SUCCESS = WitnessSound(name("success"), volume = .3f)
+    val FAILURE = WitnessSound(name("failure"), volume = .3f)
+}
+
+object WitnessSounds {
+    /** The cues every panel plays. */
+    val PANEL = PanelCues(zone = null)
+
+    /** The cues a screen frame plays: the same nine events through a tube (rules/minecraft/05-1-screen-frame.md). */
+    val CRT_PANEL = PanelCues(zone = "crt")
+
+    /** Which set the panel in a frame of [state]'s kind plays. */
+    fun panelCues(state: BlockState): PanelCues =
+        if (state.block is ScreenPuzzleFrameBlock) CRT_PANEL else PANEL
+
+    /** Outside the per-surface scheme: the same chirp on every frame (`USAGE.md`, "Variants by surface"). */
+    val PANEL_PATH_COMPLETE = WitnessSound("panel_path_complete", volume = .15f)
 
     val POINTLESS_CLICK = WitnessSound("pointless_click", volume = .3f)
 

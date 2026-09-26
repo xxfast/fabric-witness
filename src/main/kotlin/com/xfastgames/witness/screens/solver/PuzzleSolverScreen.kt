@@ -12,6 +12,7 @@ import com.xfastgames.witness.items.renderer.PanelAttractPulse
 import com.xfastgames.witness.items.renderer.PanelErrorFlash
 import com.xfastgames.witness.sounds.LoopingSoundInstance
 import com.xfastgames.witness.sounds.WitnessSound
+import com.xfastgames.witness.sounds.PanelCues
 import com.xfastgames.witness.sounds.WitnessSounds
 import com.xfastgames.witness.sounds.play
 import com.xfastgames.witness.utils.*
@@ -201,7 +202,7 @@ class PuzzleSolverScreen(
             (SCINT_STARTPOINT_MAX_PINGS - startPointHintCount).toFloat() / SCINT_STARTPOINT_MAX_PINGS
         startPointHintCount++
         lastStartPointHintMillis = now
-        minecraft?.player?.play(WitnessSounds.PANEL_SCINT_STARTPOINT, volumeScale)
+        minecraft?.player?.play(WitnessSounds.panelCues(entity.blockState).SCINT_STARTPOINT, volumeScale)
         PanelAttractPulse.triggerStart(focusPos, volumeScale)
     }
 
@@ -220,7 +221,7 @@ class PuzzleSolverScreen(
         if (!puzzle.tutorial) return
         if (puzzle.graph.nodes().none { node -> node.modifier == Modifier.END }) return
         lastEndPointHintMillis = now
-        minecraft?.player?.play(WitnessSounds.PANEL_SCINT_ENDPOINT)
+        minecraft?.player?.play(WitnessSounds.panelCues(blockEntity.blockState).SCINT_ENDPOINT)
         // Trace owner is always the focus frame once a line is started.
         PanelAttractPulse.triggerEnd(blockEntity.blockPos.immutable())
     }
@@ -336,7 +337,7 @@ class PuzzleSolverScreen(
         }
 
         if (overNode != null) {
-            player.play(WitnessSounds.PANEL_START_TRACING)
+            player.play(WitnessSounds.panelCues(blockEntity.blockState).START_TRACING)
             startTracingAmbience()
             startedBlockEntity = blockEntity
             // Cues follow the frame the line is on, even if focus was opened on a neighbour.
@@ -378,6 +379,8 @@ class PuzzleSolverScreen(
         val blockEntity: PuzzleFrameBlockEntity = startedBlockEntity ?: return stopTracing()
         val puzzle: Panel = blockEntity.inventory.getItem(0).panel ?: return stopTracing()
         val line: Graph<Node> = solver.submit(puzzle) ?: return stopTracing()
+        // The cues follow the frame the line is on: a screen frame plays the tube set.
+        val cues: PanelCues = WitnessSounds.panelCues(blockEntity.blockState)
         updateLine(blockEntity, puzzle, line)
         val verdict: PuzzleSolverData = solver.state.value
         // The server judges the same path again before the frame, or anything downstream of it,
@@ -387,20 +390,20 @@ class PuzzleSolverScreen(
         }
         when (verdict) {
             is PuzzleSolverData.SolutionAccepted -> {
-                player.play(WitnessSounds.PANEL_FINISH_TRACING)
-                player.play(WitnessSounds.PANEL_SUCCESS)
+                player.play(cues.FINISH_TRACING)
+                player.play(cues.SUCCESS)
             }
 
             is PuzzleSolverData.SolutionRejected -> {
-                player.play(WitnessSounds.PANEL_FINISH_TRACING)
-                player.play(WitnessSounds.PANEL_FAILURE)
+                player.play(cues.FINISH_TRACING)
+                player.play(cues.FAILURE)
                 // Tutorial only: flash the failed symbols on this frame, not every panel nearby.
                 if (puzzle.tutorial && verdict.failedMarks.isNotEmpty()) {
                     PanelErrorFlash.trigger(blockEntity.blockPos.immutable(), verdict.failedMarks)
                 }
             }
 
-            else -> player.play(WitnessSounds.PANEL_ABORT_TRACING)
+            else -> player.play(cues.ABORT_TRACING)
         }
         // The verdict stays on the solver's state; only the screen's tracing state is dropped.
         releaseTracing()
@@ -409,9 +412,10 @@ class PuzzleSolverScreen(
     /** Throws away a trace in progress: cancelling on the end point has its own cue. */
     private fun stopTracing() {
         if (solver.isSolving) {
+            val cues: PanelCues = startedBlockEntity?.let { frame -> WitnessSounds.panelCues(frame.blockState) } ?: WitnessSounds.PANEL
             val cue: WitnessSound =
-                if (solver.isAtFinish) WitnessSounds.PANEL_ABORT_FINISH_TRACING
-                else WitnessSounds.PANEL_ABORT_TRACING
+                if (solver.isAtFinish) cues.ABORT_FINISH_TRACING
+                else cues.ABORT_TRACING
             minecraft?.player?.play(cue)
         }
         solver.stopTrace()

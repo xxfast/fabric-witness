@@ -94,6 +94,17 @@ No new state, no new light level. The alternative for Off, pure black glass with
 is the more faithful television but breaks 05's rule that an unpowered frame is inert, not hidden;
 it is listed under the open questions rather than taken.
 
+## Sound
+
+A screen frame sounds like a tube. Every panel cue the solver plays, from picking up the start to
+the solve chime or the failure buzz, has a CRT treatment on a screen frame: the same event, heard
+through the set. That is how the original does it: a handful of surfaces each colour the one set of
+nine cues, and the shed's screens are the CRT surface. The exception is the chirp when the line
+reaches an exit, which is the same on every frame in the original and stays so here.
+
+Nothing else about the block sounds different: placing, breaking, putting a panel in and taking it
+out are the iron frame's sounds, and the dull click on an unpowered screen is the same click.
+
 ## Cost
 
 A screen frame is an iron frame with a screen in front of it:
@@ -195,6 +206,18 @@ Defaults taken in this slice without an explicit answer, each bounceable:
 - **The solver's hit test** inverts the same scale through `PuzzleFrameBlockRenderer.faceScale(state)`
   in both `projectPanelPosition` and `toPanelCoordinate`. Before this the 0.85 was a constant in
   three places.
+
+## How the sound is chosen
+
+`PanelCues` (`sounds/WitnessSounds.kt`) is the nine panel events for one surface, named
+`<zone>_panel_<event>` the way the original composes them; `WitnessSounds.PANEL` is the base set and
+`WitnessSounds.CRT_PANEL` the `crt_` files that had been sitting in `assets/witness/sounds`
+unregistered since the sound import. `WitnessSounds.panelCues(state)` picks the set off the frame's
+block class, and every cue call in `PuzzleSolverScreen` goes through it, keyed to the frame the line
+is on. `PANEL_PATH_COMPLETE` stays a single base cue outside the scheme.
+
+The `defaultverb_` and `glassverb_` sets are still unwired: they are acoustic zones, not surfaces,
+and there is no zone concept (`assets/witness/sounds/USAGE.md`).
 
 ## How the glass is drawn
 
