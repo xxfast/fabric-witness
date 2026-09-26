@@ -5,7 +5,7 @@ import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.entities.SubmitSolutionPayload
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer.Companion.PUZZLE_FRAME_SCALE
+import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer
 import com.xfastgames.witness.items.PuzzlePanelItem
 import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.items.renderer.PanelAttractPulse
@@ -264,7 +264,7 @@ class PuzzleSolverScreen(
      * cursor, or failing that whichever one the click landed dead on.
      *
      * Hit testing in panel units alone shrinks the target as the grid grows. A frame is always
-     * `PUZZLE_FRAME_SCALE` wide however many cells it holds, so one panel unit is `1 / scale` of it
+     * its face scale wide however many cells it holds, so one panel unit is `1 / scale` of it
      * and a 9x9's start dot is half the size of a 4x4's. Measuring against the projected dot instead
      * (the exact inverse of the raycast that produced this click) keeps the grab the same size on
      * screen at any grid size and any viewing distance.
@@ -519,8 +519,9 @@ class PuzzleSolverScreen(
         panelY: Float
     ): MousePosition? {
         val scale: Int = maxOf(puzzle.width, puzzle.height)
-        val blockX: Double = 0.5 + PUZZLE_FRAME_SCALE * (panelX / scale - 0.5)
-        val blockY: Double = 0.5 + PUZZLE_FRAME_SCALE * (panelY / scale - 0.5)
+        val faceScale: Float = PuzzleFrameBlockRenderer.faceScale(blockEntity.blockState)
+        val blockX: Double = 0.5 + faceScale * (panelX / scale - 0.5)
+        val blockY: Double = 0.5 + faceScale * (panelY / scale - 0.5)
         val facing: Direction = blockEntity.blockState.getValue(BlockStateProperties.HORIZONTAL_FACING)
         val localPosition: Vec3 = when (facing) {
             Direction.EAST ->
@@ -549,8 +550,8 @@ class PuzzleSolverScreen(
         )
     }
 
-    private fun toPanelCoordinate(blockHit: Double, scale: Int): Float =
-        (scale * ((blockHit - 0.5) / PUZZLE_FRAME_SCALE + 0.5)).toFloat()
+    private fun toPanelCoordinate(blockHit: Double, scale: Int, faceScale: Float): Float =
+        (scale * ((blockHit - 0.5) / faceScale + 0.5)).toFloat()
             .coerceIn(0f, scale.toFloat())
 
     private fun rayCastAtPanel(
@@ -684,10 +685,11 @@ class PuzzleSolverScreen(
 
         val scale: Int = maxOf(puzzlePanel.width, puzzlePanel.height)
 
-        // Inverse of [projectPanelPosition]: the panel is drawn centred on the block face at
-        // PUZZLE_FRAME_SCALE, so block = 0.5 + PUZZLE_FRAME_SCALE * (panel / scale - 0.5).
-        val clampedClickX: Float = toPanelCoordinate(blockHitX, scale)
-        val clampedClickY: Float = toPanelCoordinate(blockHitY, scale)
+        // Inverse of [projectPanelPosition]: the panel is drawn centred on the block face at the
+        // frame's face scale, so block = 0.5 + faceScale * (panel / scale - 0.5).
+        val faceScale: Float = PuzzleFrameBlockRenderer.faceScale(blockState)
+        val clampedClickX: Float = toPanelCoordinate(blockHitX, scale, faceScale)
+        val clampedClickY: Float = toPanelCoordinate(blockHitY, scale, faceScale)
 
         val position: Pair<Float, Float> = clampedClickX to clampedClickY
 

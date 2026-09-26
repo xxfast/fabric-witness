@@ -6,6 +6,7 @@ import com.xfastgames.witness.blocks.redstone.CableBlock
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.blocks.redstone.IronStandBlock
 import com.xfastgames.witness.blocks.redstone.PuzzleComposerBlock
+import com.xfastgames.witness.blocks.redstone.ScreenPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.AncientPuzzleTablet
@@ -52,6 +53,7 @@ class Witness : ModInitializer {
             PinkCedarLeaves.BLOCK,
             CedarLog.BLOCK,
             IronPuzzleFrameBlock.BLOCK,
+            ScreenPuzzleFrameBlock.BLOCK,
             PuzzleComposerBlock.BLOCK,
             IronStandBlock.BLOCK,
             CableBlock.BLOCK
@@ -86,6 +88,7 @@ class Witness : ModInitializer {
         val REDSTONE_ITEMS: List<Item> = listOf(
             StainedStoneBricksButton.BLOCK_ITEM,
             IronPuzzleFrameBlock.BLOCK_ITEM,
+            ScreenPuzzleFrameBlock.BLOCK_ITEM,
             PuzzleComposerBlock.BLOCK_ITEM,
             IronStandBlock.BLOCK_ITEM,
             CableBlock.BLOCK_ITEM,
