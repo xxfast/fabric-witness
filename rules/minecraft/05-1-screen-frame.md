@@ -94,6 +94,41 @@ No new state, no new light level. The alternative for Off, pure black glass with
 is the more faithful television but breaks 05's rule that an unpowered frame is inert, not hidden;
 it is listed under the open questions rather than taken.
 
+## The picture
+
+A lit tube is a picture on a television, and it has three marks of one. None of them is in the
+shed shot: the shed's tube is clean, its lattice straight. They are a stylisation the mod adds on
+top of the original, and each is subtle enough that the puzzle reads exactly as before.
+
+| Mark | What the player sees | How much |
+|------|----------------------|----------|
+| **Scanlines** | Fine horizontal dark bands across everything inside the tube: the tube, the lattice, the line, the symbols | Two bands per block pixel; the darkest part of a band is 12.5% darker than the picture (25% as designed, halved on sight, 2026-09-27) |
+| **Curve** | The tube's edges bow outwards and everything drawn near them bows with them; the centre is untouched | The middle of each edge sits 2% of the tube's side further out than a flat tube's |
+| **Static** | A faint grain of flickering specks over the tube, lighter and darker than the picture, never still | Specks a quarter of a block pixel across, changing every tick, at most 2% off the picture (8% as designed, halved twice on sight, 2026-09-27) |
+
+Scanlines and static are part of the picture, so they cover the tube and everything on it and stop
+at the tube's edge: the black glass round it has none. The curve is part of the glass, so the
+tube's outline and everything inside it bow together.
+
+By state:
+
+| State | Scanlines | Curve | Static |
+|-------|-----------|-------|--------|
+| **Off** | none | yes | none |
+| **On** | yes | yes | yes |
+| **Solved** | yes | yes | yes |
+
+A set that is off has no picture, so it has no scanlines and no static, only the shape of its
+glass. Nothing about the picture changes when the line is traced or the puzzle is solved.
+
+Up close the bands and the grain are plain to see. Further away they fade out before they are
+smaller than a pixel on the player's screen, so a row of sets at the end of a corridor reads as
+flat green rather than shimmering.
+
+**With a shader pack on**, the scanlines and the static are left off and the tube draws as it
+does without this section. The curve stays. Shader packs repaint the world their own way, and a
+picture effect drawn under one is as likely to break as to show.
+
 ## Sound
 
 A screen frame sounds like a tube. Every panel cue the solver plays, from picking up the start to
@@ -146,7 +181,15 @@ the tablets the iron frames already cost, and that is the intended path.
   ([04](../witness/04-hexagon-dots.md)); on a tube that is a notch of tube colour in a darker-tube
   lattice, which is closer to the game than the notch-in-grey it is today, and untested.
 - **Symbols and squares are unchanged.** They carry their own colours and draw inside the lattice
-  as before.
+  as before, under the same scanlines, curve and static as everything else on the tube.
+- **The curve moves what the player aims at, not what the click hits.** A start disc near a corner
+  is drawn up to a quarter of a block pixel further out than where a click picks it up. On a small
+  panel that is a fraction of the disc (a 2×2 panel's disc is about a block pixel across); on a
+  10×10 it is about the disc's whole radius, so corner starts on big panels get fiddly. Same trade
+  as the 15% shrink: the screen frame is for small puzzles.
+- **Static is not a signal.** It never means anything: it does not get worse on a wrong trace, it
+  does not clear on a solve. A player who reads it as feedback is wrong, and the puzzle's own cues
+  (sound, the error flash) are unchanged.
 
 ## Open questions
 
@@ -164,6 +207,12 @@ the tablets the iron frames already cost, and that is the intended path.
   backdrop, and pick the dye by eye.
 - **Screen frame in a mixed row** draws two housings. Acceptable, or should a screen frame's rail
   reach across to an iron frame? Recommended: leave it.
+- **A static burst on power-on or on a failed trace.** A television snaps on through a moment of
+  snow. It would be a cue, and cues on this frame are sound today. Not taken with the picture
+  (2026-09-27); the steady grain shipped alone.
+
+Settled 2026-09-27: "edge distortion" means the curve, not colour fringing; and the picture is a
+deliberate departure from the shed's clean tube and straight lattice.
 
 ---
 
@@ -186,6 +235,12 @@ Defaults taken in this slice without an explicit answer, each bounceable:
 - Off keeps 05's dim-but-readable rule, drawn with the same brightness as an unlit iron frame.
 - Glass pane recipe, no reverse craft. No anchor bar. Tube fills the glass at the measured
   proportions.
+
+**[The picture](#the-picture) built 2026-09-27 and signed off on sight the same day**, in game with
+the shader pack off: scanlines, curve and static on a row of three lit 4×4 screens, the static and
+the scanlines each turned down on sight from the designed numbers. Not checked: a screen under a
+shader pack (should show the curve only), an unpowered screen, the distance fade, a corner start on
+a big panel, and the Vulkan backend (the dev run is OpenGL).
 
 ## How it is built
 
@@ -221,7 +276,8 @@ and there is no zone concept (`assets/witness/sounds/USAGE.md`).
 
 ## How the glass is drawn
 
-All flat opaque quads on the `text` layer at the frame's constant lightmap, like every other pass.
+All flat opaque quads at the frame's constant lightmap, like every other pass: the glass on the
+`text` layer, everything from the tube inwards on the face's layer ([below](#how-the-picture-is-drawn)).
 Nothing translucent (the depth-test note in `PuzzlePanelRenderer` still stands) and nothing
 fullbright (shader packs bloom it).
 
@@ -232,12 +288,37 @@ fullbright (shader packs bloom it).
 | lattice | -.01 | the existing graph pass, but on the backdrop texture at shade 0.5 (`Lattice.onTube`) |
 | line, symbols, flash | -.011 .. | unchanged |
 
-The fall-off is what stands in for the CRT's curve: no geometry is bowed. Unlit, the tube and the
-lattice both take the unlit brightness (0.35) so the lattice stays at half the tube.
+The fall-off shades the tube as if curved; the geometry's bow is the picture's curve, below. Unlit,
+the tube and the lattice both take the unlit brightness (0.35) so the lattice stays at half the tube.
 
 `RenderContext` gained a `shade` (default 1) that every primitive's `r`/`g`/`b` default to, which is
 how one lattice pass draws grey on the iron frame and tinted backdrop on the screen without touching
 the node and edge drawing code.
+
+## How the picture is drawn
+
+`PuzzlePanelRenderer.Face` is what every pass from the tube inwards (tube, lattice, line, symbols,
+squares, the opaque cues) draws through: a render type per texture, and a curve. `Face.FLAT` is the
+`text` layer and no curve, which every other panel uses; `Face.screen(lit)` is a screen frame's.
+
+- **Scanlines and static are a shader.** `CrtScreen.layer(texture)` is vanilla's world `text`
+  pipeline rebuilt from its public parts with the shader swapped for
+  `assets/witness/shaders/core/crt_screen.{vsh,fsh}`; the pipeline compiles on first use, nothing
+  registers it. The fragment shader multiplies in a cosine band (`SCANLINES_PER_BLOCK` 32,
+  `SCANLINE_DEPTH` 0.125) and a hashed speck per 1/64 block per tick (`STATIC_STRENGTH` 0.02), each
+  faded out by `fwidth` before it is under a screen pixel. `RenderType.create` is package-private,
+  hence `RenderTypeInvokerMixin`.
+- **The curve is on the CPU.** `Curve` (`utils/Curve.kt`) pushes a point out from the face centre
+  by `1 + bulge·(2 − r²)`, r in tube half-sides, capped at the corner, so the corners and the centre
+  stay put and each edge middle moves out `TUBE_BULGE` 0.04 of a half side (2% of the side).
+  `CurvedVertexConsumer` wraps the pass's consumer (`withRenderContext(curve = …)`), cuts each quad
+  into cells of at most 1/32 of the face, and bends every corner. Each pass hands it its own scale
+  (`Face.curve(maxScale)`), since the lattice and line are drawn at 1/maxDimension of the face.
+- **Which one when.** Off: the curve on the `text` layer. On and Solved: the curve on the CRT
+  layer. Under a shader pack (`CrtScreen.shaderPackInUse`, Iris's API through reflection, true only
+  when a pack is actually selected): the curve on the `text` layer.
+- **`/crt picture` and `/crt curve`** flip each half off for frame-rate comparison, in a development
+  run only (`FabricLoader.isDevelopmentEnvironment`).
 
 ## Traps, do not re-derive
 
@@ -252,10 +333,28 @@ the node and edge drawing code.
 - **`housingShape` is an open property read by the base `getShape`.** If the hover outline on a
   screen frame ever shows the iron frame's plates, that is the base initialiser reading it before
   the subclass has set it; convert it to an open function then.
+- **The curve cannot move to the GPU.** A lattice edge is one four-corner quad; bending its corners
+  leaves it straight, it must be cut first, and a vertex shader cannot add vertices (26.2 pipelines
+  have vertex and fragment stages only). Moving just the bend would also lose the curve on the Off
+  and shader-pack paths, which draw through vanilla's `text` pipeline. Asked and settled 2026-09-27.
+- **`CurvedVertexConsumer` must allocate nothing per vertex.** It runs for every vertex of every
+  screen in view, every frame. The first version allocated a closure per attribute and a pair per
+  bend: a row of three screens dropped from 60 to 45 fps with 4 fps hitches. Packed arrays brought it
+  back to the 60 fps vsync cap with no hitches. Keep it that way before reaching for caching.
+- **Scanlines are anchored to the world, not the face.** The vertex shader rebuilds the world
+  position as `Position + CameraBlockPos − CameraOffset` (the inverse of `terrain.vsh`), wrapped at
+  1024 blocks for float precision, and uses y for the bands and x + z across. That only works
+  because frames face horizontally; a frame that could face up would need a face coordinate instead.
+  If the bands ever slide as the player walks, that sum is what broke.
+- **The hit test is not bent.** The solver still maps clicks through the flat face; the curve moves
+  what is drawn by at most about a quarter of a block pixel. Deliberate, see the edge cases.
+- **The dev run has a shader pack (BSL) selected.** With it on the picture is off by design and only
+  the curve shows; turn the pack off in Video Settings before judging scanlines or static.
 
 ## Not done
 
 - **No screenshot on file** for the five checks listed under Status; signed off on sight only.
+- The picture's unchecked cases listed under Status.
 - The lattice shade global-or-local question ([Open questions](#open-questions)).
 - The solver GUI's 2D preview and the item icon draw a screen frame's panel as a plain panel; only
   the block face has the tube.
@@ -277,7 +376,12 @@ the node and edge drawing code.
   `src/main/kotlin/com/xfastgames/witness/entities/renderer/PuzzleFrameBlockRenderer.kt` (`faceScale`),
   `src/main/kotlin/com/xfastgames/witness/items/renderer/PuzzlePanelRenderer.kt` (`renderScreen`, `Lattice`),
   `src/main/kotlin/com/xfastgames/witness/utils/VertexConsumer.kt` (`roundedSquareFan`),
-  `src/main/kotlin/com/xfastgames/witness/utils/RenderContext.kt` (`shade`),
+  `src/main/kotlin/com/xfastgames/witness/utils/RenderContext.kt` (`shade`, `curve`),
+  `src/main/kotlin/com/xfastgames/witness/items/renderer/CrtScreen.kt`,
+  `src/main/kotlin/com/xfastgames/witness/utils/Curve.kt`, `utils/CurvedVertexConsumer.kt`,
+  `src/main/java/com/xfastgames/witness/mixin/render/RenderTypeInvokerMixin.java`,
+  `src/main/resources/assets/witness/shaders/core/crt_screen.vsh`, `crt_screen.fsh`,
+  `src/test/kotlin/com/xfastgames/witness/utils/CurveTests.kt`,
   `src/main/resources/assets/witness/models/block/screen_puzzle_frame.json`,
   `src/main/resources/assets/witness/textures/block/screen_puzzle_frame*.png`,
   `src/main/resources/data/witness/recipe/screen_puzzle_frame.json`.

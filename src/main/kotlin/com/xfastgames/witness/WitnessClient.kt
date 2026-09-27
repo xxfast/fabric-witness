@@ -1,6 +1,7 @@
 package com.xfastgames.witness
 
 import com.xfastgames.witness.blocks.redstone.CableBlock
+import com.xfastgames.witness.items.renderer.CrtScreen
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen
 import com.xfastgames.witness.utils.Clientside
 import net.fabricmc.api.ClientModInitializer
@@ -21,5 +22,7 @@ class WitnessClient : ClientModInitializer {
         (Witness.BLOCKS + Witness.ITEMS + Witness.ENTITIES + screens)
             .filterIsInstance<Clientside>()
             .forEach { it.onClient() }
+
+        CrtScreen.registerCommand()
     }
 }

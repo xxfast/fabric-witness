@@ -110,14 +110,24 @@ fun RenderContext.line(
     a: Float = 1f,
 ) = vertexConsumer.line(entry, start, end, thickness, light, overlay, r, g, b, a)
 
+/**
+ * @param curve bends everything [block] draws, as a screen frame bows its tube
+ * (rules/minecraft/05-1-screen-frame.md#the-picture); null draws it flat.
+ */
 fun withRenderContext(
     entry: PoseStack.Pose,
     vertexConsumer: VertexConsumer,
     light: Int,
     overlay: Int,
     shade: Float = 1f,
+    curve: Curve? = null,
     block: RenderContext.() -> Unit
-) = with(RenderContext(entry, vertexConsumer, light, overlay, shade), block)
+) {
+    if (curve == null) return with(RenderContext(entry, vertexConsumer, light, overlay, shade), block)
+    val curved = CurvedVertexConsumer(vertexConsumer, curve)
+    with(RenderContext(entry, curved, light, overlay, shade), block)
+    curved.flush()
+}
 
 /**
  * @param shade the colour every primitive draws in unless told otherwise, as a grey multiplied
