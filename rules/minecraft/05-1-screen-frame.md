@@ -126,8 +126,15 @@ smaller than a pixel on the player's screen, so a row of sets at the end of a co
 flat green rather than shimmering.
 
 **With a shader pack on**, the scanlines and the static are left off and the tube draws as it
-does without this section. The curve stays. Shader packs repaint the world their own way, and a
-picture effect drawn under one is as likely to break as to show.
+does without this section. The curve stays. A shader pack draws the world with its own programs and
+leaves no room for the mod's; tried in game (2026-09-27), forcing the picture on under a pack blanked
+every tube to black glass. This is a known limitation, not a bug: a player with a shader pack sees
+a curved tube with no scanlines and no static.
+
+The picture could survive a pack only by drawing the scanlines and the static as ordinary textures
+laid over the tube instead, which the pack would then light and tint its own way. Not taken
+(2026-09-27): it is the one route that works under packs, and it is recorded here in case packs
+become the common case.
 
 ## Sound
 
@@ -348,6 +355,15 @@ squares, the opaque cues) draws through: a render type per texture, and a curve.
   If the bands ever slide as the player walks, that sum is what broke.
 - **The hit test is not bent.** The solver still maps clicks through the flat face; the curve moves
   what is drawn by at most about a quarter of a block pixel. Deliberate, see the edge cases.
+- **Our pipeline cannot run under a shader pack; keep the `shaderPackInUse` fallback.** Forced on
+  under BSL (2026-09-27, with a since-removed `/crt pack` toggle), every tube, lattice and line went
+  missing, leaving black glass, and Iris logged `Missing program witness:pipeline/crt_screen in
+  override list`. Iris swaps each known pipeline for a pack program and has nothing for ours. Its
+  only hook, `IrisApi.assignPipeline(pipeline, IrisProgram)`, maps ours to a pack program, which
+  replaces our shader, so the picture is lost that way too. It would also need Iris on the compile
+  classpath, which the mod avoids: `shaderPackInUse` reaches Iris by reflection only. Getting a
+  picture under a pack means textures on vanilla's `text` layer, not a shader (see [the
+  picture](#the-picture)).
 - **The dev run has a shader pack (BSL) selected.** With it on the picture is off by design and only
   the curve shows; turn the pack off in Video Settings before judging scanlines or static.
 
