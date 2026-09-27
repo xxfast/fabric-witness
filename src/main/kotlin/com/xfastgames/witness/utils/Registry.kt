@@ -14,8 +14,6 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
-import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration
 
 /** Small marker used by block entities/inventories that need to push a client sync. */
 interface Syncable {
@@ -48,11 +46,6 @@ fun <T : BlockEntity> registerBlockEntity(
     id: Identifier,
     blockEntityType: () -> BlockEntityType<T>
 ): BlockEntityType<T> = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id, blockEntityType())
-
-fun <T : FeatureConfiguration> registerFeature(
-    id: Identifier,
-    feature: Feature<T>
-): Feature<T> = Registry.register(BuiltInRegistries.FEATURE, id, feature)
 
 inline fun <T : Entity> registerEntity(
     id: Identifier,

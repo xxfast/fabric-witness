@@ -4,14 +4,14 @@ This file provides guidance to coding agents working with code in this repositor
 
 ## What this is
 
-A Fabric mod (Kotlin, MC 26.2, official Mojang names / unobfuscated jar, Java 25) that adds puzzle
+A Fabric mod (Kotlin, MC 26.3, official Mojang names / unobfuscated jar, Java 25) that adds puzzle
 panels from The Witness to Minecraft, plus decoration blocks. Migrated from 1.17.1 → 1.21.11 →
-26.2. See `MIGRATION.md` for what changed, known-broken items, and the in-game verification
+26.2 → 26.3. See `MIGRATION.md` for what changed, known-broken items, and the in-game verification
 checklist before assuming a bug is new.
 
 ## Commands
 
-Java 25 is required (MC 26.2). Do **not** put a machine-local `org.gradle.java.home` in the
+Java 25 is required (MC 26.3). Do **not** put a machine-local `org.gradle.java.home` in the
 committed `gradle.properties` (Homebrew paths break Linux CI). Use one of:
 - `JAVA_HOME` pointing at JDK 25
 - `org.gradle.java.home` in `~/.gradle/gradle.properties` (local only)

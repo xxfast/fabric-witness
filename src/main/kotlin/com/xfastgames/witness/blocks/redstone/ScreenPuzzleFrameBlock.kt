@@ -1,6 +1,5 @@
 package com.xfastgames.witness.blocks.redstone
 
-import com.mojang.serialization.MapCodec
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.d
 import com.xfastgames.witness.utils.pc
@@ -8,7 +7,6 @@ import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.minecraft.resources.Identifier
 import net.minecraft.world.item.BlockItem
-import net.minecraft.world.level.block.BaseEntityBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.phys.shapes.Shapes
@@ -27,12 +25,9 @@ class ScreenPuzzleFrameBlock(settings: BlockBehaviour.Properties) : IronPuzzleFr
 
     companion object {
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "screen_puzzle_frame")
-        val CODEC: MapCodec<ScreenPuzzleFrameBlock> = simpleCodec(::ScreenPuzzleFrameBlock)
         val BLOCK: Block = registerBlock(ScreenPuzzleFrameBlock(frameSettings(IDENTIFIER)), IDENTIFIER)
         val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER)
     }
-
-    override fun codec(): MapCodec<out BaseEntityBlock> = CODEC
 
     /** The cabinet: the whole block from the wall behind to the bezel's front, 10 px deep. */
     override val housingShape: VoxelShape = Shapes.box(0.pc.d, 0.pc.d, 0.pc.d, 16.pc.d, 16.pc.d, 10.pc.d)
