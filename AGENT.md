@@ -99,7 +99,9 @@ file per rule, indexed by `rules/witness/README.md`. Check it before touching pu
 **Rendering.** Block entity renderers use the extract/submit system: extract state in
 `extractRenderState`, submit via `SubmitNodeCollector`. Camera type is
 `net.minecraft.client.renderer.state.level.CameraRenderState`. Shared vertex helpers in
-`utils/VertexConsumer.kt` / `RenderContext.kt` (JOML math). GUI drawing helpers in
+`utils/VertexConsumer.kt` / `RenderContext.kt` (JOML math). The one mod shader is the screen
+frame's CRT picture (`assets/witness/shaders/core/crt_screen.*`, pipeline in `CrtScreen.kt`),
+compiled on first use. GUI drawing helpers in
 `utils/DrawableHelper.kt` are `GuiGraphicsExtractor`-based (26.2 rename of `GuiGraphics`).
 
 **Assets/data specifics that silently fail:** every item needs a model definition JSON under
@@ -107,8 +109,9 @@ file per rule, indexed by `rules/witness/README.md`. Check it before touching pu
 names (`recipe/`, `loot_table/`, `tags/block/`). Worldgen JSONs under `data/witness/worldgen/` are
 intentionally inert — registered but not injected into any biome (matches pre-migration behavior).
 
-**Mixins:** `witness.mixins.json`; only `MouseAccessorMixin` (cursor lock for the solver screen).
-Prefer Fabric API events over new mixins.
+**Mixins:** `witness.mixins.json`; `MouseAccessorMixin` (cursor lock for the solver screen) and
+`RenderTypeInvokerMixin` (`RenderType.create` is package-private, and the screen frame's CRT layer
+needs its own). Prefer Fabric API events over new mixins.
 
 **26.2 Fabric renames worth knowing:** `ItemGroupEvents` → `CreativeModeTabEvents` (`creativetab.v1`);
 `ExtendedScreenHandler*` → `ExtendedMenu*` (`menu.v1`); `PayloadTypeRegistry.playC2S()` →

@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "witness:block/screen_puzzle_frame" },
+    "facing=east": { "model": "witness:block/screen_puzzle_frame", "y": 90 },
+    "facing=south": { "model": "witness:block/screen_puzzle_frame", "y": 180 },
+    "facing=west": { "model": "witness:block/screen_puzzle_frame", "y": 270 }
+  }
+}

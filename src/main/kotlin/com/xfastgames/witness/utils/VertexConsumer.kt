@@ -193,3 +193,52 @@ fun VertexConsumer.line(
             .setNormal(entry, .5f, .5f, .5f)
     }
 }
+
+/**
+ * A rounded square as a fan of quads from its centre, so the colour can run from [centre] in the
+ * middle to [rim] at the edge: a lit tube falling off towards its curved edge
+ * (rules/minecraft/05-1-screen-frame.md). Both are greys multiplied into the bound texture.
+ *
+ * The rim is walked clockwise from +y as [circle] does, one quarter arc per corner; the chord
+ * between the last point of one corner and the first of the next is the straight edge between them.
+ */
+fun VertexConsumer.roundedSquareFan(
+    entry: PoseStack.Pose,
+    center: Vector3f,
+    side: Float,
+    radius: Float,
+    light: Int,
+    overlay: Int,
+    centre: Float,
+    rim: Float,
+    resolution: Int = 15,
+) {
+    val model: Matrix4f = entry.pose()
+    val inner: Float = side / 2 - radius
+    val corners: List<Pair<Float, Float>> = listOf(inner to inner, inner to -inner, -inner to -inner, -inner to inner)
+    val perimeter: List<Vector3f> = corners.flatMapIndexed { index, (cornerX, cornerY) ->
+        (0..90 step resolution).map { step ->
+            val theta: Float = toRadians((index * 90 + step).toDouble()).toFloat()
+            Vector3f(center.x + cornerX + radius * sin(theta), center.y + cornerY + radius * cos(theta), center.z)
+        }
+    }
+
+    fun vertex(at: Vector3f, grey: Float) {
+        this.addVertex(model, at.x, at.y, at.z)
+            .setColor(grey, grey, grey, 1f)
+            .setUv(0f, 1f)
+            .setOverlay(overlay)
+            .setLight(light)
+            .setNormal(entry, .5f, .5f, .5f)
+    }
+
+    perimeter.indices.forEach { index ->
+        val from: Vector3f = perimeter[index]
+        val to: Vector3f = perimeter[(index + 1) % perimeter.size]
+        // Same winding as [circle]: centre first, then along the arc.
+        vertex(center, centre)
+        vertex(from, rim)
+        vertex(to, rim)
+        vertex(to, rim)
+    }
+}

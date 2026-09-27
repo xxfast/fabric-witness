@@ -1,6 +1,8 @@
 package com.xfastgames.witness.entities.renderer
 
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
+import com.xfastgames.witness.blocks.redstone.ScreenPuzzleFrameBlock
+import net.minecraft.world.level.block.state.BlockState
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.panel
@@ -25,6 +27,10 @@ class PuzzleFrameRenderState : BlockEntityRenderState() {
     var facing: Direction = Direction.NORTH
     /** Off frames draw the panel dark (rules/minecraft/05-puzzle-frame.md). */
     var powered: Boolean = false
+    /** A screen frame draws its panel as a tube in black glass (rules/minecraft/05-1-screen-frame.md). */
+    var screen: Boolean = false
+    /** How much of the block face the panel spans; see [PuzzleFrameBlockRenderer.faceScale]. */
+    var scale: Float = PuzzleFrameBlockRenderer.PUZZLE_FRAME_SCALE
     /**
      * Frozen snapshot of the frame's block pos at extract time. Attract / error flashes key off
      * this so a mutable [pos] reference can never drift between trigger and draw.
@@ -35,7 +41,21 @@ class PuzzleFrameRenderState : BlockEntityRenderState() {
 class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, PuzzleFrameRenderState> {
 
     companion object {
+        /** The iron frame's panel spans this much of the block face. */
         const val PUZZLE_FRAME_SCALE = 0.85f
+
+        /**
+         * The screen frame's glass is 12 px of the 16 inside its 2 px bezel
+         * (rules/minecraft/05-1-screen-frame.md), and the panel is drawn to fill the glass.
+         */
+        const val SCREEN_FRAME_SCALE = 0.75f
+
+        /**
+         * How much of the block face the panel in a frame of [state]'s kind spans. The solver's hit
+         * test inverts the same number, so both read it from here.
+         */
+        fun faceScale(state: BlockState): Float =
+            if (state.block is ScreenPuzzleFrameBlock) SCREEN_FRAME_SCALE else PUZZLE_FRAME_SCALE
 
         fun register() {
             BlockEntityRenderers.register(PuzzleFrameBlockEntity.ENTITY_TYPE) { PuzzleFrameBlockRenderer() }
@@ -58,6 +78,8 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
         state.panel = if (itemStack.isEmpty) null else itemStack.panel ?: Panel.DEFAULT
         state.facing = blockEntity.blockState.getValue(BlockStateProperties.HORIZONTAL_FACING)
         state.powered = blockEntity.blockState.getValue(IronPuzzleFrameBlock.POWERED)
+        state.screen = blockEntity.blockState.block is ScreenPuzzleFrameBlock
+        state.scale = faceScale(blockEntity.blockState)
         // Snapshot now: do not hand the live BE pos reference into flash matching.
         state.framePos = blockEntity.blockPos.immutable()
     }
@@ -78,7 +100,7 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
         matrices.mulPose(Axis.YP.rotationDegrees(-state.facing.toYRot()))
 
         // Scale the panel
-        matrices.scale(PUZZLE_FRAME_SCALE, PUZZLE_FRAME_SCALE, 1f)
+        matrices.scale(state.scale, state.scale, 1f)
 
         // Move slightly out of center to avoid z collision
         matrices.translate(.0, .0, -.034)
@@ -90,6 +112,7 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
         puzzlePanelRenderer.renderPanel(
             panel, matrices, queue, state.lightCoords, OverlayTexture.NO_OVERLAY, state.framePos,
             lit = state.powered,
+            screen = state.screen,
         )
         matrices.popPose()
     }

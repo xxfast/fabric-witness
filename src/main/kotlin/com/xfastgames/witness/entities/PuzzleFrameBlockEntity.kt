@@ -4,6 +4,7 @@ import com.google.common.graph.Graph
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.blocks.redstone.RedstoneNetwork
+import com.xfastgames.witness.blocks.redstone.ScreenPuzzleFrameBlock
 import com.xfastgames.witness.entities.renderer.PuzzleFrameBlockRenderer
 import com.xfastgames.witness.items.data.Node
 import com.xfastgames.witness.items.data.Panel
@@ -88,7 +89,7 @@ class PuzzleFrameBlockEntity(pos: BlockPos, state: BlockState) :
 
         val ENTITY_TYPE: BlockEntityType<PuzzleFrameBlockEntity> = registerBlockEntity(IDENTIFIER) {
             FabricBlockEntityTypeBuilder
-                .create(::PuzzleFrameBlockEntity, IronPuzzleFrameBlock.BLOCK)
+                .create(::PuzzleFrameBlockEntity, IronPuzzleFrameBlock.BLOCK, ScreenPuzzleFrameBlock.BLOCK)
                 .build()
         }
 

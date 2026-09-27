@@ -1,0 +1,67 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "front": "witness:block/screen_puzzle_frame",
+    "body": "witness:block/screen_puzzle_frame_body",
+    "particle": "witness:block/screen_puzzle_frame_body"
+  },
+  "elements": [
+    {
+      "name": "cabinet",
+      "from": [0, 0, 0],
+      "to": [16, 16, 9],
+      "faces": {
+        "north": { "uv": [0, 0, 16, 16], "texture": "#body" },
+        "east": { "uv": [0, 0, 9, 16], "texture": "#body" },
+        "south": { "uv": [0, 0, 16, 16], "texture": "#front" },
+        "west": { "uv": [7, 0, 16, 16], "texture": "#body" },
+        "up": { "uv": [0, 0, 16, 9], "texture": "#body" },
+        "down": { "uv": [0, 7, 16, 16], "texture": "#body" }
+      }
+    },
+    {
+      "name": "bezel_top",
+      "from": [0, 14, 9],
+      "to": [16, 16, 10],
+      "faces": {
+        "south": { "uv": [0, 0, 16, 2], "texture": "#front" },
+        "up": { "uv": [0, 0, 16, 1], "texture": "#body" },
+        "down": { "uv": [0, 2, 16, 3], "texture": "#body" },
+        "east": { "uv": [0, 0, 1, 2], "texture": "#body" },
+        "west": { "uv": [0, 0, 1, 2], "texture": "#body" }
+      }
+    },
+    {
+      "name": "bezel_bottom",
+      "from": [0, 0, 9],
+      "to": [16, 2, 10],
+      "faces": {
+        "south": { "uv": [0, 14, 16, 16], "texture": "#front" },
+        "up": { "uv": [0, 13, 16, 14], "texture": "#body" },
+        "down": { "uv": [0, 15, 16, 16], "texture": "#body" },
+        "east": { "uv": [0, 0, 1, 2], "texture": "#body" },
+        "west": { "uv": [0, 0, 1, 2], "texture": "#body" }
+      }
+    },
+    {
+      "name": "bezel_left",
+      "from": [0, 2, 9],
+      "to": [2, 14, 10],
+      "faces": {
+        "south": { "uv": [0, 2, 2, 14], "texture": "#front" },
+        "east": { "uv": [2, 2, 3, 14], "texture": "#body" },
+        "west": { "uv": [0, 2, 1, 14], "texture": "#body" }
+      }
+    },
+    {
+      "name": "bezel_right",
+      "from": [14, 2, 9],
+      "to": [16, 14, 10],
+      "faces": {
+        "south": { "uv": [14, 2, 16, 14], "texture": "#front" },
+        "east": { "uv": [15, 2, 16, 14], "texture": "#body" },
+        "west": { "uv": [13, 2, 14, 14], "texture": "#body" }
+      }
+    }
+  ]
+}

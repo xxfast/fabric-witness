@@ -86,5 +86,14 @@
     "sounds": [
       "witness:pointless_click"
     ]
-  }
+  },
+  "crt_panel_abort_finish_tracing": { "sounds": ["witness:crt_panel_abort_finish_tracing"] },
+  "crt_panel_abort_tracing": { "sounds": ["witness:crt_panel_abort_tracing"] },
+  "crt_panel_failure": { "sounds": ["witness:crt_panel_failure"] },
+  "crt_panel_finish_tracing": { "sounds": ["witness:crt_panel_finish_tracing"] },
+  "crt_panel_potential_failure": { "sounds": ["witness:crt_panel_potential_failure"] },
+  "crt_panel_scint_endpoint": { "sounds": ["witness:crt_panel_scint_endpoint"] },
+  "crt_panel_scint_startpoint": { "sounds": ["witness:crt_panel_scint_startpoint"] },
+  "crt_panel_start_tracing": { "sounds": ["witness:crt_panel_start_tracing"] },
+  "crt_panel_success": { "sounds": ["witness:crt_panel_success"] }
 }

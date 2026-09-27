@@ -7,6 +7,7 @@ import com.xfastgames.witness.items.data.*
 import com.xfastgames.witness.utils.*
 import com.xfastgames.witness.utils.guava.edgeValueOf
 import com.xfastgames.witness.utils.guava.incidentEdges
+import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.util.LightCoordsUtil
@@ -14,6 +15,7 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.DyeColor
 import net.minecraft.core.BlockPos
+import net.minecraft.resources.Identifier
 import org.joml.Vector3f
 import kotlin.math.*
 
@@ -102,6 +104,74 @@ object PuzzlePanelRenderer {
     /** Corner radius of a square: the line's own cap radius (half its 4.pc width), so the two read as one family. */
     private val SQUARE_CORNER_RADIUS: Float = 2.pc
 
+    // The screen frame's face (rules/minecraft/05-1-screen-frame.md), measured off the shed shot as
+    // fractions of the glass, which is what the frame renderer scales the face to.
+
+    /** The glass is black, but not quite: a hair of grey keeps it reading as a surface, not a hole. */
+    private const val SCREEN_GLASS: Float = 0.03f
+
+    /** The tube's side as a fraction of the glass: measured 0.73 of the unit against 0.80 of glass. */
+    private const val TUBE_SIDE: Float = 0.91f
+
+    /** Corner radius of the tube as a fraction of its side, from the shot. */
+    private const val TUBE_CORNER: Float = 0.08f
+
+    /** The tube's edge against its centre: measured 155 against 226 on the green channel. */
+    private const val TUBE_RIM: Float = 0.7f
+
+    /** The lattice is the tube's colour at half brightness: measured 122 against 248. */
+    private const val SCREEN_LATTICE_SHADE: Float = 0.5f
+
+    /** Depth of the tube: in front of the glass at 0, behind the lattice at -.01. */
+    private const val TUBE_Z: Double = -0.005
+
+    /**
+     * The middle of each tube edge sits 2% of the tube's side further out than a flat tube's, which
+     * is 4% of its half side (rules/minecraft/05-1-screen-frame.md#the-picture).
+     */
+    private const val TUBE_BULGE: Float = 0.04f
+
+    private val TUBE_CURVE = Curve(half = TUBE_SIDE / 2, bulge = TUBE_BULGE)
+
+    /**
+     * How the passes inside a face are drawn: the render type each texture goes through, and the
+     * curve their geometry bends by, in the face's own units. Every face is [FLAT] except a screen
+     * frame's (rules/minecraft/05-1-screen-frame.md#the-picture).
+     */
+    class Face(val layer: (Identifier) -> RenderType, private val curve: Curve?) {
+
+        /** The curve for a pass drawn at [scale] of the face. */
+        fun curve(scale: Float = 1f): Curve? = curve?.scaled(scale)
+
+        companion object {
+            val FLAT = Face(RenderTypes::text, null)
+
+            /**
+             * A switched-off set keeps the shape of its glass but has no picture, so no scanlines and
+             * no static; nor does a lit one under a shader pack.
+             */
+            fun screen(lit: Boolean): Face {
+                val picture: Boolean = lit && CrtScreen.pictureEnabled && !CrtScreen.shaderPackInUse()
+                val curve: Curve? = if (CrtScreen.curveEnabled) TUBE_CURVE else null
+                return Face(if (picture) CrtScreen::layer else RenderTypes::text, curve)
+            }
+        }
+    }
+
+    /**
+     * What the lattice is drawn with: a flat texture and a grey multiplied into it. Every panel
+     * draws the fixed grey of [PuzzlePanelTextures.lineFill] except on a screen frame, where the
+     * lattice is the tube's own backdrop at half brightness (rules/minecraft/05-1-screen-frame.md).
+     */
+    data class Lattice(val texture: Identifier, val shade: Float) {
+        companion object {
+            val GREY = Lattice(PuzzlePanelTextures.lineFill, 1f)
+
+            fun onTube(color: DyeColor, brightness: Float = 1f) =
+                Lattice(PuzzlePanelTextures.backdrop(color), SCREEN_LATTICE_SHADE * brightness)
+        }
+    }
+
     fun renderPanel(
         stack: ItemStack,
         matrices: PoseStack,
@@ -120,6 +190,8 @@ object PuzzlePanelRenderer {
      * reject never lights every tutorial panel nearby. Item / composer renders leave it null.
      * @param lit false for a frame with no power: the panel is drawn as a dark, unlit screen with
      * nothing on it (rules/minecraft/05-puzzle-frame.md). Items and the composer are always lit.
+     * @param screen true on a screen frame: the face is black glass with the panel drawn as a
+     * glowing tube inside it and the lattice in the tube's shade (rules/minecraft/05-1-screen-frame.md).
      */
     fun renderPanel(
         puzzle: Panel,
@@ -129,45 +201,53 @@ object PuzzlePanelRenderer {
         overlay: Int,
         framePos: BlockPos? = null,
         lit: Boolean = true,
+        screen: Boolean = false,
     ) {
+        val face: Face = if (screen) Face.screen(lit) else Face.FLAT
         if (!lit) {
             // A switched-off screen: the puzzle is still there to be read up close, at a fixed dim
             // lightmap, so the player can see there is something to power. No line, ever.
             val unlitLight: Int = LightCoordsUtil.pack(UNLIT_GLOW, UNLIT_GLOW)
-            renderBackground(puzzle.backgroundColor, matrices, queue, unlitLight, overlay, brightness = UNLIT_BRIGHTNESS)
-            renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, unlitLight, overlay)
+            if (screen) renderScreen(puzzle.backgroundColor, matrices, queue, unlitLight, overlay, face, brightness = UNLIT_BRIGHTNESS)
+            else renderBackground(puzzle.backgroundColor, matrices, queue, unlitLight, overlay, brightness = UNLIT_BRIGHTNESS)
+            val lattice: Lattice = if (screen) Lattice.onTube(puzzle.backgroundColor, UNLIT_BRIGHTNESS) else Lattice.GREY
+            renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, unlitLight, overlay, lattice, face)
             renderSymbols(
                 puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
                 matrices, queue, unlitLight, overlay,
                 hidden = puzzle is Panel.Tree,
+                face = face,
             )
-            renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, unlitLight, overlay)
+            renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, unlitLight, overlay, face)
             return
         }
         // A lit face is a screen: constant lightmap, so a row of frames reads evenly instead of
         // each face taking whatever ambient and neighbour light its block happens to sample.
         val panelLight: Int = LightCoordsUtil.pack(PANEL_GLOW, PANEL_GLOW)
 
-        renderBackground(puzzle.backgroundColor, matrices, queue, panelLight, overlay)
-        renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, panelLight, overlay)
+        if (screen) renderScreen(puzzle.backgroundColor, matrices, queue, panelLight, overlay, face)
+        else renderBackground(puzzle.backgroundColor, matrices, queue, panelLight, overlay)
+        val lattice: Lattice = if (screen) Lattice.onTube(puzzle.backgroundColor) else Lattice.GREY
+        renderGraph(puzzle.graph, puzzle.width, puzzle.height, matrices, queue, panelLight, overlay, lattice, face)
         // The traced line caps the lightmap instead of the glow floor: it should pop against the
         // backdrop like the lit line in The Witness, and a maxed lightmap does that without
         // tripping shader-pack bloom.
-        renderLine(puzzle.line, puzzle.lineColor, puzzle.width, puzzle.height, matrices, queue, LightCoordsUtil.FULL_BRIGHT, overlay)
+        renderLine(puzzle.line, puzzle.lineColor, puzzle.width, puzzle.height, matrices, queue, LightCoordsUtil.FULL_BRIGHT, overlay, face)
         // Symbols go in front of both, so a hexagon stays visible once the line covers it: that is
         // the only way a player can tell it was crossed (rules/witness/04-hexagon-dots.md).
         renderSymbols(
             puzzle.graph, puzzle.backgroundColor, puzzle.width, puzzle.height,
             matrices, queue, panelLight, overlay,
             hidden = puzzle is Panel.Tree,
+            face = face,
         )
-        renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, panelLight, overlay)
+        renderCellSymbols(puzzle.symbols, puzzle.width, puzzle.height, matrices, queue, panelLight, overlay, face)
         // Cue drawing is gated by the effect's own frame-pos match (set at trigger), not by
         // re-reading tutorial here — trigger already required tutorial, and a missing/stale
         // component must not silently drop an in-flight flash.
         if (framePos != null) {
-            renderAttractPulse(puzzle, framePos, matrices, queue, panelLight, overlay)
-            renderErrorFlash(puzzle, framePos, matrices, queue, panelLight, overlay)
+            renderAttractPulse(puzzle, framePos, matrices, queue, panelLight, overlay, face)
+            renderErrorFlash(puzzle, framePos, matrices, queue, panelLight, overlay, face)
         }
     }
 
@@ -181,7 +261,8 @@ object PuzzlePanelRenderer {
         matrices: PoseStack,
         queue: SubmitNodeCollector,
         light: Int,
-        overlay: Int
+        overlay: Int,
+        face: Face,
     ) {
         val frame: PanelAttractPulse.Sample = PanelAttractPulse.sample(framePos) ?: return
         val nodes: List<Node> = when (frame.kind) {
@@ -230,8 +311,8 @@ object PuzzlePanelRenderer {
         matrices.translate(.0, .0, CUE_Z_BIAS)
 
         val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) LightCoordsUtil.FULL_BRIGHT else light
-        queue.submitCustomGeometry(matrices, panelCueLayer()) { entry, consumer ->
-            withRenderContext(entry, consumer, layerLight, overlay) {
+        queue.submitCustomGeometry(matrices, panelCueLayer(face)) { entry, consumer ->
+            withRenderContext(entry, consumer, layerLight, overlay, curve = face.curve(maxScale)) {
                 nodes.forEach { node ->
                     ring(
                         Vector3f(node.x, node.y, 0f),
@@ -258,7 +339,8 @@ object PuzzlePanelRenderer {
         matrices: PoseStack,
         queue: SubmitNodeCollector,
         light: Int,
-        overlay: Int
+        overlay: Int,
+        face: Face,
     ) {
         val frame: PanelErrorFlash.Sample = PanelErrorFlash.sample(framePos) ?: return
         if (frame.alpha <= 0.02f || frame.marks.isEmpty()) return
@@ -276,8 +358,8 @@ object PuzzlePanelRenderer {
         val layerLight: Int = if (USE_TRANSLUCENT_PANEL_CUES) LightCoordsUtil.FULL_BRIGHT else light
         // Translucent: alpha from blink. Opaque: solid on/off (alpha ignored).
         val a: Float = if (USE_TRANSLUCENT_PANEL_CUES) frame.alpha else 1f
-        queue.submitCustomGeometry(matrices, panelCueLayer()) { entry, consumer ->
-            withRenderContext(entry, consumer, layerLight, overlay) {
+        queue.submitCustomGeometry(matrices, panelCueLayer(face)) { entry, consumer ->
+            withRenderContext(entry, consumer, layerLight, overlay, curve = face.curve(maxScale)) {
                 // Each symbol blinks in its own shape and at its own size, so the flash reads as
                 // the symbol turning red rather than a marker dropped on top of it.
                 frame.marks.forEach { mark ->
@@ -302,11 +384,11 @@ object PuzzlePanelRenderer {
         matrices.popPose()
     }
 
-    private fun panelCueLayer() =
+    private fun panelCueLayer(face: Face): RenderType =
         if (USE_TRANSLUCENT_PANEL_CUES) {
             RenderTypes.entityTranslucentEmissive(PuzzlePanelTextures.solutionFill)
         } else {
-            RenderTypes.text(PuzzlePanelTextures.solutionFill)
+            face.layer(PuzzlePanelTextures.solutionFill)
         }
 
     /** Dye block RGB as 0..1 floats: the shade the backdrop and coloured squares wear. */
@@ -343,6 +425,7 @@ object PuzzlePanelRenderer {
         light: Int,
         overlay: Int,
         hidden: Boolean = false,
+        face: Face = Face.FLAT,
     ) {
         if (hidden) return
         val hexagons: List<Vector3f> = symbolPositions(graph)
@@ -355,8 +438,8 @@ object PuzzlePanelRenderer {
         matrices.translate(.0, .0, -.012)
 
         val texture = PuzzlePanelTextures.backdrop(backgroundColor)
-        queue.submitCustomGeometry(matrices, RenderTypes.text(texture)) { entry, consumer ->
-            withRenderContext(entry, consumer, light, overlay) {
+        queue.submitCustomGeometry(matrices, face.layer(texture)) { entry, consumer ->
+            withRenderContext(entry, consumer, light, overlay, curve = face.curve(maxScale)) {
                 hexagons.forEach { position -> hexagon(position, HEXAGON_RADIUS) }
             }
         }
@@ -376,7 +459,8 @@ object PuzzlePanelRenderer {
         matrices: PoseStack,
         queue: SubmitNodeCollector,
         light: Int,
-        overlay: Int
+        overlay: Int,
+        face: Face = Face.FLAT,
     ) {
         if (symbols.isEmpty()) return
         val maxDimension: Int = maxOf(width, height)
@@ -386,8 +470,8 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.012)
 
-        queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
-            withRenderContext(entry, consumer, light, overlay) {
+        queue.submitCustomGeometry(matrices, face.layer(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
+            withRenderContext(entry, consumer, light, overlay, curve = face.curve(maxScale)) {
                 symbols.forEach { symbol ->
                     val (r, g, b) = dyeRgb(symbol.color)
                     when (symbol.figure) {
@@ -436,6 +520,42 @@ object PuzzlePanelRenderer {
         matrices.popPose()
     }
 
+    /**
+     * A screen frame's face (rules/minecraft/05-1-screen-frame.md): black glass over the whole
+     * face, and inside it the tube, a rounded square in the panel's backdrop shaded from full at
+     * its centre to [TUBE_RIM] at its edge so it reads as curved. Flat opaque quads on the text
+     * layer like every other pass: nothing here is translucent or fullbright.
+     *
+     * @param brightness multiplied into the tube: 1 lit, [UNLIT_BRIGHTNESS] for a switched-off set.
+     */
+    fun renderScreen(
+        dyeColor: DyeColor,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
+        light: Int,
+        overlay: Int,
+        face: Face,
+        brightness: Float = 1f,
+    ) {
+        matrices.pushPose()
+        queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
+            consumer.square(entry, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay, SCREEN_GLASS, SCREEN_GLASS, SCREEN_GLASS)
+        }
+        matrices.translate(.0, .0, TUBE_Z)
+        queue.submitCustomGeometry(matrices, face.layer(PuzzlePanelTextures.backdrop(dyeColor))) { entry, consumer ->
+            withRenderContext(entry, consumer, light, overlay, curve = face.curve()) {
+                shadedRoundedSquare(
+                    Vector3f(8.pc, 8.pc, 0f),
+                    side = TUBE_SIDE,
+                    radius = TUBE_SIDE * TUBE_CORNER,
+                    centre = brightness,
+                    rim = brightness * TUBE_RIM,
+                )
+            }
+        }
+        matrices.popPose()
+    }
+
     private fun numberOfEdgesVisible(graph: ValueGraph<Node, Edge>, node: Node): Int =
         graph.incidentEdges(node).count { endpointPair ->
             graph.edgeValueOf(endpointPair)?.modifier !in listOf(Modifier.NONE, Modifier.HIDDEN)
@@ -459,6 +579,7 @@ object PuzzlePanelRenderer {
         edge(start, end, 4.pc, edge)
     }
 
+    /** The lattice: the unlit grid the line is traced over, in [lattice]'s texture and shade. */
     fun renderGraph(
         graph: ValueGraph<Node, Edge>,
         width: Int,
@@ -466,7 +587,9 @@ object PuzzlePanelRenderer {
         matrices: PoseStack,
         queue: SubmitNodeCollector,
         light: Int,
-        overlay: Int
+        overlay: Int,
+        lattice: Lattice = Lattice.GREY,
+        face: Face = Face.FLAT,
     ) {
         if (graph.nodes().isEmpty()) return
         val maxDimension: Int = maxOf(width, height)
@@ -476,8 +599,8 @@ object PuzzlePanelRenderer {
         matrices.scale(maxScale, maxScale, 1f)
         matrices.translate(.0, .0, -.01)
 
-        queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.lineFill)) { entry, consumer ->
-            withRenderContext(entry, consumer, light, overlay) {
+        queue.submitCustomGeometry(matrices, face.layer(lattice.texture)) { entry, consumer ->
+            withRenderContext(entry, consumer, light, overlay, lattice.shade, face.curve(maxScale)) {
                 graph.nodes().forEach { node -> renderNode(graph, node) }
                 graph.edges().forEach { side -> renderEdge(graph, side) }
             }
@@ -495,7 +618,8 @@ object PuzzlePanelRenderer {
         matrices: PoseStack,
         queue: SubmitNodeCollector,
         light: Int,
-        overlay: Int
+        overlay: Int,
+        face: Face = Face.FLAT,
     ) {
         matrices.pushPose()
         if (line.nodes().isEmpty()) return matrices.popPose()
@@ -506,8 +630,8 @@ object PuzzlePanelRenderer {
         matrices.translate(.0, .0, -.011)
 
         val (r, g, b) = rgbFloats(color.litRgb)
-        queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
-            withRenderContext(entry, consumer, light, overlay) {
+        queue.submitCustomGeometry(matrices, face.layer(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
+            withRenderContext(entry, consumer, light, overlay, curve = face.curve(maxScale)) {
                 line.nodes().forEach { node ->
                     // Only the start point the line was picked up from fills its whole circle. A
                     // start the line merely travels over keeps its own disc and is covered by the
@@ -563,7 +687,7 @@ object PuzzlePanelRenderer {
 
             vertices.forEach { position ->
                 vertexConsumer.addVertex(entry.pose(), position.x, position.y, position.z)
-                    .setColor(1f, 1f, 1f, 1f)
+                    .setColor(shade, shade, shade, 1f)
                     .setUv(0f, 1f)
                     .setOverlay(overlay)
                     .setLight(light)

@@ -170,7 +170,7 @@ Not wired up yet, and why:
 | `panel_potential_failure` | reserved for eliminators (rules/witness/11-eliminators.md), the rule that fails visibly mid-trace |
 | `focus_mode_wondering` / `_considering_exit` | no hesitation or exit-drift state to hang them on |
 | `panel_success_muted` | only earns its place once panels can cluster |
-| `<zone>_panel_*` (`crt`, `defaultverb`, `glassverb`) | no acoustic zone concept — see *Variants by surface* |
+| `defaultverb_panel_*`, `glassverb_panel_*` | no acoustic zone concept — see *Variants by surface*. The `crt_` set is wired: it is what a Screen Puzzle Frame plays (`WitnessSounds.panelCues`, rules/minecraft/05-1-screen-frame.md) |
 | `menu_*` | the composer GUI has no sound layer |
 
 The files ship regardless; wiring one up is an entry in `sounds.json`, a `WitnessSound` in

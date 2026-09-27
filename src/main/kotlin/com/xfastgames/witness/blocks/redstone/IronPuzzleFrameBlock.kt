@@ -54,7 +54,12 @@ import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
 
-class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBlock(settings) {
+/**
+ * The Iron Puzzle Frame, and the base of every frame: [ScreenPuzzleFrameBlock] is this block in a
+ * different housing, and everything that identifies a frame (`is IronPuzzleFrameBlock`) means any of
+ * them (rules/minecraft/05-puzzle-frame.md).
+ */
+open class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBlock(settings) {
     /** Block-state form of a set of [Side]s: one side, or the two of a diagonal corner nub. */
     enum class Exit(val sides: Set<Side>) : StringRepresentable {
         NONE(emptySet()),
@@ -111,22 +116,21 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
 
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "iron_puzzle_frame")
         val CODEC: MapCodec<IronPuzzleFrameBlock> = simpleCodec(::IronPuzzleFrameBlock)
-        val BLOCK: Block = registerBlock(
-            IronPuzzleFrameBlock(
-                blockSettings(IDENTIFIER)
-                    .strength(2.5f)
-                    .requiresCorrectToolForDrops()
-                    .sound(SoundType.METAL)
-                    .lightLevel { state: BlockState ->
-                        when {
-                            state.getValue(SOLVED) -> SOLVED_LIGHT
-                            state.getValue(POWERED) -> POWERED_LIGHT
-                            else -> 0
-                        }
+        /** Block settings shared by every kind of frame: iron, and lit On / Solved like a lamp. */
+        fun frameSettings(id: Identifier): BlockBehaviour.Properties =
+            blockSettings(id)
+                .strength(2.5f)
+                .requiresCorrectToolForDrops()
+                .sound(SoundType.METAL)
+                .lightLevel { state: BlockState ->
+                    when {
+                        state.getValue(SOLVED) -> SOLVED_LIGHT
+                        state.getValue(POWERED) -> POWERED_LIGHT
+                        else -> 0
                     }
-            ),
-            IDENTIFIER
-        )
+                }
+
+        val BLOCK: Block = registerBlock(IronPuzzleFrameBlock(frameSettings(IDENTIFIER)), IDENTIFIER)
         val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER)
 
         /**
@@ -337,6 +341,15 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
 
     override fun codec(): MapCodec<out BaseEntityBlock> = CODEC
 
+    /** The footprint of the housing in model space, before [getShape] turns it to face the player. */
+    protected open val housingShape: VoxelShape = Shapes.or(
+        Shapes.box(1.pc.d, 1.pc.d, 6.pc.d, 15.pc.d, 15.pc.d, 9.pc.d),
+        Shapes.box(0.pc.d, 1.pc.d, 8.pc.d, 1.pc.d, 16.pc.d, 10.pc.d),
+        Shapes.box(0.pc.d, 0.pc.d, 8.pc.d, 16.pc.d, 1.pc.d, 10.pc.d),
+        Shapes.box(0.pc.d, 15.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
+        Shapes.box(15.pc.d, 1.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
+    )
+
     /**
      * Redstone out (rules/minecraft/05-puzzle-frame.md): a solved frame puts a signal out of its
      * exit side(s), the way the nub points at the cable in the game, so a chain can end in dust or
@@ -410,16 +423,8 @@ class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntityBloc
         pos: BlockPos,
         context: CollisionContext
     ): VoxelShape {
-        val shape: VoxelShape = Shapes.or(
-            Shapes.box(1.pc.d, 1.pc.d, 6.pc.d, 15.pc.d, 15.pc.d, 9.pc.d),
-            Shapes.box(0.pc.d, 1.pc.d, 8.pc.d, 1.pc.d, 16.pc.d, 10.pc.d),
-            Shapes.box(0.pc.d, 0.pc.d, 8.pc.d, 16.pc.d, 1.pc.d, 10.pc.d),
-            Shapes.box(0.pc.d, 15.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
-            Shapes.box(15.pc.d, 1.pc.d, 8.pc.d, 16.pc.d, 16.pc.d, 10.pc.d),
-        )
-
         val direction: Direction = requireNotNull(state.getValue(HORIZONTAL_FACING))
-        return shape.rotateShape(to = direction)
+        return housingShape.rotateShape(to = direction)
     }
 
     /**
