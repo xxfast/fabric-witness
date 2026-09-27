@@ -3,6 +3,7 @@ package com.xfastgames.witness.items.renderer
 import com.mojang.serialization.MapCodec
 import com.xfastgames.witness.items.data.Panel
 import com.xfastgames.witness.items.data.panel
+import com.xfastgames.witness.utils.pc
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.special.SpecialModelRenderer
 import com.mojang.blaze3d.vertex.PoseStack
@@ -37,7 +38,9 @@ object PuzzlePanelSpecialModelRenderer : SpecialModelRenderer<Panel> {
         // centre plane, with the same orientation as an ordinary flat item model.
         matrices.translate(1.0, 0.0, 0.5)
         matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0f))
-        PuzzlePanelRenderer.renderPanel(panel ?: Panel.DEFAULT, matrices, queue, light, overlay)
+        val puzzle: Panel = panel ?: Panel.DEFAULT
+        PuzzlePanelRenderer.renderPanel(puzzle, matrices, queue, light, overlay)
+        PuzzlePanelRenderer.renderItemBody(puzzle.backgroundColor, puzzle.lineColor, matrices, queue, light, overlay)
 
         matrices.popPose()
     }
@@ -47,6 +50,9 @@ object PuzzlePanelSpecialModelRenderer : SpecialModelRenderer<Panel> {
         consumer.accept(Vector3f(1.0f, 0.0f, 0.5f))
         consumer.accept(Vector3f(1.0f, 1.0f, 0.5f))
         consumer.accept(Vector3f(0.0f, 1.0f, 0.5f))
+        // The body's back plate, one texel behind the face.
+        consumer.accept(Vector3f(0.0f, 0.0f, 0.5f - 1.pc))
+        consumer.accept(Vector3f(1.0f, 1.0f, 0.5f - 1.pc))
     }
 
     object Unbaked : SpecialModelRenderer.Unbaked<Panel> {

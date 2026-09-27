@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.util.LightCoordsUtil
 import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.DyeColor
 import net.minecraft.core.BlockPos
@@ -132,6 +133,12 @@ object PuzzlePanelRenderer {
     private const val TUBE_BULGE: Float = 0.04f
 
     private val TUBE_CURVE = Curve(half = TUBE_SIDE / 2, bulge = TUBE_BULGE)
+
+    /** A loose panel is a slab one texel deep, the thickness vanilla gives a generated item. */
+    private val ITEM_THICKNESS: Float = 1.pc
+
+    /** The back of a loose panel is its backdrop deep in shade, so it never reads as a second face. */
+    private const val ITEM_BACK_SHADE: Float = 0.25f
 
     /**
      * How the passes inside a face are drawn: the render type each texture goes through, and the
@@ -518,6 +525,47 @@ object PuzzlePanelRenderer {
             consumer.square(entry, Vector3f(0.pc, 0.pc, 0.pc), 16.pc, light, overlay, brightness, brightness, brightness)
         }
         matrices.popPose()
+    }
+
+    /**
+     * The back and edges of a loose panel, in hand or on the ground. The face is drawn on a culled
+     * layer and a frame hides everything behind it, so without these a held panel vanishes when
+     * turned around and a dropped one is a sheet of paper edge-on. The back is the backdrop in
+     * shade and the edges wear the line colour, so they say what the panel draws with. They
+     * take the world's [light], not the panel glow: only the face is a screen.
+     */
+    fun renderItemBody(
+        backgroundColor: DyeColor,
+        lineColor: DyeColor,
+        matrices: PoseStack,
+        queue: SubmitNodeCollector,
+        light: Int,
+        overlay: Int,
+    ) {
+        val depth: Float = ITEM_THICKNESS
+        val side: Float = 16.pc
+        // Each quad winds counter-clockwise seen from outside; the face looks down -z.
+        fun VertexConsumer.quad(entry: PoseStack.Pose, r: Float, g: Float, b: Float, vararg corners: Vector3f) =
+            corners.forEach { corner ->
+                addVertex(entry.pose(), corner.x, corner.y, corner.z)
+                    .setColor(r, g, b, 1f)
+                    .setUv(corner.x / side, corner.y / side)
+                    .setOverlay(overlay)
+                    .setLight(light)
+                    .setNormal(entry, 0f, 0f, 1f)
+            }
+        queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.backdrop(backgroundColor))) { entry, consumer ->
+            val shade: Float = ITEM_BACK_SHADE
+            consumer.quad(entry, shade, shade, shade, Vector3f(0f, 0f, depth), Vector3f(side, 0f, depth), Vector3f(side, side, depth), Vector3f(0f, side, depth))
+        }
+        val (r, g, b) = rgbFloats(lineColor.litRgb)
+        queue.submitCustomGeometry(matrices, RenderTypes.text(PuzzlePanelTextures.solutionFill)) { entry, consumer ->
+            fun quad(vararg corners: Vector3f) = consumer.quad(entry, r, g, b, *corners)
+            quad(Vector3f(0f, 0f, 0f), Vector3f(side, 0f, 0f), Vector3f(side, 0f, depth), Vector3f(0f, 0f, depth))
+            quad(Vector3f(0f, side, depth), Vector3f(side, side, depth), Vector3f(side, side, 0f), Vector3f(0f, side, 0f))
+            quad(Vector3f(0f, 0f, 0f), Vector3f(0f, 0f, depth), Vector3f(0f, side, depth), Vector3f(0f, side, 0f))
+            quad(Vector3f(side, 0f, 0f), Vector3f(side, side, 0f), Vector3f(side, side, depth), Vector3f(side, 0f, depth))
+        }
     }
 
     /**
