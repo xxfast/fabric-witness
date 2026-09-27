@@ -1,6 +1,5 @@
 package com.xfastgames.witness.blocks.redstone
 
-import com.mojang.serialization.MapCodec
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.items.PuzzlePanelItem
@@ -115,7 +114,6 @@ open class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntit
         private const val SOLVED_LIGHT = 11
 
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "iron_puzzle_frame")
-        val CODEC: MapCodec<IronPuzzleFrameBlock> = simpleCodec(::IronPuzzleFrameBlock)
         /** Block settings shared by every kind of frame: iron, and lit On / Solved like a lamp. */
         fun frameSettings(id: Identifier): BlockBehaviour.Properties =
             blockSettings(id)
@@ -338,8 +336,6 @@ open class IronPuzzleFrameBlock(settings: BlockBehaviour.Properties) : BaseEntit
             .setValue(BOTTOM_CONNECTED, false)
             .setValue(ANCHORED, false))
     }
-
-    override fun codec(): MapCodec<out BaseEntityBlock> = CODEC
 
     /** The footprint of the housing in model space, before [getShape] turns it to face the player. */
     protected open val housingShape: VoxelShape = Shapes.or(

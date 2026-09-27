@@ -4,8 +4,8 @@
 
 ![Gradle build](https://github.com/xxfast/fabric-witness/workflows/Gradle%20build/badge.svg)
 [![Release](https://img.shields.io/github/v/release/xxfast/fabric-witness.svg?include_prereleases)](https://github.com/xxfast/fabric-witness/releases)
-![Minecraft](https://img.shields.io/badge/Minecraft-26.2-62B47A?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4IDgiIGZpbGw9IiNmZmYiPjxwYXRoIGQ9Ik0xIDFoMnYySDF6TTUgMWgydjJINXpNMyAzaDJ2MUgzek0yIDRoNHYySDJ6TTIgNmgxdjFIMnpNNSA2aDF2MUg1eiIvPjwvc3ZnPg==)
-![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)
+![Minecraft](https://img.shields.io/badge/Minecraft-26.3-62B47A?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4IDgiIGZpbGw9IiNmZmYiPjxwYXRoIGQ9Ik0xIDFoMnYySDF6TTUgMWgydjJINXpNMyAzaDJ2MUgzek0yIDRoNHYySDJ6TTIgNmgxdjFIMnpNNSA2aDF2MUg1eiIvPjwvc3ZnPg==)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20-7F52FF?logo=kotlin&logoColor=white)
 
 <img src="https://user-images.githubusercontent.com/13775137/95962402-0e99ce00-0e52-11eb-87a4-a8959bb7aefe.png" align="center">
 
@@ -21,15 +21,15 @@ This is also a companion mod for The Witness Minecraft [youtube](https://www.you
 - Load it up with [fabric mod loader](https://fabricmc.net/)
 
 ## Requirements
-This build targets **Minecraft 26.2** (Java 25, official Mojang names).
+This build targets **Minecraft 26.3** (Java 25, official Mojang names).
 
-For the migration notes (1.17.1 → 1.21.11 → 26.2), see [`MIGRATION.md`](MIGRATION.md).
+For the migration notes (1.17.1 → 1.21.11 → 26.2 → 26.3), see [`MIGRATION.md`](MIGRATION.md).
 
 | Dependency                                                                | Version                 |
 |---------------------------------------------------------------------------|-------------------------|
-| [Fabric Loader](https://fabricmc.net/)                                    | `>=0.19.3`              |
-| [Fabric API](https://modrinth.com/mod/fabric-api)                         | `0.156.0+26.2`          |
-| [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) | `1.13.13+kotlin.2.4.10` |
+| [Fabric Loader](https://fabricmc.net/)                                    | `>=0.19.5`              |
+| [Fabric API](https://modrinth.com/mod/fabric-api)                         | `0.161.0+26.3`          |
+| [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) | `1.14.1+kotlin.2.4.20`  |
 
 Versions are pinned in `buildSrc/src/main/kotlin/Dependencies.kt`.
 

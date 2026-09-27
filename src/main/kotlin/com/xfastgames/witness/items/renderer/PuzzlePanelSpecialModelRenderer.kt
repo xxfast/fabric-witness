@@ -37,7 +37,7 @@ object PuzzlePanelSpecialModelRenderer : SpecialModelRenderer<Panel> {
         // Generated-item transforms expect geometry in the unit cube. Keep the live panel on its
         // centre plane, with the same orientation as an ordinary flat item model.
         matrices.translate(1.0, 0.0, 0.5)
-        matrices.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0f))
+        matrices.rotateDegrees(com.mojang.math.Axis.YP, 180.0f)
         val puzzle: Panel = panel ?: Panel.DEFAULT
         PuzzlePanelRenderer.renderPanel(puzzle, matrices, queue, light, overlay)
         PuzzlePanelRenderer.renderItemBody(puzzle.backgroundColor, puzzle.lineColor, matrices, queue, light, overlay)

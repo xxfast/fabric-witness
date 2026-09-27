@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "witness:panel_recycle"
+        "recipes": "witness:panel_recycle"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
