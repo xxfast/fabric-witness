@@ -12,6 +12,10 @@ object Mods {
     // Dev-only, for verifying shader compatibility. Iris pins this exact Sodium version.
     const val sodium = "maven.modrinth:sodium:mc${Minecraft.version}-0.9.1-fabric"
     const val iris = "maven.modrinth:iris:1.11.2+${Minecraft.version}-fabric"
+
+    // Dev-only, for loading a reference schematic of the island. Litematica needs this MaLiLib.
+    const val litematica = "maven.modrinth:litematica:0.28.8"
+    const val malilib = "maven.modrinth:malilib:0.29.6"
 }
 
 object Google {

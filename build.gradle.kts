@@ -40,6 +40,8 @@ dependencies {
     // dependency metadata, so Sodium must be declared alongside Iris explicitly.
     localRuntime(Mods.sodium)
     localRuntime(Mods.iris)
+    localRuntime(Mods.litematica)
+    localRuntime(Mods.malilib)
 
     testRuntimeOnly(JUnit.jupiter_engine)
     testRuntimeOnly(JUnit.platform_launcher)
