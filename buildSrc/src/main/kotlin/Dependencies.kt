@@ -1,7 +1,7 @@
 object Jetbrains {
     object Kotlin {
         // Must match fabric-language-kotlin's bundled Kotlin.
-        const val version = "2.4.20"
+        const val version = "2.4.21"
     }
 }
 
@@ -11,11 +11,11 @@ object Mods {
 
     // Dev-only, for verifying shader compatibility. Iris pins this exact Sodium version.
     const val sodium = "maven.modrinth:sodium:mc${Minecraft.version}-0.9.2-fabric"
-    const val iris = "maven.modrinth:iris:1.11.6+${Minecraft.version}-fabric"
+    const val iris = "maven.modrinth:iris:1.11.7+${Minecraft.version}-fabric"
 
     // Dev-only, for loading a reference schematic of the island. Litematica needs this MaLiLib.
-    const val litematica = "maven.modrinth:litematica:0.29.0"
-    const val malilib = "maven.modrinth:malilib:0.30.1"
+    const val litematica = "maven.modrinth:litematica:0.29.1"
+    const val malilib = "maven.modrinth:malilib:0.30.2"
 }
 
 object Google {
@@ -32,7 +32,7 @@ object JUnit {
 object Fabric {
 
     object Kotlin {
-        const val version = "1.14.1+kotlin.${Jetbrains.Kotlin.version}"
+        const val version = "1.14.2+kotlin.${Jetbrains.Kotlin.version}"
     }
 
     object Loader {
@@ -41,7 +41,7 @@ object Fabric {
     }
 
     object API {
-        const val version = "0.161.0+26.3"
+        const val version = "0.163.0+26.3"
     }
 
     object Loom {

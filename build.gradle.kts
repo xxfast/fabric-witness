@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     // NOTE: Gradle 9's plugins {} block cannot resolve buildSrc constants, so
     // the plugin versions are inlined here (kept in sync with Dependencies.kt).
-    kotlin("jvm") version "2.4.20"
+    kotlin("jvm") version "2.4.21"
     // 26.1+ uses the fully-qualified loom plugin id.
     id("net.fabricmc.fabric-loom") version "1.18.2"
     `maven-publish`

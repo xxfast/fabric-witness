@@ -28,8 +28,8 @@ For the migration notes (1.17.1 → 1.21.11 → 26.2 → 26.3), see [`MIGRATION.
 | Dependency                                                                | Version                 |
 |---------------------------------------------------------------------------|-------------------------|
 | [Fabric Loader](https://fabricmc.net/)                                    | `>=0.19.5`              |
-| [Fabric API](https://modrinth.com/mod/fabric-api)                         | `0.161.0+26.3`          |
-| [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) | `1.14.1+kotlin.2.4.20`  |
+| [Fabric API](https://modrinth.com/mod/fabric-api)                         | `0.163.0+26.3`          |
+| [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) | `1.14.2+kotlin.2.4.21`  |
 
 Versions are pinned in `buildSrc/src/main/kotlin/Dependencies.kt`.
 
