@@ -7,10 +7,29 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-19
+
+### Added
+
+- Added the screen puzzle frame, the opening shed's CRT cabinet as a second frame housing
+  - Craft one shapeless from an iron puzzle frame and a glass pane. It behaves exactly like the
+    iron frame: same power, same stands, same cables, same solver
+  - The cabinet is full width, so a row shares one housing. The panel shows as a rounded tube
+    in its backdrop colour behind black glass, with a curved picture, scanlines and static when
+    lit. Under a shader pack only the curve shows
+  - Tracing on a screen frame plays the CRT panel cues that had shipped unregistered
+
 ### Changed
 
+- Support for **Minecraft 26.3** (up from 26.2)
+  - Needs Fabric Loader 0.19.5 and Fabric Language Kotlin 1.14.2 (Kotlin 2.4.21). See the README
+    for the Fabric API and LibGui versions
+- A solved frame with a choice of ends now powers its one neighbouring frame or cable whatever
+  the used nub says, so an Orchard tree on a stand can light the cable leaving sideways. With two
+  or more neighbours the nub still rules
 - Panel lines and lit cables glow in the dye's sign-text shade rather than its wool shade, so a
   pink line is the Orchard's hot pink instead of pastel
+- A loose puzzle panel, held or dropped, now has a back and edges instead of vanishing from behind
 
 ## [0.14.0] - 2026-09-06
 
