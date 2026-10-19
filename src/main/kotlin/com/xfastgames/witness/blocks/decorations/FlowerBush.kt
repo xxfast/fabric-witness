@@ -3,6 +3,7 @@ package com.xfastgames.witness.blocks.decorations
 import com.xfastgames.witness.utils.blockSettings
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.BonemealSource
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.BonemealableBlock
 import net.minecraft.world.level.block.VegetationBlock
@@ -42,11 +43,11 @@ abstract class FlowerBush(settings: BlockBehaviour.Properties) : VegetationBlock
     ): VoxelShape =
         Shapes.empty()
 
-    override fun isValidBonemealTarget(world: LevelReader, pos: BlockPos, state: BlockState): Boolean = true
+    override fun isValidBonemealTarget(world: LevelReader, pos: BlockPos, state: BlockState, source: BonemealSource): Boolean = true
 
-    override fun isBonemealSuccess(world: Level, random: RandomSource, pos: BlockPos, state: BlockState): Boolean = true
+    override fun isBonemealSuccess(world: Level, random: RandomSource, pos: BlockPos, state: BlockState, source: BonemealSource): Boolean = true
 
-    override fun performBonemeal(world: ServerLevel, random: RandomSource, pos: BlockPos, state: BlockState) {
+    override fun performBonemeal(world: ServerLevel, random: RandomSource, pos: BlockPos, state: BlockState, source: BonemealSource) {
         Block.popResource(world, pos, ItemStack(this))
     }
 

@@ -1,6 +1,7 @@
 package com.xfastgames.witness.screens.solver
 
 import com.google.common.graph.Graph
+import com.mojang.blaze3d.platform.InputConstants
 import com.xfastgames.witness.blocks.redstone.IronPuzzleFrameBlock
 import com.xfastgames.witness.entities.PuzzleFrameBlockEntity
 import com.xfastgames.witness.entities.SubmitSolutionPayload
@@ -167,7 +168,7 @@ class PuzzleSolverScreen(
 
     override fun keyPressed(input: KeyEvent): Boolean {
         when (input.key()) {
-            69 -> { // E 🙃
+            InputConstants.KEY_E -> { // 🙃
                 minecraft?.closeScreen()
                 return true
             }
@@ -308,7 +309,7 @@ class PuzzleSolverScreen(
 
         // Right-click closes the solver while idle. During a trace it releases and submits the
         // line, just like left-click, so both buttons accept only valid solutions.
-        if (button == 1 && !solver.isSolving) {
+        if (button == InputConstants.MOUSE_BUTTON_RIGHT && !solver.isSolving) {
             Minecraft.getInstance().closeScreen()
             return true
         }
@@ -367,6 +368,7 @@ class PuzzleSolverScreen(
         PanelAttractPulse.clear()
         PanelErrorFlash.clear()
         minecraft?.player?.play(WitnessSounds.FOCUS_MODE_EXIT)
+        minecraft?.mouseHandler?.show()
         minecraft?.mouseHandler?.releaseMouse()
         super.removed()
     }
@@ -479,7 +481,7 @@ class PuzzleSolverScreen(
         }
 
         pendingCursorWarp = lineTipPosition
-        // GUI coords → GLFW screen coords (not framebuffer; retina would 2× otherwise).
+        // GUI coords → window coords (not framebuffer; retina would 2× otherwise).
         Minecraft.getInstance().mouseHandler.setGuiPosition(lineTipPosition.x, lineTipPosition.y)
     }
 

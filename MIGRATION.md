@@ -236,3 +236,67 @@ texture material. Plant block models do not need a code-side layer map if their 
 - In-game checklist: solver focus mode, composer GUI, panel craft/dye/recycle, frame BER.
 - Confirm plant foliage looks cutout (not solid black boxes) in the play-test world.
 - Data component compatibility for existing panels after the version hop.
+
+---
+
+# Migration: Minecraft 26.2 → 26.3 (September 2026)
+
+## Toolchain
+
+| Dependency           | 26.2                    | 26.3                                          |
+|----------------------|-------------------------|-----------------------------------------------|
+| Minecraft            | 26.2                    | 26.3                                          |
+| Fabric API           | 0.156.0+26.2            | 0.161.0+26.3                                  |
+| Fabric Loader        | 0.19.3                  | 0.19.5 (LibGui 18 needs it)                   |
+| Fabric Loom          | 1.17.17                 | 1.18.2                                        |
+| Gradle               | 9.6.1                   | 9.7.1 (Loom 1.18 is built against 9.7)        |
+| Kotlin / FLK         | 2.4.10 / 1.13.13        | 2.4.20 / 1.14.1+kotlin.2.4.20                 |
+| LibGui               | 17.0.0+26.2             | 18.0.1+26.3-rc-2 (no final build yet; declares `>=26.3-rc.2`) |
+| ModMenu              | 20.0.1                  | 21.0.0                                        |
+| Sodium / Iris (dev)  | 0.9.1 / 1.11.2          | 0.9.2 / 1.11.6                                |
+| Litematica / MaLiLib | 0.28.8 / 0.29.6         | 0.29.0 / 0.30.1                               |
+
+## API churn applied for 26.3
+
+### Input: GLFW → SDL3
+- `InputConstants.grabOrReleaseMouse(window, mode, x, y)` is gone; only `grabMouse` / `releaseMouse`
+  remain. `utils/Mouse.kt` calls LWJGL's SDL3 bindings directly: `SDL_HideCursor` /
+  `SDL_ShowCursor` and `SDL_WarpMouseInWindow(window.handle(), x, y)`. Vanilla never shows a hidden
+  cursor again, so the solver's `removed()` calls `show()` before `releaseMouse()`.
+- **Mouse buttons renumbered** to SDL's: left 0 → 1, right 1 → 3 (middle stays 2). Key codes are
+  SDL scancodes too (`E` 69 → 8). Always compare against `InputConstants.MOUSE_BUTTON_*` / `KEY_*`,
+  never raw numbers.
+
+### Blocks
+- Block codecs are gone: no `simpleCodec`, no `codec()` override.
+- `BonemealableBlock` methods take a trailing `BonemealSource`.
+- `LeavesBlock` is concrete and takes an `AmbientLeavesBlockSoundPlayer`
+  (`noAmbientSound()` for pink cedar); falling-leaf particles live in its subclasses.
+
+### Rendering
+- `com.mojang.blaze3d.pipeline.*` / `PrimitiveTopology` → `com.mojang.renderpearl.api.pipeline.*`.
+- `BindGroupLayouts.MATRICES_PROJECTION` split into `PROJECTION` + `DYNAMIC_TRANSFORMS`.
+- `PoseStack.mulPose(Quaternionf)` → `rotateDegrees(Axis, degrees)` / `rotate(Quaternionfc)`.
+- `VertexConsumer.setUv3` is new (glint formats only).
+- Shaders: `#moj_import` → `#include`, `#extension GL_ARB_separate_shader_objects : require`, and
+  every `in` / `out` needs an explicit `layout(location = N)`. The CRT shader follows vanilla
+  `core/text`.
+
+### Data
+- `worldgen/configured_feature/` → `worldgen/feature/`; the `config` wrapper is flattened and
+  state providers take `{"id": ...}`.
+- Loot tables: `"conditions": [{"condition": X}]` → `"condition": {"type": X}` (several become
+  `all_of`), `"functions": [{"function": X}]` → `"modifier": [{"type": X}]`,
+  `block_state_property` → `match_block` (`block` → `blocks`, `properties` → `state`). The old keys
+  are **silently ignored**; the only symptom was an "Unreachable entry!" warning on pink cedar leaves.
+- Advancements: `recipe_unlocked` takes `recipes`, not `recipe`.
+- `utils/Registry.kt`'s unused `registerFeature` was deleted (`Feature` is no longer generic).
+
+## Smoke test (2026-09-27)
+- Build + 235 unit tests green. Client joins `WitnessPlayground` with only the log noise 26.2 had.
+- A 26.2 copy of the play-test world is kept at `run/saves-26.2-backup/New World`.
+
+## Follow-ups
+- In-game: solver focus mode (cursor hide / warp / tip-lock, high-DPI), CRT picture, loot drops.
+- `tools/witness-island/WorldWriter.java` still writes 26.2 region files (the game upgrades them on load).
+- Swap LibGui to a final 26.3 build when one ships.

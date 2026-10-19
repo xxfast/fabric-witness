@@ -9,14 +9,12 @@
           "name": "witness:blue_bougainvillea"
         }
       ],
-      "conditions": [
-        {
-          "condition": "minecraft:match_tool",
-          "predicate": {
-            "items": "minecraft:shears"
-          }
+      "condition": {
+        "type": "minecraft:match_tool",
+        "predicate": {
+          "items": "minecraft:shears"
         }
-      ]
+      }
     }
   ]
 }

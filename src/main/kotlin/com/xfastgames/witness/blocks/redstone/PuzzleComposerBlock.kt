@@ -1,6 +1,5 @@
 package com.xfastgames.witness.blocks.redstone
 
-import com.mojang.serialization.MapCodec
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.entities.PuzzleComposerBlockEntity
 import com.xfastgames.witness.screens.composer.PuzzleComposerScreen.Companion.PUZZLE_OUTPUT_SLOT_INDEX
@@ -38,15 +37,12 @@ class PuzzleComposerBlock(settings: BlockBehaviour.Properties) : BaseEntityBlock
 
     companion object {
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "puzzle_composer")
-        val CODEC: MapCodec<PuzzleComposerBlock> = simpleCodec(::PuzzleComposerBlock)
         val BLOCK: Block = registerBlock(
             PuzzleComposerBlock(blockSettings(IDENTIFIER).strength(2.5F).requiresCorrectToolForDrops().sound(SoundType.METAL)),
             IDENTIFIER
         )
         val BLOCK_ITEM: BlockItem = registerBlockItem(BLOCK, IDENTIFIER)
     }
-
-    override fun codec(): MapCodec<out BaseEntityBlock> = CODEC
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 

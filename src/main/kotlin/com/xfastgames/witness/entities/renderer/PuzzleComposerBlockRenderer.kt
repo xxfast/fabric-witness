@@ -69,10 +69,10 @@ class PuzzleComposerBlockRenderer : BlockEntityRenderer<PuzzleComposerBlockEntit
         matrices.translate(.5, .815, .5)
 
         // Rot the entity to the direction of the block
-        matrices.mulPose(Axis.YP.rotationDegrees(-state.facing.toYRot()))
+        matrices.rotateDegrees(Axis.YP, -state.facing.toYRot())
 
         // Rot to horizontal plane
-        matrices.mulPose(Axis.XP.rotationDegrees(90.0f))
+        matrices.rotateDegrees(Axis.XP, 90.0f)
 
         // Scale the panel
         matrices.scale(0.85f, 0.85f, 1f)

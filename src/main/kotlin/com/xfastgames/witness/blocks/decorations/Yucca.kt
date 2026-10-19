@@ -1,12 +1,12 @@
 package com.xfastgames.witness.blocks.decorations
 
-import com.mojang.serialization.MapCodec
 import com.xfastgames.witness.Witness
 import com.xfastgames.witness.utils.Clientside
 import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.BonemealSource
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.BonemealableBlock
 import net.minecraft.world.level.block.VegetationBlock
@@ -25,12 +25,9 @@ open class Yucca(settings: BlockBehaviour.Properties) : VegetationBlock(settings
 
     companion object {
         val IDENTIFIER = Identifier.fromNamespaceAndPath(Witness.IDENTIFIER, "yucca")
-        val CODEC: MapCodec<Yucca> = simpleCodec(::Yucca)
         val BLOCK = registerBlock(Yucca(bushSettings(IDENTIFIER)), IDENTIFIER)
         val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
     }
-
-    override fun codec(): MapCodec<out VegetationBlock> = CODEC
 
     override fun onClient() {
     }
@@ -50,11 +47,11 @@ open class Yucca(settings: BlockBehaviour.Properties) : VegetationBlock(settings
     ): VoxelShape =
         Shapes.empty()
 
-    override fun isValidBonemealTarget(world: LevelReader, pos: BlockPos, state: BlockState): Boolean = true
+    override fun isValidBonemealTarget(world: LevelReader, pos: BlockPos, state: BlockState, source: BonemealSource): Boolean = true
 
-    override fun isBonemealSuccess(world: Level, random: RandomSource, pos: BlockPos, state: BlockState): Boolean = true
+    override fun isBonemealSuccess(world: Level, random: RandomSource, pos: BlockPos, state: BlockState, source: BonemealSource): Boolean = true
 
-    override fun performBonemeal(world: ServerLevel, random: RandomSource, pos: BlockPos, state: BlockState) {
+    override fun performBonemeal(world: ServerLevel, random: RandomSource, pos: BlockPos, state: BlockState, source: BonemealSource) {
         if (state.block is Yucca) world.setBlock(pos, TallYucca.BLOCK.defaultBlockState(), Block.UPDATE_ALL)
     }
 

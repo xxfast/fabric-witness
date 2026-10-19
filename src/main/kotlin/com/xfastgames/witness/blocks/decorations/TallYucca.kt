@@ -6,6 +6,7 @@ import com.xfastgames.witness.utils.registerBlock
 import com.xfastgames.witness.utils.registerBlockItem
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.BonemealSource
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.item.ItemStack
 import net.minecraft.server.level.ServerLevel
@@ -21,7 +22,7 @@ class TallYucca(settings: BlockBehaviour.Properties) : Yucca(settings), Clientsi
         val BLOCK_ITEM = registerBlockItem(BLOCK, IDENTIFIER)
     }
 
-    override fun performBonemeal(world: ServerLevel, random: RandomSource, pos: BlockPos, state: BlockState) {
+    override fun performBonemeal(world: ServerLevel, random: RandomSource, pos: BlockPos, state: BlockState, source: BonemealSource) {
         Block.popResource(world, pos, ItemStack(Yucca.BLOCK))
     }
 

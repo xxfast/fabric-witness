@@ -4,6 +4,7 @@ import com.xfastgames.witness.utils.blockSettings
 import com.xfastgames.witness.utils.neighbours
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.BonemealSource
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.BonemealableBlock
 import net.minecraft.world.level.block.VegetationBlock
@@ -59,13 +60,13 @@ abstract class Drape(settings: BlockBehaviour.Properties) :
 
     abstract fun isDrape(block: Block): Boolean
 
-    override fun isValidBonemealTarget(world: LevelReader, pos: BlockPos, state: BlockState) = true
+    override fun isValidBonemealTarget(world: LevelReader, pos: BlockPos, state: BlockState, source: BonemealSource) = true
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(PART)
     }
 
-    override fun performBonemeal(world: ServerLevel, random: RandomSource, pos: BlockPos, state: BlockState) {
+    override fun performBonemeal(world: ServerLevel, random: RandomSource, pos: BlockPos, state: BlockState, source: BonemealSource) {
         val positionBelow: BlockPos = pos.below(1)
         val blockStateBelow: BlockState = world.getBlockState(positionBelow)
         val blockBelow: Block = blockStateBelow.block
@@ -73,7 +74,7 @@ abstract class Drape(settings: BlockBehaviour.Properties) :
         when (state.getValue(PART)) {
             DrapePart.TOP, DrapePart.MIDDLE ->
                 if (isDrape(blockBelow) && blockBelow is BonemealableBlock)
-                    blockBelow.performBonemeal(world, random, positionBelow, blockStateBelow)
+                    blockBelow.performBonemeal(world, random, positionBelow, blockStateBelow, source)
 
             DrapePart.LOWER -> {
                 if (blockStateBelow.isAir) {
@@ -95,7 +96,7 @@ abstract class Drape(settings: BlockBehaviour.Properties) :
 
     override fun isRandomlyTicking(state: BlockState): Boolean = true
 
-    override fun isBonemealSuccess(world: Level, random: RandomSource, pos: BlockPos, state: BlockState): Boolean =
+    override fun isBonemealSuccess(world: Level, random: RandomSource, pos: BlockPos, state: BlockState, source: BonemealSource): Boolean =
         random.nextBoolean()
 
     override fun canSurvive(state: BlockState, world: LevelReader, pos: BlockPos): Boolean {

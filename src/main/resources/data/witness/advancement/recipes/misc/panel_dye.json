@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "witness:panel_dye"
+        "recipes": "witness:panel_dye"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

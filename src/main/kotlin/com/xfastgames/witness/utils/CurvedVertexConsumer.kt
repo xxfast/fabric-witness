@@ -73,6 +73,9 @@ class CurvedVertexConsumer(
 
     override fun setLineWidth(width: Float): VertexConsumer = this
 
+    // Only the glint formats carry a UV3, and nothing curved is drawn with a glint.
+    override fun setUv3(u: Float, v: Float): VertexConsumer = this
+
     fun flush() {
         if (count == CORNERS) emit()
         count = 0

@@ -97,7 +97,7 @@ class PuzzleFrameBlockRenderer : BlockEntityRenderer<PuzzleFrameBlockEntity, Puz
         matrices.translate(.5, .5, .5)
 
         // Rot the entity to the direction of the block
-        matrices.mulPose(Axis.YP.rotationDegrees(-state.facing.toYRot()))
+        matrices.rotateDegrees(Axis.YP, -state.facing.toYRot())
 
         // Scale the panel
         matrices.scale(state.scale, state.scale, 1f)
